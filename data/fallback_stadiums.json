@@ -1,0 +1,6 @@
+[
+  {"stadium_id":"1","stadium":"Estadio Azteca","city":"Mexico City","country":"Mexico","capacity":83000},
+  {"stadium_id":"2","stadium":"MetLife Stadium","city":"East Rutherford, NJ","country":"United States","capacity":82500},
+  {"stadium_id":"3","stadium":"AT&T Stadium","city":"Arlington, TX","country":"United States","capacity":94000},
+  {"stadium_id":"4","stadium":"SoFi Stadium","city":"Inglewood, CA","country":"United States","capacity":70000}
+]
