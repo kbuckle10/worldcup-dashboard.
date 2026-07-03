@@ -46,16 +46,81 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-      .main-title {font-size: 2.4rem; font-weight: 800; margin-bottom: 0.2rem;}
-      .subtle {color: #667085; font-size: 0.95rem;}
-      .metric-card {border: 1px solid #e5e7eb; border-radius: 16px; padding: 16px; background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.04);}
-      .match-card {border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px; margin-bottom: 10px; background: #ffffff;}
-      .tag {display:inline-block; padding: 2px 8px; border-radius: 999px; background:#eef2ff; color:#3730a3; font-size:.78rem; font-weight:600; margin-right:4px;}
-      .live {background:#fee2e2; color:#991b1b;}
-      .finished {background:#dcfce7; color:#166534;}
-      .scheduled {background:#f3f4f6; color:#374151;}
-      .explain {background:#f8fafc; border-left: 4px solid #94a3b8; padding: 12px 14px; border-radius: 8px;}
-      div[data-testid="stMetricValue"] {font-size: 1.65rem;}
+      :root {
+        --wc-card-bg: var(--background-color);
+        --wc-card-text: var(--text-color);
+        --wc-muted-text: rgba(120, 130, 150, 1);
+        --wc-border: rgba(120, 130, 150, 0.35);
+        --wc-soft-bg: rgba(120, 130, 150, 0.12);
+      }
+
+      .main-title {
+        font-size: 2.4rem;
+        font-weight: 800;
+        margin-bottom: 0.2rem;
+        color: var(--text-color);
+      }
+
+      .subtle {
+        color: var(--wc-muted-text);
+        font-size: 0.95rem;
+      }
+
+      .metric-card,
+      .match-card {
+        border: 1px solid var(--wc-border);
+        border-radius: 14px;
+        padding: 14px;
+        margin-bottom: 10px;
+        background: var(--secondary-background-color);
+        color: var(--text-color);
+        box-shadow: 0 1px 2px rgba(0,0,0,.18);
+      }
+
+      .match-card h4,
+      .match-card b,
+      .metric-card h4,
+      .metric-card b {
+        color: var(--text-color) !important;
+      }
+
+      .tag {
+        display:inline-block;
+        padding:2px 8px;
+        border-radius:999px;
+        background: var(--wc-soft-bg);
+        color: var(--text-color);
+        font-size:.78rem;
+        font-weight:600;
+        margin-right:4px;
+      }
+
+      .live {
+        background: rgba(239, 68, 68, 0.18);
+        color: #ef4444;
+      }
+
+      .finished {
+        background: rgba(34, 197, 94, 0.18);
+        color: #22c55e;
+      }
+
+      .scheduled {
+        background: rgba(148, 163, 184, 0.18);
+        color: var(--text-color);
+      }
+
+      .explain {
+        background: var(--secondary-background-color);
+        color: var(--text-color);
+        border-left: 4px solid var(--wc-border);
+        padding: 12px 14px;
+        border-radius: 8px;
+      }
+
+      div[data-testid="stMetricValue"] {
+        font-size: 1.65rem;
+      }
     </style>
     """,
     unsafe_allow_html=True,
