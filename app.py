@@ -127,6 +127,7 @@ st.markdown(
 )
 
 
+
 def secret(name: str, default: str = "") -> str:
     """Safely read Streamlit secrets locally or on Streamlit Cloud."""
     try:
