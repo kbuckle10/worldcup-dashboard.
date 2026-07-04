@@ -216,14 +216,15 @@ st.markdown(
       .wc-bracket-score {font-weight:950; color:#fff;}
       .wc-bracket-winner {border-left:3px solid var(--wc-green); padding-left:6px;}
       .wc-tab-nav {margin:8px 0 24px; padding:8px; border:1px solid rgba(148,163,184,.22); border-radius:22px; background:linear-gradient(90deg, rgba(15,31,53,.92), rgba(8,20,36,.82)); box-shadow:0 14px 38px rgba(0,0,0,.20); overflow-x:auto;}
-      div[role="radiogroup"][aria-label="Dashboard section"] {display:flex !important; flex-wrap:nowrap !important; gap:7px !important; align-items:stretch !important;}
-      div[role="radiogroup"][aria-label="Dashboard section"] label {position:relative; min-width:0 !important; white-space:nowrap; border:1px solid rgba(148,163,184,.24); border-radius:999px; padding:8px 12px !important; min-height:40px; font-weight:950; background:rgba(148,163,184,.10); transition:all .18s ease;}
-      div[role="radiogroup"][aria-label="Dashboard section"] label:hover {border-color:rgba(56,189,248,.70); background:rgba(56,189,248,.16); transform:translateY(-1px);}
-      div[role="radiogroup"][aria-label="Dashboard section"] label:has(input:checked) {color:#06111f !important; background:linear-gradient(135deg, #f7c948, #38bdf8); border-color:rgba(255,255,255,.45); box-shadow:0 10px 28px rgba(56,189,248,.20);}
-      div[role="radiogroup"][aria-label="Dashboard section"] label:has(input:checked) * {color:#06111f !important;}
-      div[role="radiogroup"][aria-label="Dashboard section"] label > div:first-child {display:none !important;}
+      div[role="radiogroup"][aria-label="Dashboard section"], div[role="radiogroup"][aria-label="Dashboard section selector"] {display:flex !important; flex-wrap:nowrap !important; gap:7px !important; align-items:stretch !important;}
+      div[role="radiogroup"][aria-label="Dashboard section"] label, div[role="radiogroup"][aria-label="Dashboard section selector"] label {position:relative; min-width:0 !important; white-space:nowrap; border:1px solid rgba(148,163,184,.24); border-radius:999px; padding:8px 12px !important; min-height:40px; font-weight:950; background:rgba(148,163,184,.10); transition:all .18s ease;}
+      div[role="radiogroup"][aria-label="Dashboard section"] label:hover, div[role="radiogroup"][aria-label="Dashboard section selector"] label:hover {border-color:rgba(56,189,248,.70); background:rgba(56,189,248,.16); transform:translateY(-1px);}
+      div[role="radiogroup"][aria-label="Dashboard section"] label:has(input:checked), div[role="radiogroup"][aria-label="Dashboard section selector"] label:has(input:checked) {color:#06111f !important; background:linear-gradient(135deg, #f7c948, #38bdf8); border-color:rgba(255,255,255,.45); box-shadow:0 10px 28px rgba(56,189,248,.20);}
+      div[role="radiogroup"][aria-label="Dashboard section"] label:has(input:checked) *, div[role="radiogroup"][aria-label="Dashboard section selector"] label:has(input:checked) * {color:#06111f !important;}
+      div[role="radiogroup"][aria-label="Dashboard section"] label > div:first-child, div[role="radiogroup"][aria-label="Dashboard section selector"] label > div:first-child {display:none !important;}
       .wc-basics-link {color:#67e8f9 !important; font-weight:900; text-decoration:none; border-bottom:1px solid rgba(103,232,249,.55);}
       .wc-basics-link:hover {color:#f7c948 !important; border-bottom-color:#f7c948;}
+      div.stButton > button[kind="secondary"] {border-radius:999px;}
       .wc-live-prob-row {display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; font-weight:900;}
       .wc-prob-side {display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:12px; background:rgba(148,163,184,.12); border:1px solid rgba(148,163,184,.18); color:#f8fafc;}
       .wc-prob-side.home {background:linear-gradient(90deg, rgba(34,197,94,.24), rgba(148,163,184,.10));}
@@ -291,6 +292,8 @@ st.markdown(
       .match-card:hover,.wc-live-card:hover,.wc-summary-card:hover,.wc-player-card:hover {transform:translateY(-2px); border-color:rgba(247,201,72,.46); box-shadow:0 18px 50px rgba(0,0,0,.30);}
       .wc-live-meta{display:flex;justify-content:space-between;align-items:center;gap:12px}.wc-live-clock{font-weight:950;color:#f7c948;border:1px solid rgba(247,201,72,.32);border-radius:999px;padding:5px 10px;background:rgba(247,201,72,.10)}
       .wc-centre-hero{border:1px solid rgba(247,201,72,.38);border-radius:24px;padding:18px;background:radial-gradient(circle at 50% 0,rgba(247,201,72,.16),transparent 18rem),rgba(8,20,36,.94)}.wc-centre-score{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;text-align:center;margin-top:14px}.wc-centre-score strong{font-size:clamp(2rem,6vw,4rem);color:#fff}.wc-click-hint,.wc-mini-note{margin-top:10px;color:#a8b3c7;font-size:.84rem;text-align:center}
+      .wc-overview-spacer{height:18px;}
+      .wc-inline-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:-4px 0 12px;}
       .wc-timeline-strip{height:18px;margin:18px 8px 10px;position:relative;border-radius:999px;background:linear-gradient(90deg,rgba(34,197,94,.25),rgba(247,201,72,.25),rgba(56,189,248,.25))}.wc-timeline-dot{position:absolute;top:50%;width:13px;height:13px;transform:translate(-50%,-50%);border-radius:50%;background:#22c55e;border:2px solid #fff;box-shadow:0 0 18px rgba(34,197,94,.5)}.wc-timeline-dot.away{background:#38bdf8}.wc-match-events{display:grid;grid-template-columns:1fr 54px 1fr;gap:8px;align-items:center}.wc-event-left{text-align:right}.wc-event-right{text-align:left}.wc-event-time{text-align:center;color:#f7c948;font-weight:950}
       .wc-stat-row{display:grid;grid-template-columns:1fr 150px 1fr;gap:12px;align-items:center;margin:10px 0}.wc-stat-bar{height:9px;border-radius:999px;background:rgba(148,163,184,.18);overflow:hidden}.wc-stat-fill-home,.wc-stat-fill-away{height:100%;border-radius:999px}.wc-stat-fill-home{margin-left:auto;background:linear-gradient(90deg,#22c55e,#f7c948)}.wc-stat-fill-away{background:linear-gradient(90deg,#38bdf8,#818cf8)}
       .wc-refresh-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(56,189,248,.28);border-radius:999px;padding:5px 10px;background:rgba(56,189,248,.10);font-weight:800;color:#dff6ff}.wc-bracket-board{position:relative}.wc-bracket-board::before{content:"";position:absolute;inset:84px 238px;background:linear-gradient(90deg,transparent 0 8%,rgba(247,201,72,.28) 8% 12%,transparent 12% 88%,rgba(247,201,72,.28) 88% 92%,transparent 92%),linear-gradient(0deg,transparent 0 47%,rgba(247,201,72,.38) 47% 53%,transparent 53%);pointer-events:none;animation:routePulse 2.4s ease-in-out infinite}.wc-bracket-card::before{content:"";position:absolute;top:50%;height:2px;width:18px;background:linear-gradient(90deg,rgba(247,201,72,.15),rgba(247,201,72,.7));animation:routePulse 2.4s ease-in-out infinite}.wc-bracket-side.left .wc-bracket-card::before{right:-18px}.wc-bracket-side.right .wc-bracket-card::before{left:-18px}.wc-route-legend{text-align:center;color:#a8b3c7;margin-top:10px;font-size:.86rem}.wc-team-profile{border:1px solid var(--wc-border);border-radius:24px;padding:18px;background:linear-gradient(135deg,rgba(15,31,53,.94),rgba(8,20,36,.94));}.wc-team-hero{display:flex;gap:14px;align-items:center}.wc-team-flag-xl{font-size:3rem}.wc-form-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.wc-form-badge{height:28px;min-width:28px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:950;background:rgba(148,163,184,.18)}.wc-form-badge.win{background:rgba(34,197,94,.22);color:#bbf7d0}.wc-form-badge.loss{background:rgba(239,68,68,.18);color:#fecaca}.wc-form-badge.draw{background:rgba(247,201,72,.18);color:#fde68a}.wc-player-grid{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}.wc-player-card{border:1px solid var(--wc-border);border-radius:18px;padding:14px;background:rgba(15,31,53,.82)}.wc-player-card-top{display:flex;gap:12px;align-items:center}.wc-player-card .wc-player-photo,.wc-player-card .wc-player-avatar{width:54px;height:54px;font-size:1rem}.wc-player-meta{color:#a8b3c7;font-size:.84rem;margin-top:4px}.wc-player-statline{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.wc-player-stat{border-radius:12px;background:rgba(148,163,184,.12);padding:8px;text-align:center}.wc-player-stat b{display:block;color:#fff;font-size:1.1rem}
@@ -1467,19 +1470,26 @@ def render_live_score_card(row: pd.Series, key_prefix: str = "live", standings_d
     home_prob, away_prob = matchup_probabilities(home, away, row)
     events_html = event_timeline_html(row) if row.get("status") == "Live" else ""
     prob_html = probability_row_html(home, away, home_prob, away_prob)
-    st.markdown(f'''<div class="wc-live-card"><div class="wc-live-meta"><span>{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{client_live_clock_html(row, minute)}</span></div><div class="wc-live-teams"><div class="wc-live-team">{team_chip(home)}<div class="subtle">{esc(team_context_line(home, standings_df))}</div></div><div class="wc-live-score">{esc(score)}</div><div class="wc-live-team">{team_chip(away)}<div class="subtle">{esc(team_context_line(away, standings_df))}</div></div></div><div class="subtle" style="text-align:center;margin-top:8px;">{esc(row.get('kickoff','TBD'))}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div><div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div>{prob_html}{events_html}<div class="wc-click-hint">Open for timeline, stats and source data</div></div>''', unsafe_allow_html=True)
     match_key = clean_text(row.get("match_id")) or str(abs(hash(str(row.to_dict()))))
-    if st.button(f"Open Match Centre: {home} vs {away}", key=f"{key_prefix}_{match_key}"):
-        open_match_centre(row)
-    team_cols = st.columns(2)
+    detail_key = f"{key_prefix}_{match_key}_details_open"
+    if detail_key not in st.session_state:
+        st.session_state[detail_key] = row.get("status") == "Live"
+
+    st.markdown(f'''<div class="wc-live-card"><div class="wc-live-meta"><span>{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{client_live_clock_html(row, minute)}</span></div><div class="wc-live-teams"><div class="wc-live-team">{team_chip(home)}<div class="subtle">{esc(team_context_line(home, standings_df))}</div></div><div class="wc-live-score">{esc(score)}</div><div class="wc-live-team">{team_chip(away)}<div class="subtle">{esc(team_context_line(away, standings_df))}</div></div></div><div class="subtle" style="text-align:center;margin-top:8px;">{esc(row.get('kickoff','TBD'))}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div><div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div>{prob_html}{events_html}<div class="wc-click-hint">Use the match tile control below to expand/collapse timeline, stats and source data</div></div>''', unsafe_allow_html=True)
+    if st.button(f"{'Hide' if st.session_state[detail_key] else 'Show'} details: {home} vs {away}", key=f"{key_prefix}_{match_key}_tile_toggle", use_container_width=True):
+        st.session_state[detail_key] = not st.session_state[detail_key]
     if standings_df is not None:
+        st.markdown('<div class="wc-inline-actions">', unsafe_allow_html=True)
+        team_cols = st.columns(2)
         with team_cols[0]:
-            if st.button(f"{home} team stats", key=f"{key_prefix}_{match_key}_home_team"):
+            if st.button(f"{home} stats", key=f"{key_prefix}_{match_key}_home_team"):
                 render_team_popup(home, pd.DataFrame([row]), standings_df)
         with team_cols[1]:
-            if st.button(f"{away} team stats", key=f"{key_prefix}_{match_key}_away_team"):
+            if st.button(f"{away} stats", key=f"{key_prefix}_{match_key}_away_team"):
                 render_team_popup(away, pd.DataFrame([row]), standings_df)
-    render_live_detail_expander(row, expanded=row.get("status") == "Live")
+        st.markdown('</div>', unsafe_allow_html=True)
+    if st.session_state[detail_key]:
+        render_live_detail_expander(row, expanded=True)
 
 
 def bracket_card_html(row: Optional[pd.Series] = None, placeholder: str = "TBD") -> str:
@@ -1701,7 +1711,7 @@ def render_players_tab(matches_df: pd.DataFrame) -> None:
     detail_cols = st.columns(3)
     for i, r in enumerate(out.head(6).itertuples()):
         with detail_cols[i % 3]:
-            if st.button(f"Open {r.Player} stats", key=f"player_popup_card_{i}_{r.Player}"):
+            if st.button(f"{r.Player} stats", key=f"player_popup_card_{i}_{r.Player}"):
                 render_player_popup(r.Player, matches_df)
     st.write("#### Full player table")
     rows = []
@@ -1727,10 +1737,12 @@ def render_players_tab(matches_df: pd.DataFrame) -> None:
               <th style="text-align:center;padding:12px;">Open</th><th style="text-align:center;padding:12px;">Pen</th><th style="text-align:center;padding:12px;">Card</th>
           </tr></thead><tbody>{''.join(rows)}</tbody></table></div>''', unsafe_allow_html=True)
     if not out.empty:
-        st.write("#### Open a player profile")
-        selected_player = st.selectbox("Player details", out["Player"].tolist(), key="player_detail_select")
-        if st.button("Open selected player stats", key="player_popup_table"):
-            render_player_popup(selected_player, matches_df)
+        st.write("#### Player quick links")
+        quick_cols = st.columns(3)
+        for i, player in enumerate(out["Player"].head(12).tolist()):
+            with quick_cols[i % 3]:
+                if st.button(f"{player} stats", key=f"player_popup_table_{i}_{player}"):
+                    render_player_popup(player, matches_df)
 
 
 def render_insights_tab_v2(matches_df: pd.DataFrame) -> None:
@@ -1842,7 +1854,7 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     st.caption(f"Data source: {source} • Cache: {cache_note}")
 
     st.markdown("### At a glance")
-    st.markdown(f"<div class='explain'><b>Overview shows:</b> current tournament status, live or next match, completed-match progress, goal pace, and headline summary cards. {explain_current_stage(matches_df)} New to football? Start with the <a class='wc-basics-link' href='?tab=Football%20101' target='_self'>Football 101</a> tab for quick rules and tournament basics.</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='explain'><b>Overview shows:</b> current tournament status, live or next match, completed-match progress, goal pace, and headline summary cards. {explain_current_stage(matches_df)} New to football? Start with the <a class='wc-basics-link' href='?tab=Football%20101' target='_self'>Football 101</a> tab for quick rules and tournament basics.</div><div class='wc-overview-spacer'></div>", unsafe_allow_html=True)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -1870,7 +1882,7 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
 def render_matches_tab(matches_df: pd.DataFrame, standings_df: Optional[pd.DataFrame] = None) -> None:
     st.markdown('<div class="wc-section-title">Upcoming & Live</div>', unsafe_allow_html=True)
     st.markdown(
-        "Every live match is pinned at the top. Click **Open Match Centre** on any card for the live clock, timeline, scorers, comparison bars and source stats."
+        "Every live match is pinned at the top. Click a match tile control for the live clock, timeline, scorers, comparison bars and source stats."
     )
 
     if matches_df.empty:
@@ -2067,15 +2079,12 @@ def main() -> None:
     st.sidebar.title("⚽ Controls")
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
-    source_mode = st.sidebar.radio("Data mode", ["Live API", "GitHub OpenFootball", "Demo fallback"], help="Live API can add live minutes when available. OpenFootball is a public fixture/results feed. Demo fallback is local sample data.")
-    no_reload_refresh = st.sidebar.toggle("No-reload refresh", value=True, help="Refresh now clears cached data and reruns Streamlit without forcing a full browser page reload.")
-    if st.sidebar.button("Refresh now", help="Fetch fresh data with a Streamlit rerun instead of a browser meta-refresh."):
+    source_mode = st.sidebar.radio("Data mode", ["Live API", "Demo fallback"], help="Live API can add live minutes when available. Demo fallback is local sample data.")
+    if st.sidebar.button("Refresh now", help="Fetch fresh data with a Streamlit rerun."):
         st.cache_data.clear()
         st.rerun()
 
-    if source_mode == "GitHub OpenFootball":
-        matches, teams, groups, stadiums, source = load_openfootball_data()
-    elif source_mode == "Live API":
+    if source_mode == "Live API":
         matches, teams, groups, stadiums, source = load_live_data(api_base, token)
     else:
         matches, teams, groups, stadiums, source = load_fallback()
@@ -2095,8 +2104,6 @@ def main() -> None:
             for _, row in fdf.head(3).iterrows():
                 st.sidebar.caption(f"{row['kickoff']} — {row['home_team']} {row['score']} {row['away_team']}")
 
-    if no_reload_refresh:
-        st.sidebar.caption("Tip: live match clocks tick every second; use Refresh now to fetch fresh match data without a browser page reload.")
 
     # Global tournament banner: keep identity above the navigation tabs on every page.
     render_hero(matches, source)
@@ -2106,7 +2113,6 @@ def main() -> None:
         <div class="wc-last-refresh" style="text-align:right;color:#a8b3c7;font-size:.78rem;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
           <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-right:7px;"></span>
           Last refreshed: <span id="browser-refresh-time"></span>
-          <span class="wc-refresh-pill" style="margin-left:8px;">No-reload refresh ready</span>
         </div>
         <script>
           const el = document.getElementById("browser-refresh-time");
@@ -2126,12 +2132,12 @@ def main() -> None:
     requested_tab = st.query_params.get("tab", "Overview")
     if requested_tab == "Learn the Basics":
         requested_tab = "Football 101"
-    default_index = tab_names.index(requested_tab) if requested_tab in tab_names else 0
+    if requested_tab in tab_names and st.session_state.get("dashboard_section") not in tab_names:
+        st.session_state["dashboard_section"] = requested_tab
+    default_index = tab_names.index(st.session_state.get("dashboard_section", requested_tab if requested_tab in tab_names else "Overview"))
     st.markdown('<div class="wc-tab-nav">', unsafe_allow_html=True)
-    active_tab = st.radio("Dashboard section", tab_names, index=default_index, horizontal=True, label_visibility="collapsed")
+    active_tab = st.radio("Dashboard section selector", tab_names, index=default_index, horizontal=True, label_visibility="collapsed", key="dashboard_section")
     st.markdown('</div>', unsafe_allow_html=True)
-    if active_tab != requested_tab:
-        st.query_params["tab"] = active_tab
 
     if active_tab == "Overview":
         render_overview(matches, standings, source)
