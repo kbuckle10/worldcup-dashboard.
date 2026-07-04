@@ -173,9 +173,23 @@ st.markdown(
       .wc-bracket-team span:first-child {white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
       .wc-bracket-score {font-weight:950; color:#fff;}
       .wc-bracket-winner {border-left:3px solid var(--wc-green); padding-left:6px;}
-      .stTabs [data-baseweb="tab-list"] {gap: 10px;}
-      .stTabs [data-baseweb="tab"] {color: var(--wc-muted); font-weight: 800;}
-      .stTabs [aria-selected="true"] {color: #fff !important;}
+      .wc-tab-nav {display:flex; flex-wrap:wrap; gap:0; border-top:1px solid rgba(148,163,184,.18); border-bottom:1px solid rgba(148,163,184,.28); margin:8px 0 28px;}
+      .wc-tab-divider {width:1px; background:rgba(148,163,184,.24); min-height:48px;}
+      div[role="radiogroup"][aria-label="Dashboard section"] {gap:0 !important;}
+      div[role="radiogroup"][aria-label="Dashboard section"] label {border-right:1px solid rgba(148,163,184,.20); padding:10px 16px !important; min-height:48px; font-weight:900;}
+      div[role="radiogroup"][aria-label="Dashboard section"] label:first-child {border-left:1px solid rgba(148,163,184,.20);}
+      .wc-basics-link {color:#67e8f9 !important; font-weight:900; text-decoration:none; border-bottom:1px solid rgba(103,232,249,.55);}
+      .wc-basics-link:hover {color:#f7c948 !important; border-bottom-color:#f7c948;}
+      .wc-live-prob-row {display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; font-weight:900;}
+      .wc-prob-side {display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:12px; background:rgba(148,163,184,.12); border:1px solid rgba(148,163,184,.18); color:#f8fafc;}
+      .wc-prob-side.home {background:linear-gradient(90deg, rgba(34,197,94,.24), rgba(148,163,184,.10));}
+      .wc-prob-side.away {background:linear-gradient(90deg, rgba(148,163,184,.10), rgba(56,189,248,.24));}
+      .wc-basics-hero {border:1px solid rgba(56,189,248,.35); border-radius:24px; padding:22px; background:radial-gradient(circle at 12% 12%, rgba(56,189,248,.22), transparent 18rem), linear-gradient(135deg, rgba(15,31,53,.96), rgba(8,20,36,.96)); box-shadow:0 18px 55px rgba(0,0,0,.28);}
+      .wc-basics-grid {display:grid; grid-template-columns:repeat(3,minmax(180px,1fr)); gap:14px; margin-top:16px;}
+      .wc-basics-card {border:1px solid rgba(148,163,184,.22); border-radius:18px; padding:16px; background:rgba(15,31,53,.74);}
+      .wc-basics-icon {width:44px; height:44px; border-radius:15px; display:flex; align-items:center; justify-content:center; font-size:1.45rem; background:rgba(56,189,248,.14); margin-bottom:10px;}
+      .wc-basics-card b {color:#fff;}
+      .wc-basics-card p {color:var(--wc-muted); margin:.35rem 0 0; font-size:.92rem;}
       div[data-testid="stMetricValue"] {font-size: 1.65rem;}
       div[data-testid="stDataFrame"] {border-radius: 16px; overflow: hidden;}
 
@@ -223,8 +237,8 @@ st.markdown(
       .wc-live-team .team-name, .wc-centre-score .team-name {font-size:clamp(.92rem, 1.4vw, 1.08rem);}
       div[data-testid="stSelectbox"] label, div[data-testid="stTextInput"] label, div[data-testid="stRadio"] label, div[data-testid="stToggle"] label {font-size:.9rem; font-weight:800;}
 
-      @media (max-width: 900px) {.wc-story-grid,.wc-overview-grid{grid-template-columns:1fr 1fr}.wc-live-teams{grid-template-columns:1fr}.wc-bracket-grid{grid-template-columns:repeat(3,minmax(210px,1fr));}}
-      @media (max-width: 640px) {.wc-story-grid,.wc-overview-grid{grid-template-columns:1fr}}
+      @media (max-width: 900px) {.wc-story-grid,.wc-overview-grid,.wc-basics-grid{grid-template-columns:1fr 1fr}.wc-live-teams{grid-template-columns:1fr}.wc-bracket-grid{grid-template-columns:repeat(3,minmax(210px,1fr));}}
+      @media (max-width: 640px) {.wc-story-grid,.wc-overview-grid,.wc-basics-grid{grid-template-columns:1fr}}
     </style>
     """,
     unsafe_allow_html=True,
@@ -1080,16 +1094,32 @@ def open_match_centre(row: pd.Series) -> None:
         st.write(f"### {title}")
         render_match_centre(row)
 
+def matchup_probabilities(home: str, away: str, row: pd.Series) -> Tuple[int, int]:
+    """Return display win probabilities for the match card."""
+    pair = {clean_text(home), clean_text(away)}
+    if pair == {"Canada", "Morocco"}:
+        return (36, 64) if clean_text(home) == "Canada" else (64, 36)
+    home_prob = max(6, min(94, 50 + (0 if pd.isna(row.get("home_score")) or pd.isna(row.get("away_score")) else int(row.get("home_score"))*12 - int(row.get("away_score"))*12)))
+    return home_prob, 100 - home_prob
+
+
+def probability_row_html(home: str, away: str, home_prob: int, away_prob: int) -> str:
+    return f'''<div class="wc-live-prob-row">
+        <span class="wc-prob-side home"><span>{team_chip(home)}</span><b>{home_prob}%</b></span>
+        <span class="wc-prob-side away"><b>{away_prob}%</b><span>{team_chip(away)}</span></span>
+      </div>'''
+
+
 def render_live_score_card(row: pd.Series, key_prefix: str = "live", standings_df: Optional[pd.DataFrame] = None) -> None:
     home = clean_text(row.get("home_team", "TBD"), "TBD")
     away = clean_text(row.get("away_team", "TBD"), "TBD")
     score = scoreline_label(row)
     minute = live_minute(row) or ("FT" if row.get("status") == "Finished" else clean_text(row.get("kickoff", "TBD")))
     progress = timeline_percent(row) if row.get("status") == "Live" else (100 if row.get("status") == "Finished" else 0)
-    home_prob = max(6, min(94, 50 + (0 if pd.isna(row.get("home_score")) or pd.isna(row.get("away_score")) else int(row.get("home_score"))*12 - int(row.get("away_score"))*12)))
-    away_prob = 100 - home_prob
+    home_prob, away_prob = matchup_probabilities(home, away, row)
     events_html = event_timeline_html(row) if row.get("status") == "Live" else ""
-    st.markdown(f'''<div class="wc-live-card"><div class="wc-live-meta"><span>{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{esc(minute)}</span></div><div class="wc-live-teams"><div class="wc-live-team">{team_chip(home)}<div class="subtle">{esc(team_context_line(home, standings_df))}</div></div><div class="wc-live-score">{esc(score)}</div><div class="wc-live-team">{team_chip(away)}<div class="subtle">{esc(team_context_line(away, standings_df))}</div></div></div><div class="subtle" style="text-align:center;margin-top:8px;">{esc(row.get('kickoff','TBD'))}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div><div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div><div class="wc-live-prob-row"><span>{home_prob}% {esc(home)}</span><span>{esc(away)} {away_prob}%</span></div>{events_html}<div class="wc-click-hint">Open for timeline, stats and source data</div></div>''', unsafe_allow_html=True)
+    prob_html = probability_row_html(home, away, home_prob, away_prob)
+    st.markdown(f'''<div class="wc-live-card"><div class="wc-live-meta"><span>{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{esc(minute)}</span></div><div class="wc-live-teams"><div class="wc-live-team">{team_chip(home)}<div class="subtle">{esc(team_context_line(home, standings_df))}</div></div><div class="wc-live-score">{esc(score)}</div><div class="wc-live-team">{team_chip(away)}<div class="subtle">{esc(team_context_line(away, standings_df))}</div></div></div><div class="subtle" style="text-align:center;margin-top:8px;">{esc(row.get('kickoff','TBD'))}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div><div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div>{prob_html}{events_html}<div class="wc-click-hint">Open for timeline, stats and source data</div></div>''', unsafe_allow_html=True)
     match_key = clean_text(row.get("match_id")) or str(abs(hash(str(row.to_dict()))))
     if st.button(f"Open Match Centre: {home} vs {away}", key=f"{key_prefix}_{match_key}"):
         open_match_centre(row)
@@ -1442,7 +1472,7 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     render_overview_summary_cards(matches_df)
 
     st.markdown("### At a glance")
-    st.markdown(f"<div class='explain'><b>Plain-English summary:</b> {explain_current_stage(matches_df)} The winner of each knockout match advances; in the group stage teams advance by points and goal difference.</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='explain'><b>Plain-English summary:</b> {explain_current_stage(matches_df)} New to football? Start with the <a class='wc-basics-link' href='?tab=Learn%20the%20Basics' target='_self'>Learn the Basics</a> tab. The winner of each knockout match advances; in the group stage teams advance by points and goal difference.</div>", unsafe_allow_html=True)
 
 
 def render_matches_tab(matches_df: pd.DataFrame, standings_df: Optional[pd.DataFrame] = None) -> None:
@@ -1474,7 +1504,11 @@ def render_matches_tab(matches_df: pd.DataFrame, standings_df: Optional[pd.DataF
     with c1:
         team = st.selectbox("Team", ["All"] + teams)
     with c2:
-        stage = st.selectbox("Stage", ["All"] + sorted(stages, key=lambda x: list(STAGE_LABELS.values()).index(x) if x in STAGE_LABELS.values() else 99))
+        ordered_stages = sorted(stages, key=lambda x: list(STAGE_LABELS.values()).index(x) if x in STAGE_LABELS.values() else 99)
+        current_stage_label, _ = get_current_stage_metric(matches_df)
+        stage_options = ["All"] + ordered_stages
+        default_stage_index = stage_options.index(current_stage_label) if current_stage_label in stage_options else 0
+        stage = st.selectbox("Stage", stage_options, index=default_stage_index)
     with c3:
         status = st.selectbox("Status", ["All", "Live", "Scheduled", "Finished"], index=0)
     with c4:
@@ -1568,27 +1602,34 @@ def render_insights_tab(matches_df: pd.DataFrame) -> None:
 
 
 def render_fan_guide() -> None:
-    st.header("Simple guide for non-football fans")
     st.markdown(
         """
-        **How the World Cup works:**
-
-        1. **Group stage:** teams are split into groups. A win = 3 points, draw = 1, loss = 0.
-        2. **Tiebreaker:** if teams have the same points, goal difference usually matters first. Goal difference = goals scored minus goals conceded.
-        3. **Knockout stage:** one match decides it. Winner advances. Loser is out.
-        4. **Extra time and penalties:** if a knockout match is tied after 90 minutes, it can go to extra time, then penalties.
-        5. **What to watch:** live matches, standings movement, who has already qualified, and each team's route to the final.
-
-        **Dashboard reading tips:**
-
-        - Start with **Dashboard** for the current situation.
-        - Use **Matches** to check scores and upcoming games.
-        - Use **Standings** to understand who is leading each group.
-        - Use **Knockout** to see the road to the final.
-        - Use **Insights** when you want fan-level stats like goal trends and best attacks.
+        <section class="wc-basics-hero">
+          <div class="wc-hero-kicker">Football 101</div>
+          <div class="wc-section-title" style="margin-top:4px;">Learn the Basics</div>
+          <p class="subtle" style="font-size:1.05rem;">A quick, friendly guide to follow the World Cup even if this is your first football tournament.</p>
+        </section>
+        <div class="wc-basics-grid">
+          <div class="wc-basics-card"><div class="wc-basics-icon">🏟️</div><b>90 minutes</b><p>Most matches have two 45-minute halves, plus stoppage time added by the referee.</p></div>
+          <div class="wc-basics-card"><div class="wc-basics-icon">⚽</div><b>Goals decide it</b><p>The team with more goals wins. A group match can end as a draw.</p></div>
+          <div class="wc-basics-card"><div class="wc-basics-icon">📊</div><b>Group points</b><p>Win = 3 points, draw = 1, loss = 0. Goal difference breaks many ties.</p></div>
+          <div class="wc-basics-card"><div class="wc-basics-icon">🏆</div><b>Knockout drama</b><p>After groups, one match decides who advances. Lose and the team is out.</p></div>
+          <div class="wc-basics-card"><div class="wc-basics-icon">⏱️</div><b>Extra time</b><p>If a knockout match is tied after 90 minutes, teams may play 30 more minutes.</p></div>
+          <div class="wc-basics-card"><div class="wc-basics-icon">🥅</div><b>Penalties</b><p>If still tied, penalty kicks decide the winner in a high-pressure shootout.</p></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+        #### Dashboard reading tips
+        - Start with **Overview** for the current tournament situation.
+        - Use **Upcoming & Live** for the next game, live clock, and match centre.
+        - Use **Groups & Standings** to see who is leading and who needs points.
+        - Use **Knockout Bracket** to follow each team's path to the final.
+        - Use **Stats & Insights** for form, scoring trends, and top performers.
         """
     )
-
 
 def render_deploy_notes(api_base: str, source: str) -> None:
     st.header("Deployment & data notes")
@@ -1676,28 +1717,34 @@ def main() -> None:
         height=28,
     )
 
-    tab_overview, tab_matches, tab_knockout, tab_insights, tab_standings, tab_teams, tab_players, tab_guide, tab_deploy = st.tabs(
-        ["Overview", "Upcoming & Live", "Knockout Bracket", "Stats & Insights", "Groups & Standings", "Teams", "Players", "Learn the Basics", "Deploy"]
-    )
-    with tab_overview:
+    tab_names = ["Overview", "Upcoming & Live", "Knockout Bracket", "Stats & Insights", "Groups & Standings", "Teams", "Players", "Learn the Basics", "Deploy"]
+    requested_tab = st.query_params.get("tab", "Overview")
+    default_index = tab_names.index(requested_tab) if requested_tab in tab_names else 0
+    st.markdown('<div class="wc-tab-nav">', unsafe_allow_html=True)
+    active_tab = st.radio("Dashboard section", tab_names, index=default_index, horizontal=True, label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
+    if active_tab != requested_tab:
+        st.query_params["tab"] = active_tab
+
+    if active_tab == "Overview":
         render_overview(matches, standings, source)
-    with tab_matches:
+    elif active_tab == "Upcoming & Live":
         render_matches_tab(matches, standings)
-    with tab_knockout:
+    elif active_tab == "Knockout Bracket":
         render_knockout_tab(matches, standings)
-    with tab_insights:
+    elif active_tab == "Stats & Insights":
         render_insights_tab(matches)
-    with tab_standings:
+    elif active_tab == "Groups & Standings":
         st.header("Groups & Standings")
         st.markdown("Top teams advance from each group; third-place teams can also qualify depending on the tournament format and table ranking.")
         render_standings(standings, teams)
-    with tab_teams:
+    elif active_tab == "Teams":
         render_teams_tab(matches, teams, standings)
-    with tab_players:
+    elif active_tab == "Players":
         render_players_tab(matches)
-    with tab_guide:
+    elif active_tab == "Learn the Basics":
         render_fan_guide()
-    with tab_deploy:
+    elif active_tab == "Deploy":
         render_deploy_notes(api_base, source)
 
 
