@@ -299,6 +299,22 @@ st.markdown(
 
       @media (max-width: 900px) {.wc-story-grid,.wc-overview-grid,.wc-basics-grid{grid-template-columns:1fr 1fr}.wc-live-teams{grid-template-columns:1fr}.wc-bracket-grid{grid-template-columns:repeat(3,minmax(210px,1fr));}}
       @media (max-width: 640px) {.wc-story-grid,.wc-overview-grid,.wc-basics-grid{grid-template-columns:1fr}}
+      .wc-bracket-shell.compact {padding:14px;}
+      .wc-bracket-shell.compact .wc-bracket-board {min-width:1080px; grid-template-columns:1fr 220px 1fr; gap:14px;}
+      .wc-bracket-shell.compact .wc-bracket-side {grid-template-columns:repeat(4, minmax(132px, 1fr)); gap:10px;}
+      .wc-bracket-shell.compact .wc-bracket-card {min-height:62px; padding:7px; border-radius:12px; font-size:.72rem;}
+      .wc-bracket-shell.compact .wc-bracket-team {font-size:.68rem; margin:2px 0;}
+      .wc-bracket-shell.compact .wc-bracket-score {font-size:.78rem;}
+      .wc-bracket-shell.compact .wc-bracket-round-title {font-size:.62rem; margin-bottom:6px;}
+      .wc-bracket-shell.compact .wc-bracket-stack {gap:7px;}
+      .wc-bracket-shell.compact .wc-bracket-stack.r16 {gap:23px;}
+      .wc-bracket-shell.compact .wc-bracket-stack.qf {gap:58px;}
+      .wc-bracket-shell.compact .wc-bracket-stack.sf {gap:138px;}
+      .wc-bracket-shell.compact .wc-cup-final {padding:12px; min-height:280px;}
+      .wc-bracket-shell.compact .wc-cup-icon {font-size:2.1rem;}
+      .wc-bracket-shell.compact .team-code {display:none;}
+      .wc-bracket-shell.compact .wc-flag {width:19px;height:14px;font-size:.8rem;}
+      .wc-route-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(247,201,72,.32);background:rgba(247,201,72,.10);border-radius:999px;padding:4px 9px;margin:3px;color:#fde68a;font-size:.75rem;font-weight:900}
     </style>
     """,
     unsafe_allow_html=True,
@@ -1222,6 +1238,210 @@ def open_match_centre(row: pd.Series) -> None:
         st.write(f"### {title}")
         render_match_centre(row)
 
+
+def event_list_from_raw(row: pd.Series, names: Iterable[str]) -> List[Dict[str, Any]]:
+    raw = row.get("raw") if isinstance(row.get("raw"), dict) else {}
+    found: List[Dict[str, Any]] = []
+    for key in names:
+        val = raw.get(key)
+        if isinstance(val, list):
+            found.extend([item for item in val if isinstance(item, dict)])
+        elif isinstance(val, dict):
+            for item in val.values():
+                if isinstance(item, dict):
+                    found.append(item)
+                elif isinstance(item, list):
+                    found.extend([x for x in item if isinstance(x, dict)])
+    return found
+
+
+def cards_from_raw(row: pd.Series) -> List[Dict[str, Any]]:
+    cards = []
+    for item in event_list_from_raw(row, ["cards", "bookings", "events"]):
+        label = clean_text(item.get("type") or item.get("event") or item.get("card"))
+        if not re.search(r"card|yellow|red", label, flags=re.I):
+            continue
+        cards.append({
+            "minute": clean_text(item.get("minute") or item.get("time") or item.get("elapsed"), "—"),
+            "team": clean_text(item.get("team") or item.get("team_name") or item.get("country")),
+            "player": clean_text(item.get("player") or item.get("player_name") or item.get("name"), "Unknown player"),
+            "card": label.title() if label else "Card",
+        })
+    return cards
+
+
+def substitutions_from_raw(row: pd.Series) -> List[Dict[str, Any]]:
+    subs = []
+    for item in event_list_from_raw(row, ["substitutions", "subs", "events"]):
+        label = clean_text(item.get("type") or item.get("event"))
+        if label and not re.search(r"sub", label, flags=re.I):
+            continue
+        player_in = clean_text(item.get("player_in") or item.get("in") or item.get("playerIn") or item.get("player"))
+        player_out = clean_text(item.get("player_out") or item.get("out") or item.get("playerOut") or item.get("assist"))
+        if not player_in and not player_out:
+            continue
+        subs.append({
+            "minute": clean_text(item.get("minute") or item.get("time") or item.get("elapsed"), "—"),
+            "team": clean_text(item.get("team") or item.get("team_name")),
+            "in": player_in or "Player in",
+            "out": player_out or "Player out",
+        })
+    return subs
+
+
+def lineups_from_raw(row: pd.Series) -> Dict[str, List[str]]:
+    raw = row.get("raw") if isinstance(row.get("raw"), dict) else {}
+    lineups = raw.get("lineups") or raw.get("lineup") or {}
+    result = {"home": [], "away": []}
+    if isinstance(lineups, dict):
+        for side in ["home", "away"]:
+            val = lineups.get(side) or lineups.get(f"{side}_team") or []
+            if isinstance(val, dict):
+                val = val.get("starting") or val.get("players") or val.get("xi") or []
+            if isinstance(val, list):
+                result[side] = [clean_text(x.get("name") or x.get("player") if isinstance(x, dict) else x) for x in val][:11]
+    return result
+
+
+def render_live_detail_expander(row: pd.Series, expanded: bool = False) -> None:
+    home = clean_text(row.get("home_team", "Home"), "Home")
+    away = clean_text(row.get("away_team", "Away"), "Away")
+    minute = live_minute(row) or ("FT" if row.get("status") == "Finished" else clean_text(row.get("kickoff", "TBD")))
+    with st.expander(f"Match details: {home} vs {away} • {minute}", expanded=expanded):
+        st.markdown(f"**Running time:** {minute} &nbsp;&nbsp; **Score:** {scoreline_label(row)} &nbsp;&nbsp; **Stage:** {clean_text(row.get('stage_label'))}")
+        goals = scorer_events(row)
+        cards = cards_from_raw(row)
+        subs = substitutions_from_raw(row)
+        lineups = lineups_from_raw(row)
+        c1, c2 = st.columns(2)
+        with c1:
+            st.write("##### Scorers")
+            if goals:
+                for ev in goals:
+                    st.write(f"⚽ {ev.get('label')} — {ev.get('player')} ({ev.get('team')})")
+            else:
+                st.caption("No scorer details are available from the current feed yet.")
+            st.write("##### Cards")
+            if cards:
+                for ev in cards:
+                    st.write(f"🟨 {ev['minute']} — {ev['player']} ({ev['team']}) • {ev['card']}")
+            else:
+                st.caption("No card feed is available yet.")
+        with c2:
+            st.write("##### Substitutions")
+            if subs:
+                for ev in subs:
+                    st.write(f"🔁 {ev['minute']} — {ev['in']} for {ev['out']} ({ev['team']})")
+            else:
+                st.caption("No substitution feed is available yet.")
+            st.write("##### Lineups")
+            if lineups.get("home") or lineups.get("away"):
+                st.markdown(f"**{home}:** " + (", ".join(lineups.get("home", [])) or "Unavailable"))
+                st.markdown(f"**{away}:** " + (", ".join(lineups.get("away", [])) or "Unavailable"))
+            else:
+                st.caption("Lineups are not supplied by the current data source.")
+        st.write("##### Match statistics")
+        for label, hv, av in match_stat_rows(row):
+            render_stat_comparison(label, hv, av)
+        with st.expander("Raw source data", expanded=False):
+            st.json(row.get("raw") if isinstance(row.get("raw"), dict) else {})
+
+
+def player_worldcup_rows(player: str, matches_df: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for _, m in matches_df.iterrows():
+        for ev in scorer_events(m):
+            if clean_text(ev.get("player")).lower() == clean_text(player).lower():
+                rows.append({"Match": f"{m.get('home_team')} {scoreline_label(m)} {m.get('away_team')}", "Team": ev.get("team"), "Minute": ev.get("label"), "Stage": m.get("stage_label"), "Date": m.get("kickoff")})
+    return pd.DataFrame(rows)
+
+
+def render_player_popup(player: str, matches_df: pd.DataFrame) -> None:
+    stats = extract_player_stats(matches_df)
+    row = stats[stats["Player"].str.lower() == clean_text(player).lower()].head(1) if not stats.empty else pd.DataFrame()
+    title = f"{player} World Cup stats"
+
+    def body() -> None:
+        if row.empty:
+            st.info("No player statistics are available from the current match feed yet.")
+            return
+        r = row.iloc[0]
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Goals", int(r["G"]))
+        c2.metric("Assists in feed", int(r["A"]))
+        c3.metric("Open-play goals", int(r["Open"]))
+        c4.metric("Penalties", int(r["Pen"]))
+        st.markdown(f"**Country:** {team_chip(r['Country'])}", unsafe_allow_html=True)
+        goal_rows = player_worldcup_rows(player, matches_df)
+        if not goal_rows.empty:
+            st.dataframe(goal_rows, use_container_width=True, hide_index=True)
+        st.caption("Assists, cards, lineups and advanced stats appear only when the selected data source provides them.")
+
+    if hasattr(st, "dialog"):
+        @st.dialog(title, width="large")
+        def _dlg():
+            body()
+        _dlg()
+    else:
+        st.write(f"### {title}")
+        body()
+
+
+def team_worldcup_stats(team: str, matches_df: pd.DataFrame, standings_df: pd.DataFrame) -> Dict[str, Any]:
+    tmatches = filter_matches(matches_df, team=team)
+    finished = tmatches[tmatches["status"] == "Finished"] if not tmatches.empty else pd.DataFrame()
+    gf = ga = wins = draws = losses = 0
+    for _, r in finished.iterrows():
+        hs = 0 if pd.isna(r.get("home_score")) else int(r.get("home_score"))
+        aw = 0 if pd.isna(r.get("away_score")) else int(r.get("away_score"))
+        if r.get("home_team") == team:
+            gf += hs; ga += aw
+        else:
+            gf += aw; ga += hs
+        winner = clean_text(r.get("winner"))
+        if winner == team:
+            wins += 1
+        elif winner == "Draw / penalties":
+            draws += 1
+        else:
+            losses += 1
+    form = team_profile(team, tmatches).get("form", [])
+    next_match = tmatches[tmatches["status"] == "Scheduled"].sort_values("date_time", na_position="last").head(1) if not tmatches.empty else pd.DataFrame()
+    standing = standings_df[standings_df["team"] == team].head(1) if not standings_df.empty and "team" in standings_df.columns else pd.DataFrame()
+    return {"matches": len(tmatches), "played": len(finished), "wins": wins, "draws": draws, "losses": losses, "gf": gf, "ga": ga, "gd": gf-ga, "form": form, "next": next_match, "standing": standing}
+
+
+def render_team_popup(team: str, matches_df: pd.DataFrame, standings_df: pd.DataFrame) -> None:
+    stats = team_worldcup_stats(team, matches_df, standings_df)
+    title = f"{team} World Cup stats"
+
+    def body() -> None:
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Played", stats["played"])
+        c2.metric("W-D-L", f"{stats['wins']}-{stats['draws']}-{stats['losses']}")
+        c3.metric("Goals", f"{stats['gf']}:{stats['ga']}")
+        c4.metric("Goal diff", stats["gd"])
+        form_html = "".join(f'<span class="wc-form-badge {"win" if x=="W" else "draw" if x=="D" else "loss" if x=="L" else ""}">{esc(x)}</span>' for x in stats["form"])
+        st.markdown(f"<div class='wc-team-profile'><b>Recent form</b><br>{form_html}<div class='subtle'>W = win, D = draw, L = loss. Most recent completed matches are shown first.</div></div>", unsafe_allow_html=True)
+        if not stats["standing"].empty:
+            st.write("##### Group standing")
+            cols = [c for c in ["group", "rank", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"] if c in stats["standing"].columns]
+            st.dataframe(stats["standing"][cols], use_container_width=True, hide_index=True)
+        if not stats["next"].empty:
+            st.write("##### Next match")
+            render_match_card(stats["next"].iloc[0], compact=True, standings_df=standings_df)
+        st.caption("Team stats are calculated from loaded World Cup matches and standings data.")
+
+    if hasattr(st, "dialog"):
+        @st.dialog(title, width="large")
+        def _dlg():
+            body()
+        _dlg()
+    else:
+        st.write(f"### {title}")
+        body()
+
+
 def matchup_probabilities(home: str, away: str, row: pd.Series) -> Tuple[int, int]:
     """Return display win probabilities for the match card."""
     pair = {clean_text(home), clean_text(away)}
@@ -1251,6 +1471,15 @@ def render_live_score_card(row: pd.Series, key_prefix: str = "live", standings_d
     match_key = clean_text(row.get("match_id")) or str(abs(hash(str(row.to_dict()))))
     if st.button(f"Open Match Centre: {home} vs {away}", key=f"{key_prefix}_{match_key}"):
         open_match_centre(row)
+    team_cols = st.columns(2)
+    if standings_df is not None:
+        with team_cols[0]:
+            if st.button(f"{home} team stats", key=f"{key_prefix}_{match_key}_home_team"):
+                render_team_popup(home, pd.DataFrame([row]), standings_df)
+        with team_cols[1]:
+            if st.button(f"{away} team stats", key=f"{key_prefix}_{match_key}_away_team"):
+                render_team_popup(away, pd.DataFrame([row]), standings_df)
+    render_live_detail_expander(row, expanded=row.get("status") == "Live")
 
 
 def bracket_card_html(row: Optional[pd.Series] = None, placeholder: str = "TBD") -> str:
@@ -1299,28 +1528,33 @@ def render_bracket_wall(knockout: pd.DataFrame) -> None:
     right = {"r32": r32[8:16], "r16": r16[4:8], "qf": qf[2:4], "sf": sf[1:2]}
     final_html = final_cards[0] if final_cards else bracket_card_html(None, "Final")
     third_html = third_cards[0] if third_cards else bracket_card_html(None, "Bronze final")
-    html_out = f'''<div class="wc-bracket-shell">
+    route_chips = "".join([
+        "<span class='wc-route-chip'>R32 → R16</span>",
+        "<span class='wc-route-chip'>R16 → QF</span>",
+        "<span class='wc-route-chip'>QF → SF</span>",
+        "<span class='wc-route-chip'>SF → Final</span>",
+    ])
+    html_out = f'''<div class="wc-bracket-shell compact">
       <div class="wc-bracket-board">
         <div class="wc-bracket-side left">
           <div><div class="wc-bracket-round-title">Round of 32</div>{_stack(left['r32'],8)}</div>
           <div><div class="wc-bracket-round-title">Round of 16</div>{_stack(left['r16'],4,'r16')}</div>
           <div><div class="wc-bracket-round-title">Quarterfinals</div>{_stack(left['qf'],2,'qf')}</div>
+          <div><div class="wc-bracket-round-title">Semifinal</div>{_stack(left['sf'],1,'sf')}</div>
         </div>
         <div><div class="wc-cup-final">
             <div class="wc-cup-icon">{trophy_image_html("wc-cup-trophy-img")}</div><div class="wc-world-champ">World Champion</div>
-            <div style="width:100%; margin-top:14px;">{final_html}</div>
-            <div class="subtle" style="margin:8px 0 4px;">Bronze final</div><div style="width:100%;">{third_html}</div>
+            <div style="width:100%; margin-top:10px;">{final_html}</div>
+            <div class="subtle" style="margin:8px 0 4px;">Third-place match</div><div style="width:100%;">{third_html}</div>
         </div></div>
         <div class="wc-bracket-side right">
-          <div><div class="wc-bracket-round-title">Round of 32</div>{_stack(right['r32'],8)}</div>
-          <div><div class="wc-bracket-round-title">Round of 16</div>{_stack(right['r16'],4,'r16')}</div>
+          <div><div class="wc-bracket-round-title">Semifinal</div>{_stack(right['sf'],1,'sf')}</div>
           <div><div class="wc-bracket-round-title">Quarterfinals</div>{_stack(right['qf'],2,'qf')}</div>
+          <div><div class="wc-bracket-round-title">Round of 16</div>{_stack(right['r16'],4,'r16')}</div>
+          <div><div class="wc-bracket-round-title">Round of 32</div>{_stack(right['r32'],8)}</div>
         </div>
       </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:18px;">
-        <div><div class="wc-bracket-round-title">Left Semifinal</div>{_stack(left['sf'],1)}</div>
-        <div><div class="wc-bracket-round-title">Right Semifinal</div>{_stack(right['sf'],1)}</div>
-      </div>
+      <div class="wc-route-legend">{route_chips}<br>Each lane is ordered by source match date/slot so winners transition left-to-center or right-to-center toward the Final.</div>
     </div>'''
     st.markdown(html_out, unsafe_allow_html=True)
 
@@ -1464,6 +1698,11 @@ def render_players_tab(matches_df: pd.DataFrame) -> None:
     out = out.sort_values([sort_by, "G", "Player"], ascending=[False, False, True]).reset_index(drop=True)
     st.write("#### Featured player cards")
     st.markdown('<div class="wc-player-grid">' + "".join(player_card_html(r) for _, r in out.head(6).iterrows()) + "</div>", unsafe_allow_html=True)
+    detail_cols = st.columns(3)
+    for i, r in enumerate(out.head(6).itertuples()):
+        with detail_cols[i % 3]:
+            if st.button(f"Open {r.Player} stats", key=f"player_popup_card_{i}_{r.Player}"):
+                render_player_popup(r.Player, matches_df)
     st.write("#### Full player table")
     rows = []
     for idx, r in out.iterrows():
@@ -1487,6 +1726,11 @@ def render_players_tab(matches_df: pd.DataFrame) -> None:
               <th style="text-align:center;padding:12px;">Goals</th><th style="text-align:center;padding:12px;">Assists</th><th style="text-align:center;padding:12px;">G+A</th>
               <th style="text-align:center;padding:12px;">Open</th><th style="text-align:center;padding:12px;">Pen</th><th style="text-align:center;padding:12px;">Card</th>
           </tr></thead><tbody>{''.join(rows)}</tbody></table></div>''', unsafe_allow_html=True)
+    if not out.empty:
+        st.write("#### Open a player profile")
+        selected_player = st.selectbox("Player details", out["Player"].tolist(), key="player_detail_select")
+        if st.button("Open selected player stats", key="player_popup_table"):
+            render_player_popup(selected_player, matches_df)
 
 
 def render_insights_tab_v2(matches_df: pd.DataFrame) -> None:
@@ -1716,6 +1960,8 @@ def render_teams_tab(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standings
     code = clean_text(team_rows.iloc[0].get("code") if not team_rows.empty else "")
     tmatches = filter_matches(matches_df, team=favorite)
     render_team_profile_card(favorite, tmatches, group, code)
+    if st.button(f"Open {favorite} World Cup stats", key=f"team_popup_{favorite}"):
+        render_team_popup(favorite, matches_df, standings_df)
     finished = tmatches[tmatches["status"] == "Finished"]
     wins = int((finished["winner"] == favorite).sum()) if not finished.empty else 0
     goals_for = 0
@@ -1769,11 +2015,21 @@ def render_fan_guide() -> None:
     st.markdown(
         """
         #### Dashboard reading tips
-        - Start with **Overview** for the current tournament situation.
-        - Use **Upcoming & Live** for the next game, live clock, and match centre.
+        - Start with **Overview** for the current tournament situation, next match, live match, goals and headline story cards.
+        - Use **Upcoming & Live** for live running time, score, scorers, cards, lineups, substitutions and the match centre.
         - Use **Groups & Standings** to see who is leading and who needs points.
-        - Use **Knockout Bracket** to follow each team's path to the final.
-        - Use **Stats & Insights** for form, scoring trends, and top performers.
+        - Use **Knockout Bracket** to follow the route from Round of 32 → Round of 16 → Quarterfinals → Semifinals → Final.
+        - Use **Teams** and click a team detail button to see World Cup record, goals, next match and form.
+        - Use **Players** and click a player detail button to see goals, penalty goals and match-by-match scoring rows.
+
+        #### Form, standings and app terms
+        - **Form** is recent results. **W** means win, **D** means draw, and **L** means loss.
+        - A form line like `W W D L W` means the team won, won, drew, lost and won across recent completed matches.
+        - **P** = played, **W** = wins, **D** = draws, **L** = losses.
+        - **GF** = goals for, **GA** = goals against, **GD** = goal difference, **Pts** = points.
+        - **Scheduled** means the match has not started. **Live** means it is being played now. **Finished** means it is complete.
+        - **TBD** means the data source has not confirmed that team, score or time yet.
+        - Player assists, cards, lineups and substitutions appear only when the selected source provides them.
         """
     )
 
@@ -1811,7 +2067,7 @@ def main() -> None:
     st.sidebar.title("⚽ Controls")
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
-    source_mode = st.sidebar.radio("Data mode", ["Live API", "Demo fallback"], help="Live API can add live minutes when available. Demo fallback is local sample data.")
+    source_mode = st.sidebar.radio("Data mode", ["Live API", "GitHub OpenFootball", "Demo fallback"], help="Live API can add live minutes when available. OpenFootball is a public fixture/results feed. Demo fallback is local sample data.")
     no_reload_refresh = st.sidebar.toggle("No-reload refresh", value=True, help="Refresh now clears cached data and reruns Streamlit without forcing a full browser page reload.")
     if st.sidebar.button("Refresh now", help="Fetch fresh data with a Streamlit rerun instead of a browser meta-refresh."):
         st.cache_data.clear()
