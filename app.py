@@ -20,6 +20,7 @@ import pandas as pd
 import plotly.express as px
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 
 APP_DIR = Path(__file__).parent
 DATA_DIR = APP_DIR / "data"
@@ -134,7 +135,7 @@ st.markdown(
       .wc-hosts {display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
       .wc-host-pill {display:inline-flex; align-items:center; gap:7px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color:#fff; border-radius: 999px; padding: 5px 10px; font-weight: 800; backdrop-filter: blur(10px); font-size:.82rem;}
       .wc-trophy {width: 92px; height: 92px; min-width: 92px; border-radius: 24px; display:flex; align-items:center; justify-content:center; font-size: 4rem; background: linear-gradient(135deg, rgba(247,201,72,.24), rgba(255,255,255,.07)); border: 1px solid rgba(247,201,72,.36); box-shadow: inset 0 0 45px rgba(247,201,72,.08), 0 18px 50px rgba(0,0,0,.32);}
-
+      .wc-trophy-fallback {font-size:4.2rem; line-height:1; filter:drop-shadow(0 12px 28px rgba(247,201,72,.35));}
       .wc-trophy-img {max-width:76px; max-height:76px; object-fit:contain; filter:drop-shadow(0 12px 28px rgba(247,201,72,.35));}
       .wc-live-dot {display:inline-block; width:9px; height:9px; border-radius:50%; background:#ef4444; box-shadow:0 0 0 rgba(239,68,68,.8); animation:pulseDot 1.2s infinite; margin-right:7px;}
       @keyframes pulseDot {0%{box-shadow:0 0 0 0 rgba(239,68,68,.7)} 70%{box-shadow:0 0 0 10px rgba(239,68,68,0)} 100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
@@ -187,6 +188,11 @@ st.markdown(
       .wc-small {font-size:.82rem; color:var(--wc-muted);}
       .wc-table-note {color:var(--wc-muted); font-size:.90rem; margin:6px 0 14px;}
       .wc-rank-row {display:grid; grid-template-columns:28px 1.1fr 2fr 42px; gap:10px; align-items:center; margin:9px 0;}
+      .wc-overview-grid {display:grid; grid-template-columns:repeat(3, minmax(220px,1fr)); gap:12px; margin:14px 0;}
+      .wc-summary-card {border:1px solid var(--wc-border); border-radius:16px; padding:14px; background:rgba(15,31,53,.76); min-height:142px;}
+      .wc-summary-card h4 {margin:0 0 8px; color:#fff; font-size:.98rem;}
+      .wc-summary-card ul {margin:0; padding-left:1.1rem;}
+      .wc-summary-card li {margin:5px 0; color:var(--wc-muted); font-size:.88rem;}
       .wc-rank-num {background:rgba(247,201,72,.18); color:#f7c948; border-radius:7px; text-align:center; font-weight:900; padding:3px;}
       .wc-bar {height:14px; border-radius:99px; background:rgba(148,163,184,.20); overflow:hidden;}
       .wc-bar-fill {height:100%; border-radius:99px; background:linear-gradient(90deg,#f43f5e,#22d3ee);}
@@ -214,7 +220,8 @@ st.markdown(
       .wc-bracket-shell {overflow-x:auto; border:1px solid var(--wc-border); border-radius:24px; background:linear-gradient(180deg,rgba(8,14,25,.94),rgba(2,6,23,.96)); padding:24px;}
       .wc-bracket-board {min-width:1180px; display:grid; grid-template-columns:1fr 260px 1fr; gap:24px; align-items:center;}
 
-      @media (max-width: 900px) {.wc-story-grid{grid-template-columns:1fr 1fr}.wc-live-teams{grid-template-columns:1fr}.wc-bracket-grid{grid-template-columns:repeat(3,minmax(210px,1fr));}}
+      @media (max-width: 900px) {.wc-story-grid,.wc-overview-grid{grid-template-columns:1fr 1fr}.wc-live-teams{grid-template-columns:1fr}.wc-bracket-grid{grid-template-columns:repeat(3,minmax(210px,1fr));}}
+      @media (max-width: 640px) {.wc-story-grid,.wc-overview-grid{grid-template-columns:1fr}}
     </style>
     """,
     unsafe_allow_html=True,
@@ -356,7 +363,7 @@ def render_hero(matches_df: pd.DataFrame, source: str = "") -> None:
                 <span class="wc-host-pill">✅ {finished_count}/{total_count} completed</span>
               </div>
             </div>
-            <div class="wc-trophy"><img class="wc-trophy-img" src="https://upload.wikimedia.org/wikipedia/en/thumb/0/09/2026_FIFA_World_Cup.svg/160px-2026_FIFA_World_Cup.svg.png" alt="FIFA World Cup 2026 trophy"></div>
+            <div class="wc-trophy"><span class="wc-trophy-fallback" role="img" aria-label="FIFA World Cup trophy">🏆</span></div>
           </div>
         </section>
         ''',
@@ -818,6 +825,72 @@ def get_top_team_metric(matches_df: pd.DataFrame) -> Tuple[str, str]:
     return str(first["team"]), f"{int(first['goals'])} goals"
 
 
+def team_goal_table(matches_df: pd.DataFrame) -> pd.DataFrame:
+    finished = matches_df[matches_df["status"] == "Finished"] if not matches_df.empty else pd.DataFrame()
+    rows = []
+    for _, r in finished.iterrows():
+        if not pd.isna(r.get("home_score")):
+            rows.append({"team": r["home_team"], "goals": int(r["home_score"])})
+        if not pd.isna(r.get("away_score")):
+            rows.append({"team": r["away_team"], "goals": int(r["away_score"])})
+    if not rows:
+        return pd.DataFrame(columns=["team", "goals"])
+    return pd.DataFrame(rows).groupby("team", as_index=False)["goals"].sum().sort_values(["goals", "team"], ascending=[False, True])
+
+
+def biggest_wins(matches_df: pd.DataFrame, limit: int = 3) -> pd.DataFrame:
+    finished = matches_df[matches_df["status"] == "Finished"].copy() if not matches_df.empty else pd.DataFrame()
+    if finished.empty:
+        return pd.DataFrame()
+    finished = finished.dropna(subset=["home_score", "away_score"]).copy()
+    if finished.empty:
+        return pd.DataFrame()
+    finished["margin"] = (finished["home_score"] - finished["away_score"]).abs().astype(int)
+    finished = finished[finished["margin"] > 0].sort_values(["margin", "total_goals", "date_time"], ascending=[False, False, True])
+    return finished.head(limit)
+
+
+def render_overview_summary_cards(matches_df: pd.DataFrame) -> None:
+    players = extract_player_stats(matches_df)
+    upcoming = matches_df[matches_df["status"] == "Scheduled"].sort_values("date_time", na_position="last").head(3)
+    team_goals = team_goal_table(matches_df).head(3)
+    wins = biggest_wins(matches_df)
+
+    rules_items = [
+        "48 teams play 104 matches across the United States, Canada and Mexico.",
+        "Group stage: 12 groups of four; wins are 3 points, draws 1 point.",
+        "Top two teams in each group plus the eight best third-place teams enter the Round of 32.",
+        "Knockout matches use extra time and penalties if level after 90 minutes.",
+    ]
+    cards = [
+        ("📋 Latest rules", rules_items),
+        ("🏆 Biggest wins", [
+            f"{team_chip(r['home_team'])} {scoreline_label(r)} {team_chip(r['away_team'])} • margin {int(r['margin'])}"
+            for _, r in wins.iterrows()
+        ] or ["Biggest wins will appear after completed matches."]),
+        ("🥇 Top scorers", [
+            f"{esc(r.Player)} • {team_chip(r.Country)} • {int(r.G)} goal{'s' if int(r.G) != 1 else ''}"
+            for r in players.head(3).itertuples()
+        ] if not players.empty else ["Scorer data is not available from the current feed yet."]),
+        ("📅 Upcoming games", [
+            f"{team_chip(r['home_team'])} vs {team_chip(r['away_team'])} • {esc(r['kickoff'])}"
+            for _, r in upcoming.iterrows()
+        ] or ["No upcoming games in the loaded data."]),
+        ("🔥 Team most goals", [
+            f"{team_chip(r.team)} • {int(r.goals)} goal{'s' if int(r.goals) != 1 else ''}"
+            for r in team_goals.itertuples()
+        ] if not team_goals.empty else ["Team goal totals will populate after completed matches."]),
+        ("🅰️ Most assists", [
+            f"{esc(r.Player)} • {team_chip(r.Country)} • {int(r.A)} assist{'s' if int(r.A) != 1 else ''}"
+            for r in players[players["A"] > 0].sort_values(["A", "G"], ascending=[False, False]).head(3).itertuples()
+        ] if not players.empty and int(players["A"].sum()) > 0 else ["Assists are displayed when the active data source provides assist events."]),
+    ]
+    html_cards = []
+    for title, items in cards:
+        html_cards.append(f"<div class='wc-summary-card'><h4>{title}</h4><ul>{''.join(f'<li>{item}</li>' for item in items)}</ul></div>")
+    st.markdown("<div class='wc-overview-grid'>" + "".join(html_cards) + "</div>", unsafe_allow_html=True)
+
+
 def filter_matches(df: pd.DataFrame, team: str = "All", stage: str = "All", status: str = "All", text: str = "") -> pd.DataFrame:
     out = df.copy()
     if team != "All":
@@ -1058,7 +1131,7 @@ def render_bracket_wall(knockout: pd.DataFrame) -> None:
           <div><div class="wc-bracket-round-title">Quarterfinals</div>{_stack(left['qf'],2,'qf')}</div>
         </div>
         <div><div class="wc-cup-final">
-            <div class="wc-cup-icon"><img class="wc-trophy-img" src="https://upload.wikimedia.org/wikipedia/en/thumb/0/09/2026_FIFA_World_Cup.svg/160px-2026_FIFA_World_Cup.svg.png" alt="FIFA World Cup trophy"></div><div class="wc-world-champ">World Champion</div>
+            <div class="wc-cup-icon"><span class="wc-trophy-fallback" role="img" aria-label="FIFA World Cup trophy">🏆</span></div><div class="wc-world-champ">World Champion</div>
             <div style="width:100%; margin-top:14px;">{final_html}</div>
             <div class="subtle" style="margin:8px 0 4px;">Bronze final</div><div style="width:100%;">{third_html}</div>
         </div></div>
@@ -1342,6 +1415,9 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
 
     st.progress(min(1.0, len(finished) / max(1, total_matches)), text=f"Tournament progress: {len(finished)} of {total_matches} loaded matches completed")
 
+    st.markdown("### Overview summary")
+    render_overview_summary_cards(matches_df)
+
     st.markdown("### At a glance")
     col_a, col_b = st.columns([1.15, 0.85])
     with col_a:
@@ -1577,7 +1653,25 @@ def main() -> None:
 
     # Global tournament banner: keep identity above the navigation tabs on every page.
     render_hero(matches, source)
-    st.markdown(f'<div class="wc-last-refresh"><span class="wc-live-dot"></span>Last refreshed: {datetime.now().strftime("%I:%M:%S %p")}</div>', unsafe_allow_html=True)
+    components.html(
+        """
+        <div class="wc-last-refresh" style="text-align:right;color:#a8b3c7;font-size:.78rem;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+          <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-right:7px;"></span>
+          Last refreshed: <span id="browser-refresh-time"></span>
+        </div>
+        <script>
+          const el = document.getElementById("browser-refresh-time");
+          if (el) {
+            el.textContent = new Date().toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+              second: "2-digit"
+            });
+          }
+        </script>
+        """,
+        height=28,
+    )
 
     tab_overview, tab_matches, tab_knockout, tab_insights, tab_standings, tab_teams, tab_players, tab_guide, tab_deploy = st.tabs(
         ["Overview", "Upcoming & Live", "Knockout Bracket", "Stats & Insights", "Groups & Standings", "Teams", "Players", "Learn the Basics", "Deploy"]
