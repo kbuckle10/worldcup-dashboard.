@@ -19,6 +19,7 @@ import pandas as pd
 import plotly.express as px
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 
 APP_DIR = Path(__file__).parent
 DATA_DIR = APP_DIR / "data"
@@ -55,6 +56,31 @@ FALLBACK_FLAGS = {
     "Algeria": "🇩🇿", "Curaçao": "🇨🇼", "Curacao": "🇨🇼",
 }
 
+TEAM_CODE_MAP = {
+    "Argentina":"ARG", "Australia":"AUS", "Austria":"AUT", "Belgium":"BEL", "Bosnia and Herzegovina":"BIH",
+    "Brazil":"BRA", "Canada":"CAN", "Cape Verde":"CPV", "Cabo Verde":"CPV", "Colombia":"COL", "Croatia":"CRO",
+    "Czechia":"CZE", "DR Congo":"COD", "Congo DR":"COD", "Democratic Republic of the Congo":"COD", "Ecuador":"ECU",
+    "Egypt":"EGY", "England":"ENG", "France":"FRA", "Germany":"GER", "Ghana":"GHA", "Haiti":"HAI", "Iran":"IRN",
+    "IR Iran":"IRN", "Iraq":"IRQ", "Ivory Coast":"CIV", "Côte d’Ivoire":"CIV", "Japan":"JPN", "Jordan":"JOR",
+    "Mexico":"MEX", "Morocco":"MAR", "Netherlands":"NED", "New Zealand":"NZL", "Norway":"NOR", "Panama":"PAN",
+    "Paraguay":"PAR", "Portugal":"POR", "Qatar":"QAT", "Saudi Arabia":"KSA", "Scotland":"SCO", "Senegal":"SEN",
+    "South Africa":"RSA", "Korea Republic":"KOR", "South Korea":"KOR", "Spain":"ESP", "Sweden":"SWE", "Switzerland":"SUI",
+    "Tunisia":"TUN", "Turkey":"TUR", "Turkiye":"TUR", "United States":"USA", "USA":"USA", "Uruguay":"URU",
+    "Uzbekistan":"UZB", "Algeria":"ALG", "Curaçao":"CUW", "Curacao":"CUW",
+}
+
+TEAM_ISO2_MAP = {
+    "Argentina":"ar", "Australia":"au", "Austria":"at", "Belgium":"be", "Bosnia and Herzegovina":"ba", "Brazil":"br",
+    "Canada":"ca", "Cape Verde":"cv", "Cabo Verde":"cv", "Colombia":"co", "Croatia":"hr", "Czechia":"cz", "DR Congo":"cd",
+    "Congo DR":"cd", "Democratic Republic of the Congo":"cd", "Ecuador":"ec", "Egypt":"eg", "England":"gb-eng",
+    "France":"fr", "Germany":"de", "Ghana":"gh", "Haiti":"ht", "Iran":"ir", "IR Iran":"ir", "Iraq":"iq", "Ivory Coast":"ci",
+    "Côte d’Ivoire":"ci", "Japan":"jp", "Jordan":"jo", "Mexico":"mx", "Morocco":"ma", "Netherlands":"nl", "New Zealand":"nz",
+    "Norway":"no", "Panama":"pa", "Paraguay":"py", "Portugal":"pt", "Qatar":"qa", "Saudi Arabia":"sa", "Scotland":"gb-sct",
+    "Senegal":"sn", "South Africa":"za", "Korea Republic":"kr", "South Korea":"kr", "Spain":"es", "Sweden":"se", "Switzerland":"ch",
+    "Tunisia":"tn", "Turkey":"tr", "Turkiye":"tr", "United States":"us", "USA":"us", "Uruguay":"uy", "Uzbekistan":"uz",
+    "Algeria":"dz", "Curaçao":"cw", "Curacao":"cw",
+}
+
 st.set_page_config(
     page_title="World Cup 2026 Dashboard",
     page_icon="⚽",
@@ -89,15 +115,15 @@ st.markdown(
       h1, h2, h3, h4, h5, h6, p, span, label, div {color: inherit;}
       .main-title {font-size: 2.4rem; font-weight: 900; margin-bottom: 0.2rem; color: var(--wc-text); letter-spacing: -0.04em;}
       .subtle {color: var(--wc-muted) !important; font-size: 0.95rem;}
-      .wc-hero {position: relative; overflow: hidden; border: 1px solid rgba(247, 201, 72, 0.38); border-radius: 28px; padding: 30px 34px; margin: 4px 0 22px 0; background: linear-gradient(120deg, rgba(2, 6, 23, .95), rgba(11, 42, 70, .92)), radial-gradient(circle at 12% 20%, rgba(247, 201, 72, .23), transparent 16rem), radial-gradient(circle at 85% 45%, rgba(34, 197, 94, .18), transparent 20rem); box-shadow: 0 22px 55px rgba(0, 0, 0, 0.35);}
+      .wc-hero {position: relative; overflow: hidden; border: 1px solid rgba(247, 201, 72, 0.38); border-radius: 20px; padding: 16px 24px; margin: 0 0 12px 0; background: linear-gradient(120deg, rgba(2, 6, 23, .95), rgba(11, 42, 70, .92)), radial-gradient(circle at 12% 20%, rgba(247, 201, 72, .23), transparent 16rem), radial-gradient(circle at 85% 45%, rgba(34, 197, 94, .18), transparent 20rem); box-shadow: 0 22px 55px rgba(0, 0, 0, 0.35);}
       .wc-hero::after {content: ""; position: absolute; inset: 0; background-image: linear-gradient(120deg, transparent 0%, transparent 60%, rgba(255,255,255,.06) 60%, transparent 78%), repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 90px); pointer-events: none;}
       .wc-hero-inner {position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 20px;}
       .wc-hero-kicker {color: var(--wc-gold); font-weight: 800; text-transform: uppercase; letter-spacing: .16em; font-size: .78rem;}
-      .wc-hero-title {color: #fff; font-size: clamp(2.1rem, 4.8vw, 5rem); line-height: .94; font-weight: 950; letter-spacing: -.06em; margin: 8px 0;}
-      .wc-hero-title strong {display: block; color: var(--wc-gold); text-shadow: 0 0 20px rgba(247, 201, 72, .30);}
-      .wc-hosts {display:flex; flex-wrap:wrap; gap:10px; margin-top:16px;}
-      .wc-host-pill {display:inline-flex; align-items:center; gap:7px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color:#fff; border-radius: 999px; padding: 8px 12px; font-weight: 800; backdrop-filter: blur(10px);}
-      .wc-trophy {width: 128px; height: 128px; min-width: 128px; border-radius: 32px; display:flex; align-items:center; justify-content:center; font-size: 5.4rem; background: linear-gradient(135deg, rgba(247,201,72,.24), rgba(255,255,255,.07)); border: 1px solid rgba(247,201,72,.36); box-shadow: inset 0 0 45px rgba(247,201,72,.08), 0 18px 50px rgba(0,0,0,.32);}
+      .wc-hero-title {color: #fff; font-size: clamp(1.8rem, 3.2vw, 3.2rem); line-height: .94; font-weight: 950; letter-spacing: -.06em; margin: 8px 0;}
+      .wc-hero-title strong {display: inline-block; margin-left: .25rem; color: var(--wc-gold); text-shadow: 0 0 20px rgba(247, 201, 72, .30);}
+      .wc-hosts {display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+      .wc-host-pill {display:inline-flex; align-items:center; gap:7px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color:#fff; border-radius: 999px; padding: 5px 10px; font-weight: 800; backdrop-filter: blur(10px);}
+      .wc-trophy {width: 76px; height: 76px; min-width: 76px; border-radius: 20px; display:flex; align-items:center; justify-content:center; font-size: 3rem; background: linear-gradient(135deg, rgba(247,201,72,.24), rgba(255,255,255,.07)); border: 1px solid rgba(247,201,72,.36); box-shadow: inset 0 0 45px rgba(247,201,72,.08), 0 18px 50px rgba(0,0,0,.32);}
       .wc-stat-card, .match-card, .wc-live-card, .wc-bracket-card {border: 1px solid var(--wc-border); border-radius: 18px; background: linear-gradient(180deg, rgba(15, 31, 53, .92), rgba(8, 20, 36, .92)); color: var(--wc-text) !important; box-shadow: 0 14px 38px rgba(0,0,0,.22);}
       .wc-stat-card {padding: 16px; display:flex; align-items:center; gap:14px;}
       .wc-stat-icon {height:48px; width:48px; border-radius:16px; display:flex; align-items:center; justify-content:center; background: rgba(56,189,248,.13); font-size:1.55rem;}
@@ -136,6 +162,19 @@ st.markdown(
       .stTabs [aria-selected="true"] {color: #fff !important;}
       div[data-testid="stMetricValue"] {font-size: 1.65rem;}
       div[data-testid="stDataFrame"] {border-radius: 16px; overflow: hidden;}
+
+      .wc-trophy-img {width:58px; height:58px; object-fit:contain; filter:drop-shadow(0 8px 18px rgba(247,201,72,.28));}
+      .wc-live-dot {width:10px; height:10px; display:inline-block; border-radius:999px; background:#ef4444; margin-right:7px; box-shadow:0 0 0 rgba(239,68,68,.7); animation:dotPulse 1.2s infinite;}
+      @keyframes dotPulse {0%{box-shadow:0 0 0 0 rgba(239,68,68,.75)}70%{box-shadow:0 0 0 10px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+      .wc-win-row {display:flex; justify-content:space-between; align-items:center; gap:18px; margin-top:8px; font-weight:900; color:#f8fafc;}
+      .wc-win-row span {white-space:nowrap;}
+      .wc-win-home {color:#f43f5e;} .wc-win-away {color:#22d3ee;}
+      .wc-live-card .wc-team-name {display:flex; justify-content:center;}
+      .flag-img {width:25px; height:17px; object-fit:cover; border-radius:3px; box-shadow:0 0 0 1px rgba(255,255,255,.20); vertical-align:-3px; margin-right:8px;}
+      .team-chip {display:inline-flex; align-items:center; gap:4px; min-width:0;}
+      .team-chip .team-name {font-weight:900; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+      .team-code {font-size:.68rem; color:#94a3b8; font-weight:950; letter-spacing:.06em; margin-left:4px;}
+      .wc-team-hero-code {display:block; color:#9fb0c9; font-size:.78rem; font-weight:900; margin-top:4px;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -159,6 +198,35 @@ def clean_text(value: Any, default: str = "") -> str:
     return value
 
 
+
+def esc(value: Any) -> str:
+    import html as _html
+    return _html.escape(clean_text(value), quote=True)
+
+def team_code(team: Any) -> str:
+    name = clean_text(team)
+    if not name:
+        return "TBD"
+    if name.upper() in TEAM_CODE_MAP.values() and len(name) == 3:
+        return name.upper()
+    return TEAM_CODE_MAP.get(name, re.sub(r"[^A-Za-z]", "", name).upper()[:3].ljust(3, "X"))
+
+def team_iso2(team: Any) -> str:
+    return TEAM_ISO2_MAP.get(clean_text(team), "")
+
+def flag_img(team: Any) -> str:
+    name = clean_text(team)
+    iso = team_iso2(name)
+    emoji = TEAM_FLAG_MAP.get(name) or FALLBACK_FLAGS.get(name) or "⚽"
+    if iso:
+        return f'<img class="flag-img" src="https://flagcdn.com/w40/{iso}.png" alt="{esc(name)} flag" loading="lazy">'
+    return f'<span class="wc-flag">{emoji}</span>'
+
+def team_chip(team: Any, show_code: bool = True) -> str:
+    name = clean_text(team, "TBD")
+    code_html = f'<span class="team-code">{team_code(name)}</span>' if show_code else ""
+    return f'<span class="team-chip">{flag_img(name)}<span class="team-name">{esc(name)}</span>{code_html}</span>'
+
 def build_flag_map(teams_df: pd.DataFrame) -> Dict[str, str]:
     flags = dict(FALLBACK_FLAGS)
     if not teams_df.empty:
@@ -181,11 +249,27 @@ def team_flag(team: Any) -> str:
 def live_minute(row: pd.Series) -> str:
     if row.get("status") != "Live":
         return ""
-    elapsed = clean_text(row.get("elapsed"))
-    if elapsed and elapsed.lower() not in {"live", "in_play"}:
-        return elapsed if elapsed.endswith("'") else f"{elapsed}'"
+    raw = row.get("raw") if isinstance(row.get("raw"), dict) else {}
+    for value in [row.get("elapsed"), raw.get("elapsed"), raw.get("time_elapsed"), raw.get("minute"), raw.get("match_minute"), raw.get("current_minute"), raw.get("status_short")]:
+        txt = clean_text(value)
+        low = txt.lower()
+        if not txt or low in {"live", "in_play", "in play", "0", "scheduled", "notstarted", "not started"}:
+            continue
+        if low in {"ht", "half time", "halftime"}:
+            return "HT"
+        if re.search(r"\d", txt):
+            return txt if txt.endswith("'") else f"{txt}'"
+        return txt.upper()
+    dt = row.get("date_time")
+    if isinstance(dt, datetime):
+        mins = int((datetime.now() - dt).total_seconds() // 60)
+        if 0 <= mins <= 130:
+            if 45 <= mins < 60:
+                return "HT"
+            if mins > 105:
+                return "ET"
+            return f"{max(1, mins)}'"
     return "LIVE"
-
 
 def timeline_percent(row: pd.Series) -> int:
     minute = live_minute(row)
@@ -215,7 +299,7 @@ def render_hero(matches_df: pd.DataFrame, source: str = "") -> None:
                 <span class="wc-host-pill">✅ {finished_count}/{total_count} completed</span>
               </div>
             </div>
-            <div class="wc-trophy">🏆</div>
+            <div class="wc-trophy"><img class="wc-trophy-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAACTCAYAAAB4dbz1AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAFiUAABYlAUlSJPAAACU9SURBVHhe7Z15eNTVvf9fM/OdfTJb9jEJCVkgEGTfQYUqP5R7sW611tYipUh7Xa4+1et16W29ltaH2l6fymN9VNSrLVrcEHH7oVBANoEECQGyJ2TfJzOT2ef8/ijM7+YbtiSTmNwnr+c5f+TzOd/z/Z5555zzPed7FoUQQjDGiEEpN4zx7TImyAhjTJARxpggI4wxQUYYY4KMMMYEGWGMCTLCGBNkhDEmyAhjTJARxpggIwzFSBpcDAQCtLS0UFVVhdvtxu/3y6MMOXq9nqSkJFJSUkhNTZW7h5wRIUhTUxOvvPIKn376KdXV1fh8PsLhMN/GoymVSiRJQq1WM3HiRO666y5uvvlmTCaTPOrQIL4lgsGgqK6uFk888YQwmUwCGLFhwoQJ4rnnnhNnzpwRkUhEnpWY8q0I4vP5xObNm8XUqVOFQqHo8wOMxKDT6cSyZcvEF198Ic9OTBl2QXp6esQTTzwhHA5Hn0yPhpCbmys2btwo/H6/PGsxYdgF+bd/+zeh1Wr7ZHQ0hfj4eLFp0yZ51mLCsAkSCATE66+/Lsxmc58MjsaQm5srdu7cGfM2ZdgEOXjwoJg0aVKfjI3mcPPNN4uWlhZ5VgfFsHQMfT4f27dvp6ysTO4a1Xz88cds2bJFbh4ccoWGgvr6epGRkdHnP+x/Q3A4HPLsDoph6Rhu2rSJn/zkJ3JzzLCaTaSkJDF/9nSuu3YJVrOZsopqPvr0C8qraujs7KSryym/LGZ8+eWXLFmyRG4eEMMiyHXXXceOHTvk5kFjs5hZOiebaxdfyXeWzkUlPAiFFgURNPo4TPHjUBlS+fyLr/jL2x+xe/de2js65MkMmnvuuYc///nPcvOAGHJBvF4vDoeDrq4uuWtQZDos/Gh5Nktn5+ANeBGRIAoimFMcpDjicXV1oECL3pyKLSWfgCaDv391nPseeISOzk55coMiPz+foqIiNBqN3NVvhrxRr62tjbkYcQYNP/nnSUwfbyEQ7kaBF3tyHPYEG1okWrsMjJ+5EnOSnZa6Yo7s3oKv4QuWzErik21vyZMbNC6XC5fLJTcPiCEXxO12k5CQcFkhPj4eo9GIWq1GoVDIkwJAoYAfXpfHnIkJGHVhgh4nJouBM7VdCCQyJk4mI1mPt0fC74qg8AewK7tpqz9Fc+knJEaO8Ydfr0ajluRJD5hQKERra6vcPCCGpco6cuSI3NwLj8fD0aNHKS8v58SJE9TV1dHa2kogEJBHZXq2nd/cMxuVToGkjuB3efD6w9jMZuLTx+HxhokICZ1ejz3RSn3pcbxdnfREwJ6UgFqtw2C1s35TCW+/+3/lyQ+IlJQUdu7cycSJE+WufjPkglwMl8vFtm3beP/99yksLKS2tpZgMCiPFkVSKVl/91Qm5yei0YJCKVBICipLmklJshBS6nB1NTFx2lQaKspIy51MyOOktuIM5ngTap0Gnc6EKTGZkjoVv3hqM/UNLfLb9JvU1FT27t3L+PHj5a5+M+RV1oUoLy/nJz/5Cf/yL//CO++8Q0VFxUXFAJgyzoLdqkaSBEolqNUKPvv8JBmJegJBUKk1HDlYy6G/HwFdEocPHufYiTokQpSVNdLR2I6KECIcIjtVxfw5efJbDAiNRkNGRobcPCCGXZBQKMTevXtZvnw5W7Zs6VeDf2WmBYNegUoCrUGD0+0nP1lHS6ePsrJ6iksaIM7KXz6qoKOxloqKFspL6zhQ1IhCpSIiaQhGwphtVlQRH0lWDSajVn6bfjNjxgwkKTZt0rAKEgqFeO+997j99tupqKiQuy+KpFKgVgWQ1IKk9DTSJ83CnHQFSWnJtLW5qG9y0VDfSkOzC5dfoJEUxMXpqGxw4fGHaWt14/f68UaUaM0OtFo9OQlBVt+QLb9Vv7nhhhvkpgEzrIIcOHCAxx9/nIaGBrnrkigArU4i5Yp4HPmLsKcvZNrCpTiDEA4LWt0BGtpc9PiCaCQFFouRRJsBjzeAzx9Cq1YhqSXikxwoNam42psQrbXMSA4QZxx4/8Fut3PjjTfKzQNm2ASprq5m/fr1VFZWyl2XRSgiUKBAgRKNIR6lZCAYiUOl1OLs9uIMCBraemjr8JKfrsPt9OBIjsMfVCKpINGqI91hw9XmxJKYjL+7A29HE1PmzeIHNy2Q3+6yuffee0lMTJSbB8ywCBIMBnn//ffZvXs3kUhE7r4srsyJJ9Gmo6uhDb+nBYhQdaqC2TOyiETCSCJCMBjB5Y6waNYVVJ7ppLyyBUeijqA/QFd3D0KhYsKMBVQc3oVe7SIzK4X0qQv527av5be7LLKzs1m3bp3cPCiGRRCn08k777yDx+ORuy4bk06BRhWmuaWb1tKj+F3VeNxtuFw+NEoFWhHGrFWycnES6ZlXYDAZcHpCOJLNeD1+urt9dHZ0U3/yK5y1u6gpb8JgtlBVXkans//PZbfbeeqpp0hKSpK7BsWwCHLo0CGOHj0qN/eLSDiCy+mmrrGF0iNfc+b4Tug4TWdjLYqghzSLghsWZ5CcFE8gFKC9O8S4cQnMnp2BWgNhpQaL1UD16VIO7jiO2y+hM9spOt3/HrbBYOC+++5j+fLlqFQquXtQDIsgmzdvxufzyc39IhSOYLEa8Yehrr6VhtMlKHydNNRUsfSWFdz5wL3MvGoxWrMVnzeMPxDCZlETb4ljSraBeKkDX1szE2fNYfHtq1lw3XUUXPV/+Nv2b+S3uiQPP/wwjzzyCHa7Xe4aNEMuSCQS4YsvvpCb+01Fg4egysisWfmEwkF8XjfNTgW2rLm4g0ZsKeMxmm1cvXwZTa1uUqwKSkubaG914vQp2bavhzfePcWjv3yLcblpuD1happ6KClrlN/qvKhUKuLj43n22Wf51a9+hcFgkEeJCUMuSHNzM42Nl5fpi9HpDnLidDOVFQ3YUjJp6pCoq2yi5UwZWp2CM6e+RtKbKS+vwxvWoFSATiOQ9CZyxieRlQx2u5Y1a/6ZPVv+THtjKbt2HcTpvPQobXJyMrfddhvvvPMO999/v9wdU4ZckIH0Oc6HEFBS50Wl0eHpdmOz6MjISiYx3kJp0dfUlJ3gxNHDpF9hJz0tBbVKQcDnQ6FNYlJBDv+8PIuk1EQiPd2cqe7AkphKZ0cXkcj5h/J0Oh0zZ87kwQcf5LXXXuO5557jmmuuiVmP/EIM+eDigQMHmD9/vtw8IDSSgufunUokEiYvLx2T0YDPH6Ks+BSICC3OCKb4NMJBD8Lbii+gZOacmZgsJroaSxGSnnDER8gbIGvSJNa/sIf3d1Ug/wXsdjvjxo3DZrMRFxeHXq/vHUGG1WrlySefxOFwyF39ZlQJAvDiw3Pwujxc4bBiM2ro6HTT3e1BpYT2NietPi1xeh0NLR1cPTcTj4ijuradBTPT0OtUoFRgd2RSVFzPU89/Rlnt5Y+lXYhYDr8PeZUVaw4cb8FsNlF4rJbyM06sCXYkSU1IqEhIsrJwWgLx8SZy0k3o9Ho0SkFFeR0nTjXy9dEqAuorSBg3k/rqSqrqu+XJf+uMOkFOnnFhsRqwmQ0c/6aKkuIqUtOTyMxJJzM7DbXJwsS8BILhCAKoqmlCUkFnpxO71cDRQ8coOriPnQcrCYUHNmowlIw6QRpavTjsWnzBELWNHjpcftQaicTUVBLHZZGUkoRCqUKhUBFBSXW9E6NOiT8oMJrtzJ2TT3dTKbu+ie1Eh1gx6gRpcfqpq2hiSo6NaXk2DhxuoLS4CrVagdmejE6vQaEQ5OZmYLMYCHg8hFGRlmymva0Ng1nPmRY3/uDIKx2MRkF8/jDpeen4wxF0OhVLZtjZd6ie0tI2wsEgkVAQozWeYDBEc3MX/jBEQiF8gRCzZuXj6WpjX3G7PNkRw6gTBGDHoTN4nF5MJh2BoECtifD3L/ZTfvwY3V0uzBYjcSYtTrcXSZKYMjmN5EQLQmNGrw5ReLJZnuSIYVQK8v6uGsalp6KVQKmMYDGpCfi91FZUoxAR6ssrUBDiWEkrjiQj9Q2dZOVlo4uzoteoqG0ceW9X5xiVgrR0B3FcYSMcCKHXqUmO15LhsNDjCyEUSpSSiob6dkLBIDv21REMhgj4wxh0airq3YQv0DsfCYxKQZzuAJ8eaiIhyYbBqMHjCdLY4kShVGEw6PF7eugJgC8UITczDq8/ginOjNfVzZ/fHtxngKFmVAri6gnw0VfVhCU9kk6PWieRlBCHI9WK2+nG5wtxqspJbYMTtaSktjWAiATxOZs4VT0yX3fPMSoFEQL2FjVR0yURZzCg1+uRVEo6Orw01jeh0Jgoq2jGbFRRXN7FTUszCUci7D3WQGf38G9G0B9GpSAA/mCYT3cVc8WEicxZPAu90YDVoiMnJ433Pv4Gjy9Ea5uXhdNT2LW3jO72Rr7cV4bHG5InNaIY8sHFU6dO8eCDD8rNMSFD38p4q5tpc6bSVFnBuIx4zjR089zrh4gzKInTq7hyQiL52cmozUkcrNVTUtMjT2bQ2Gw2nnnmGdLT0+WufjPkggSDQdrbh6YjtueDF2gtfo/WLg8+X5h50zP468eVlNc0oVMrSLKqmZlrJtGRRnxGAdNveACjdfBD5HKUSiV2uz0m30qGXJChZPubv+fEzpchHKCtO0hqSgKvfnAao8qLUKq45kojKcmJ+BVmbrj5dvKvewhJUsuTGVGMCEF6enpoa2vj5MmTfP311xQWFtLZ2YnX65VH7UWcaGdeRgCTXkkQFUWVPTTXNdPQFebKcWqyM+xYLXHY0nIprg9RWHbpz7UAWVlZzJo1i6uuuopx48ZhNpvRagc/B/hy+FYFcTqdHDlyhA8//JCPPvqImpoaQqHLb3Tj9Coe/m4a3T1BlJKOwyfa6GjvJjlBItWiIzkpjgMlThbOzeLlTypp6bi4wHI0Gg3Tpk1j+fLlLFu2jFmzZg25MN+KIEIITp8+zfPPP8+2bduora2VR7ks1CoFv/1RFrVtfrw9YQ6faEHSgFUtMXWyndIaD4FQmFu+O517frfvgt/PL4VSqSQ7O5tVq1axdu1aEhIS5FFixrciSGFhIXfeeSfl5eWXXBNyMcwGNfcvTySoUPN1URPd3hAWSZA93kJbV4hEq5qsTDvjJ+XyvUc+kV/eb/R6PZMnT+bDDz8css3NhrUfEg6HKSwsZMWKFZw8eXJQYgBoJBAKFW2tHurbAsTplYzLtNDtV6FRQX5eAh0+FQkJcVxgyWK/8Hq9HD58mBUrVlBeXj7gecoXY1gFOXToEN///vdjMk8LoK07iF6r5OA37SRaJcanxaFQqWlo6MKogYpaN7ffspAzNQ2YY7Aw5xzffPMNDzzwANXV1XLXoBk2QWpra9mwYUO/F+pcDJtR4nhpB5JayZW5cVgNauqqu4kIaPcpSUiOx+V0kZSSwoRMq/zyARMOh9m5cyevvfbaJd8E+8uwCBIKhfj000/5/PPPCYfDcveASbGqOVbaw5xJevQqNQcL29FbjcycoOOBny5m/qxMdEYTSkmLThPbrHq9Xl544QVqamrkrkER26e8AO3t7bz88suDWo4gRwEYFGFmT9aTbDVRUtrBzAID86cn8N3vfgeVUoVG4Sf+ikxSU+LxB2L3j3COtrY2fv/738e0LRkWQYqKijh27JjcPCi0kgKDJMhxmOl0+1n+nTSWLM5nwewczHESIujCYLUj/E7qTx/i2sUTUalin92//vWvlJaWys0DJvZPeB7eeuut824CMBiusElMzzLh7u4h0SShiCjRGQ0EAn66O9vpcnpwd3voqDlNnMnOTUtzWDRrnDyZQeP1evnwww/l5gEzLP2Q8ePHU1VVJTcPGKVSQVJuIsoMGz1CgVBKKDUSao2OhbPnE/D6OHHwED3uDlQJdlT1baSOT8NsUbHvrUN4XYNbqyJn7ty5HDhwQG4eEENeQtrb22MqBgBKJd0oaRISbn+IiElDQC0RUqvw+HpQqRWoLSbcviDtoSDOWRNpjbez36/EF4MRWTkNDQ0x23xmyEtIrCdbA2SmJ5E3LR5DJIgj9QocObnU1lVicySg6AkQ8ftJyC+g4kgh/rAPR2oWzoiXjtYuykua+HpXsTzJQRHLrTVGnSBKpYL1a5aQbu1Bp/Qzft4y3njpcyZlQlbBVJqrqggFAoj4HDrPnGZSwQScERMSARx2NfVtPTz4zHZqms//jUav12OxWMjNzWXy5MlkZWWhVF68IjEajdx6660xWR496gT5+W3XMt3RiiXeQUChI6TUI0Jg1UdInTINZ0c3Re/9laT5y3FVn+DKhYs4/PHHpBdMIhJRkZgYj1D0cP3aV8472VqpVKJSqdBqtej1eubOncvatWu5/vrr5VF7oVKpLrilVH+4uPQjjIzUFDKNNWiUavxeP06PIEEfBElB/ZkGDu7aT0eXC9OkuShEmHi7mdKjx5h3+/fx9/iR1ILE9HEoULL29mvkycPZNZHBYBC3201raysfffQRN998MytWrODw4cNEIhEkSeoTYiEGo62EJI9LwCOFCJj0hBFEeoKo7HGE9RIqSUdicgqTx+egESoqT5ZRU1+JP+gl0tiFQiWRlJFOOBjE62xHq1DSVdFOJHj5Hca8vDzWrl3LunXrMBqNcndMGDUlRCmp6AgE8CiUBPQGwqY4hDWOECCa3UTa3GgDoFXp0FnM6B1JYDQS6Q6AUkLEW5FS7IyfPgVPvJ1OSYPQ9u+Nq7S0lP/4j//gscceG7J5AqOmhKQm6plWYMcUr8Nkj0OriKBUQKDLg86gRmc2ok9KwKTVEQ4JPD1eOls78LQ4CQGKJDtqrZ74ODu+Hg/eHhclh2v5+kjjeduSi6HT6XjggQd48sknY15SRk0JUSEwR8JcQYgrgj7SFBESvD1YwwFMPV7inN0Yz9ShqKpC11SHrbOFjIiXTIMgQx0k19POlHAXWaEW8lQeMoWfdLOEpOp/3e/z+XjxxRd56623+vXJ+bIQQ8z+/fuFfDfo/y1h9uzZoqqqSp7lQTFqSshIpLCwkFdffVVuHhRjggyCUCjEiy++iNvtlrsGzJggg6S5uZk33nhDbh4wY4LEgM8//1xuGjCj4rU3NzeXxx57TG6mrKyM7du386//+q8AvPLKK+zdu5cnnniC7Ozem1uGw2FefvllDhw4wB/+8AdsNhuNjY0888wzOJ2DOzkhOzubwsJC4uLi5K7+I2/lY00s3rIWLVokT1YIIcQf//hHsWTJkujfq1atEoDYv39/r3hCCFFVVSWuvvpqMX36dBEMBoU4ewzT3Llz+9yvv8HhcIja2lr5LQfEqKuybr75ZubPn8/8+fNZv379RWd9fPLJJ3znO99h/vz5XH/99ezbt481a9agUqnw+/1IkhSTc00ikUjM5gsMuSBqdWxnm6tUKiRJor29/ZIb4IdCoegWfK2trdhsNpYtW4bL5eL999+no6ODW265JSbD5rFiyAWJ9TZ4GzZs4KWXXuKmm26Su/pw1VVX8cILL/DHP/4Ru93OihUrSElJwePx8Oqrr3Ly5MmY7LurVCpjdjTrkAuSnp4es4cF6Ozs5MyZM+zbt0/u6kM4HKajo4PCwkKam5u59tprMRqNnDhxgq+++io6HXSw1Zbdbo/dXF95ozIULFmypE9D2J/wPxv1zMzMXr558+ZFffJG/eWXX46es5ufny8OHjwohBCis7NTnDlzRrjdbiGEEM3NzWLGjBl97nu5YfXq1dFnGCxDXkIAfvjDH8pNw4pCoWDmzJlMnjyZYDDIjh07OHDgADt37sTr9WK1Wrnlllsu+an2Qvz4xz+WmwbMwJ6gnyxdunRQRbq9vZ2tW7eydetWenp6L9rs6OiI+s6tM9m9ezdbt26lsLCQUCiEWq1Go9GwY8cONm3axN13383dd9/NqlWr2LRpEx9//DEul2tAQ+mzZ89m5syZcvPAkReZocDr9YpHHnmkT1G/3CBJkrBarcJqtQqlUtnLp1Kpoj6NRiMAYTKZhNVqFQaDQSgUCqFQKITRaBRWq7XPUeHn4ppMpj5pX07Yvn27PLuDYlgEEUKIwsJCMWPGjFFzXPelglKpFDfddJPo7OyUZ3VQDJsgwWBQvPLKK8Jut/fJ3GgLCoVCTJ48WezatWv0Hk4szlZdGzduFHq9vk8mR1NwOBzigw8+EIFAQJ7FQTOsgoiz40dvvvnmqC0pJpNJ7Ny5MzoeFmuGXRBxtvp68803xfjx46MN8UgPOp1OXHXVVeKbb74R4uyBy6dOnRKhUEievUHxrQhyjuPHj4uHHnpIzJkzR+h0uj4/wkgIRqNRzJkzRzz99NOivr4++uynT58We/bsiXm1NeTfQy6Fx+OhpqaG/fv3c+TIEY4ePUpDQ8NFR3GHGrPZTG5uLrm5ucyfP5+pU6cyYcKEXnuZ1NbW0tPTQ15e3oA7lOfjWxfkHJFIBK/XS09PD8FgMKbLxPrLubm9Op0OvV5/3mmioVAIIUTMR7NHjCBj/IPYlbUxYsKYICOMIa+y3G43xcXFGAwGsrOzoxvPTJo0Ca/XS0VFBZIkMX36dLxeLyUlJdTU1JCVlUVBQQFqtZpgMEhJSUm0oY+Pjyc3N/e86RuNRkKhEBUVFXSePch+3LhxFxzcdLvdFBUV0d7eTkFBAVlZWZSUlOB2u8nOziYxMZHi4mL8fj/Z2dm0trZGJ1rbbDays7NjsnFZFNlbV8xxuVxCrVaLKVOmiMOHD4t7771XJCcni6KiIvHUU08JrVYrVq1aJY4dOyYWL14sJEkSRqNRxMXFiTvuuEM0NTWJxsZGMXHiRKFSqYTRaBRarVZcc8014uDBg2Lfvn2Cs99MysrKhBBCtLa2ioULF0ZfW7VarVi0aJH48ssvRTgcFkIIEQ6Hxf79+0VWVpZQqVRCq9WK5ORk8fXXX4t58+YJk8kktmzZIoQQIi0tTaSkpIhPPvlELFq0SCgUCqHRaIRGoxGpqakxHUIZ8irLZDKxYMEC6urqOH36NHv27MHtdvPZZ59x7Ngx/H4/y5cv5+WXX2b//v3ceOONbNiwgQULFvD222+zcePGaFqpqan853/+J7feeiu7du1i8+bNl3w9fvLJJ1m9ejUnT57k/vvvjx7BVFdXx+OPP05VVRV33HEHjz32GLfddhuZmZnyJPqgVqv5p3/6J9auXUt3dzdr1qyhra1NHm1ADLkgACtXrsTpdPbaG2vbtm1UVlZit9uZNm0aO3bsIDU1ld/+9resW7eO++67j+TkZF5//fVoOiaTie9+97ssXrwYgEAgwKVq3Ntvv53f/e53XHvttRQXF3P48GE4O6ertLQUh8PBn/70J375y1/y9NNPY7PZ5En0QalUMmfOHG688Ua0Wi1utztm60WGRZAlS5ag1Wr54IMPcDqdXH311Rw4cIDjx4+zcOFCjEYjbW1tGI1G4uLiUCgUWCwWjEYjdXV10XQqKipYvHgxjz76KOPGjWPlypWXdXydRqNh3Lh/bBpw7gNXT09P9Guh1fqPjWksFstlHRTp9/t55plnuPPOO+nq6mLevHl9JuYNlGERxOFwkJubi8/nIysrizVr1hAOhwmFQixbtgydTkdeXh41NTWcOHGClpYWjh49SmNjI0uWLImmY7fbcTgceL1evve977F06dJopy0YDNLZ2UlbW1uvaqyzs5PKykq+/PJLDAYDOTk5AKSlpZGenk5JSQkffPABra2tFBcX09zczPjx4/H7/dTU1NDQ0EBXVxd6vT4qvlKpJCMjgxUrVrBx40bef//92HUQ5Y3KUOByucRPf/pTAYj7779f1NXVidTUVGE0GkVRUZEIBALilVdeERkZGSI+Pl7MmzdPJCYmipycHPHhhx9GG/WJEyeKkpISMWPGDDF+/Hjx8ccfi6+++koAwmKxiNmzZ4tFixaJv/3tb9FGffbs2SInJ0ekpKSIX//618Lj8Qhx9lPAb3/7W5GQkCA0Go2YM2eOyMrKEocOHRIffPCBcDgcIj4+XkyYMEFIkiRWrVolmpubxaJFi4ROpxO/+93v5NmMCapf/epXv5KLFGtUKhVxcXGkpqayevVqUlJSsNlsXHXVVVx77bXo9Xqys7OZNGkSNpuNcDjMddddx4MPPsjSpUujY0UzZ85kyZIl5Ofno9frycjIIDMzE71ez6xZs8jKyiIjIyNat0+ZMoWsrCzmz5/PunXruOWWW6LzbyVJIj8/n/z8fOLj49Fqtdxwww1cd911TJo0ifz8fKxWK8nJyaxcuZKf/exnZGRk0NPTw9SpU1m8ePFlvQD0lyHvh5wjHA4TDAaju3qe295PrVZHq51wOEwgEMDv96PT6dBqtSgUCoQQ0c1rNBpNdOmyUqlEkqQ+G9totdpeDb5KpbpglXJuDC0UCqHX69Fo/nHYfSQSwe/3Ew6HUavV0ef2+/0IIaLLoWPNsAlyjkgkQigUiq7NO7dQ/0I/2DmEEIRCoejAo0KhQKlUotFoLtkQn7s2EokQDodRKpUoFArUavUlR2rP3fPcxmsqlSp63/MNOg6WYRFECEFraytFRUVUVVXR1NREV9c/DnTUarWYzWays7PJy8tjypQpvf7zgsEgx44d49SpUzQ0NNDY2IjL5UKSJOLi4sjIyCAtLY0JEyaQm5vbS1ifz8fJkycpLi6ObhDjdrvR6XTodDrS09PJyclh6tSp0TctzpbUyspKTp48SWVlJQ0NDXR0dMDZFwuNRkNubi4FBQVMnTo1tiVF3qgMBWVlZeL2228XDofjglNt9Hq9mDp1qviv//qv6HXFxcXi/vvvFwUFBRf9gGWxWMScOXPEs88+G220m5ubxdNPPy2mTZsm1Gp1n2s4O70oMzNT3HnnneL48ePR+77xxhtiwYIFwmazXXCWjFarFQUFBeK+++4TPT090WsHy7AIMn36dKFSqfpk6nzBaDSKPXv2iKqqKrFixQohSVKfOBcKBoNBbNiwQQSDQfHSSy8Js9ncJ875glKpFGvXrhWBQEBs2rTpsq/jrKgvvfSSPMsDZsgFOXHihJAkqVdYsmSJKC8vFz09PeK///u/+2TyF7/4hXjvvfeE1Wrt9aPNmzdPbNy4Uezfv1/s3r1bPPvssyI5ObnXtSaTSVRXV4s1a9b0umdeXp7YunWrCAaD4sSJE+L666/vdd2iRYtESUlJnwU8RqNRvPjii6KpqUk0NTWJQ4cOiYKCApGZmRkN9913nzzbAyaGld/5sVqt0SVn51i5ciUZGRm0tLT0sp9DqVRSV1cXbWc4O8L7xBNPsGLFiqht8eLFuFwu/ueb+7nR34ULF/ZqF3Jzc7n66qtxu9243e4+u6MqlUrKy8v77MV711138cMf/pDS0lLa29txOp2sX78eg8FAUlIS+fn5MW1DhqVR5+zbSllZGcePH6esrIyKigrq6uo4efJkr+ERvV7P1q1bOXbsGA8//HDUnpOTw6uvvsqiRYuiNoB33nmH2267rZdty5Yt3HrrrXB27u/BgwcpLS2lrKyM+vp6ampqOHnyJD7fP7b6U6lU3HXXXdx5553ccccdvRYCPfjgg7S3t3Ps2DE6OjpwOp2o1eqoIAsWLODRRx+NydHdwPA06k6nU/z85z8X6enpwmKxCK1We97GMjs7W2zevFl4vV6xYcOGXr6cnByxZ88eedJiy5YtfdLZsmWLcLvd4ve//73Izs4WNptNGAyG875QmEwmccMNN4jy8nKxZ88ekZCQ0Md/vuvOhXNVcKwa9mERZPXq1b0yodFohMPhEBMnThQ//vGPxfr168VXX30VnVITDAbFs88+2+ua7OxssXv3bnnS4s033+zzI7377rviL3/5izAajVGbSqUSdrtdpKeniyVLloiHH35YvP3226KlpSWa1t69e/sIkpeXJ55//nnx5Zdfiv3794s33nhD5OXl9YrjcDhEdXV1r+caKENeZXV1dfUZ0p46dSqPPvooqamp5+3UpaWl8fe//5177rkHv/8fp6pZLBYee+wxfvCDH2C1WgkGgzQ0NPDv//7vbNu2rdf1hw8f5rXXXuP555+P2lJSUrj77rtZvHjxeZcvm81mlEoly5Yt67U3/apVq3j++eejSxWCwSBr167ltddei8aJ5QH3Qy7IkSNHmDVrVi+bxWK56ELLn/70pyxdupS7776b4uL/v2FlcnIyBQUF2Gy2qCBFRUW9TllYvHgx7777Lj/72c949913o3a9Xk9ycvIFG+CZM2fym9/8hgceeIDt27dH7Q6Hg6uvvjr6Yzc0NLBt27bohy6AK6+8kt27d2OxWKK2ASMvMrFmIOvUf/GLX4hAICBef/31fvUJCgoKxKlTp0RnZ6e48cYb+/gvFs59Aq6urhapqam9fAqFQmi1WqHVas/bn3r77bfl2R4wQ15CCgsLWblypdx8UdatW8fjjz8OQGNjI08//TQ7duzA6XSedyzLZDLxox/9iHXr1pGYmEh3dzcPPfQQn332mTzpCzJ79mz+8Ic/kJmZicfj4U9/+hObN2+mtbU1OpYlhIiOZZlMJvLy8njooYdYtmyZPLkBM+SCcHbT+v5gNBrR6/W9bB6Ph+rqapqamqJjWSaTiYyMDFJTU3vFF0Lgcrn6jAJfjHPp/c8qLRAIUFtbS2NjI263G7/fj81mQ6vVkpWVRXx8/AWrwIEyLIKMcflcfOx5jGFnTJARxpggI4wxQUYYY4KMMMYEGWGMCTLCGBNkhDEmyAhjTJARxpggI4wxQUYYY4KMMMYEGWGMCTLCGBNkhDEmyAjj/wH36jjB49SIBgAAAABJRU5ErkJggg==" alt="FIFA World Cup trophy"></div>
           </div>
         </section>
         ''',
@@ -631,9 +715,9 @@ def render_match_card(row: pd.Series, compact: bool = False) -> None:
         <div class="match-card">
           <div>{status}{elapsed_html}<span class="tag">{row.get('stage_label','')}</span></div>
           <div class="wc-match-line">
-            <div class="wc-team-name"><span class="wc-flag">{team_flag(home)}</span>{home}</div>
+            <div class="wc-team-name">{team_chip(home)}</div>
             <div class="wc-score">{score}</div>
-            <div class="wc-team-name" style="text-align:right;">{away}<span class="wc-flag" style="margin-left:6px;margin-right:0;">{team_flag(away)}</span></div>
+            <div class="wc-team-name" style="text-align:right; justify-content:flex-end; display:flex;">{team_chip(away)}</div>
           </div>
           <div class="subtle">{row.get('kickoff','TBD')}{' • ' + venue if venue else ''}</div>
           {winner_line if not compact else ''}
@@ -759,22 +843,25 @@ def render_live_score_card(row: pd.Series) -> None:
     score = scoreline_label(row)
     minute = live_minute(row) or ("FT" if row.get("status") == "Finished" else clean_text(row.get("kickoff", "TBD")))
     progress = timeline_percent(row) if row.get("status") == "Live" else (100 if row.get("status") == "Finished" else 0)
+    home_pct = max(0, min(100, progress if row.get("status") == "Live" else 50))
+    away_pct = 100 - home_pct if row.get("status") == "Live" else 50
+    live_dot = '<span class="wc-live-dot"></span>' if row.get("status") == "Live" else ""
     st.markdown(
         f'''
         <div class="wc-live-card">
-          <div>{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{row.get('stage_label','')}</span><span class="tag">{minute}</span></div>
+          <div>{live_dot}{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span><span class="tag">⏱ {esc(minute)}</span></div>
           <div class="wc-live-teams">
-            <div class="wc-live-team"><span class="wc-live-flag">{team_flag(home)}</span>{home}</div>
-            <div class="wc-live-score">{score}</div>
-            <div class="wc-live-team"><span class="wc-live-flag">{team_flag(away)}</span>{away}</div>
+            <div class="wc-live-team"><div class="wc-team-name">{team_chip(home)}</div><span class="wc-team-hero-code">{team_code(home)}</span></div>
+            <div class="wc-live-score">{esc(score)}</div>
+            <div class="wc-live-team"><div class="wc-team-name">{team_chip(away)}</div><span class="wc-team-hero-code">{team_code(away)}</span></div>
           </div>
-          <div class="subtle" style="text-align:center;margin-top:8px;">{row.get('kickoff','TBD')}{' • ' + clean_text(row.get('venue')) if clean_text(row.get('venue')) else ''}</div>
+          <div class="subtle" style="text-align:center;margin-top:8px;">{esc(row.get('kickoff','TBD'))}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div>
           <div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div>
+          <div class="wc-win-row"><span class="wc-win-home">{home_pct}% {esc(home)}</span><span class="wc-win-away">{esc(away)} {away_pct}%</span></div>
         </div>
         ''',
         unsafe_allow_html=True,
     )
-
 
 def bracket_card_html(row: pd.Series) -> str:
     home = clean_text(row.get("home_team", "TBD"), "TBD")
@@ -787,8 +874,8 @@ def bracket_card_html(row: pd.Series) -> str:
     return f'''
       <div class="wc-bracket-card">
         <div style="margin-bottom:5px;">{status_badge(row.get('status', 'Scheduled'))}</div>
-        <div class="wc-bracket-team{home_cls}"><span>{team_flag(home)} {home}</span><span class="wc-bracket-score">{hs}</span></div>
-        <div class="wc-bracket-team{away_cls}"><span>{team_flag(away)} {away}</span><span class="wc-bracket-score">{aw}</span></div>
+        <div class="wc-bracket-team{home_cls}"><span>{team_chip(home)}</span><span class="wc-bracket-score">{hs}</span></div>
+        <div class="wc-bracket-team{away_cls}"><span>{team_chip(away)}</span><span class="wc-bracket-score">{aw}</span></div>
         <div class="subtle" style="font-size:.76rem;margin-top:6px;">{row.get('kickoff','TBD')}</div>
       </div>
     '''
@@ -822,7 +909,7 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     top_team, top_value = get_top_team_metric(matches_df)
 
     render_hero(matches_df, source)
-    st.caption(f"Data source: {source} • Auto-refresh cache: 60 seconds for live API data")
+    st.caption(f"Data source: {source} • Last refreshed: {datetime.now().strftime('%I:%M:%S %p')} • Auto-refresh: 60 seconds")
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
@@ -851,7 +938,7 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     with col_b:
         st.write("#### Stage status")
         stage_counts = matches_df.groupby(["stage_label", "status"]).size().reset_index(name="matches")
-        fig = px.bar(stage_counts, x="stage_label", y="matches", color="status", title="Matches by stage/status")
+        fig = px.bar(stage_counts, x="stage_label", y="matches", color="status", title="Matches by stage/status", color_discrete_map={"Scheduled":"#38bdf8", "Finished":"#22c55e", "Live":"#ef4444"})
         fig.update_layout(height=360, xaxis_title="Stage", yaxis_title="Matches", legend_title="Status")
         st.plotly_chart(fig, use_container_width=True)
 
@@ -919,7 +1006,7 @@ def render_teams_tab(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standings
     team_rows = teams_df[teams_df["team"] == favorite] if not teams_df.empty else pd.DataFrame()
     group = clean_text(team_rows.iloc[0].get("group") if not team_rows.empty else "")
     code = clean_text(team_rows.iloc[0].get("code") if not team_rows.empty else "")
-    st.subheader(f"{favorite} {f'({code})' if code else ''}")
+    st.subheader(f"{team_flag(favorite)} {favorite} ({team_code(favorite)})")
     if group:
         st.caption(f"Group {group}")
 
@@ -1051,6 +1138,11 @@ streamlit run app.py
 
 def main() -> None:
     st.sidebar.title("⚽ Controls")
+    auto_refresh = st.sidebar.toggle("Auto-refresh live view", value=True, help="Reloads the app every 60 seconds during live viewing.")
+    if auto_refresh:
+        components.html("<script>setTimeout(() => window.parent.location.reload(), 60000)</script>", height=0)
+    last_refresh = datetime.now().strftime("%I:%M:%S %p")
+    st.sidebar.caption(f"Last refreshed: {last_refresh}")
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
     source_mode = st.sidebar.radio("Data mode", ["Live API", "Demo fallback"], help="Use fallback only for offline demos or when API rate limits/auth blocks access.")
@@ -1078,7 +1170,7 @@ def main() -> None:
             for _, row in fdf.head(3).iterrows():
                 st.sidebar.caption(f"{row['kickoff']} — {row['home_team']} {row['score']} {row['away_team']}")
 
-    st.sidebar.caption("Tip: during live matches, refresh every 30–60 seconds to keep scores current.")
+    st.sidebar.caption("Live games auto-refresh every 60 seconds when enabled.")
 
     tab_dashboard, tab_matches, tab_standings, tab_knockout, tab_teams, tab_insights, tab_guide, tab_deploy = st.tabs(
         ["Dashboard", "Matches", "Standings", "Knockout", "Teams", "Insights", "New Fan Guide", "Deploy"]
