@@ -182,9 +182,10 @@ st.markdown(
       @keyframes pulseDot {0%{box-shadow:0 0 0 0 rgba(239,68,68,.7)} 70%{box-shadow:0 0 0 10px rgba(239,68,68,0)} 100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
       .wc-last-refresh {text-align:right; color:var(--wc-muted); font-size:.78rem; margin:-4px 0 8px;}
       .wc-stat-card, .match-card, .wc-live-card, .wc-bracket-card {border: 1px solid var(--wc-border); border-radius: 18px; background: linear-gradient(180deg, rgba(15, 31, 53, .92), rgba(8, 20, 36, .92)); color: var(--wc-text) !important; box-shadow: 0 14px 38px rgba(0,0,0,.22);}
-      .wc-stat-card {padding: 16px; display:flex; align-items:center; gap:14px; min-height:92px;}
+      .wc-stat-card {padding: 16px; display:flex; align-items:center; gap:14px; min-height:104px; height:104px; box-sizing:border-box;}
       .wc-stat-icon {height:46px; width:46px; flex:0 0 46px; border-radius:16px; display:flex; align-items:center; justify-content:center; background: rgba(56,189,248,.13); font-size:1.45rem;}
       .wc-stat-value {font-size:clamp(1.25rem, 2vw, 1.72rem); line-height:1.05; font-weight:950; color:#fff; overflow-wrap:anywhere;}
+      .wc-stat-card > div:last-child {min-width:0;}
       .wc-stat-label {color:var(--wc-muted); font-size:.84rem; line-height:1.25; margin-top:5px;}
       .match-card {padding: 15px; margin-bottom: 12px;}
       .match-card h4, .match-card b {color: #ffffff !important;}
@@ -245,8 +246,8 @@ st.markdown(
       .wc-small {font-size:.82rem; color:var(--wc-muted);}
       .wc-table-note {color:var(--wc-muted); font-size:.90rem; margin:6px 0 14px;}
       .wc-rank-row {display:grid; grid-template-columns:28px 1.1fr 2fr 42px; gap:10px; align-items:center; margin:9px 0;}
-      .wc-overview-grid {display:grid; grid-template-columns:repeat(3, minmax(220px,1fr)); gap:12px; margin:14px 0;}
-      .wc-summary-card {border:1px solid var(--wc-border); border-radius:16px; padding:14px; background:rgba(15,31,53,.76); min-height:142px;}
+      .wc-overview-grid {display:grid; grid-template-columns:repeat(3, minmax(220px,1fr)); gap:12px; margin:14px 0; align-items:stretch;}
+      .wc-summary-card {border:1px solid var(--wc-border); border-radius:16px; padding:14px; background:rgba(15,31,53,.76); min-height:142px; height:100%; box-sizing:border-box;}
       .wc-summary-card h4 {margin:0 0 8px; color:#fff; font-size:.98rem;}
       .wc-summary-card ul {margin:0; padding-left:1.1rem;}
       .wc-summary-card li {margin:5px 0; color:var(--wc-muted); font-size:.88rem;}
@@ -1591,7 +1592,7 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     scheduled = matches_df[matches_df["status"] == "Scheduled"]
     total_goals = int(finished["total_goals"].dropna().sum()) if not finished.empty else 0
     avg_goals = total_goals / len(finished) if len(finished) else 0
-    current_stage, current_stage_detail = get_current_stage_metric(matches_df)
+    current_stage, _current_stage_detail = get_current_stage_metric(matches_df)
 
     cache_note = "60 seconds" if source == "Live API" else "1 hour"
     st.caption(f"Data source: {source} • Cache: {cache_note}")
@@ -1607,7 +1608,7 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     with c3:
         render_stat_card("⚽", total_goals, f"Goals • {avg_goals:.2f}/match")
     with c4:
-        render_stat_card("🏁", current_stage, f"Current stage • {current_stage_detail}")
+        render_stat_card("🏁", current_stage, "Current stage")
 
     pinned = live.sort_values("date_time", na_position="last")
     pinned_label = "🔴 Live match"
@@ -1811,10 +1812,8 @@ def main() -> None:
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
     source_mode = st.sidebar.radio("Data mode", ["Live API", "Demo fallback"], help="Live API can add live minutes when available. Demo fallback is local sample data.")
-    auto_refresh = st.sidebar.toggle("Auto-refresh live view", value=True, help="Refreshes every 30 seconds so live scores and clocks stay current.")
-    if auto_refresh:
-        st.markdown('<meta http-equiv="refresh" content="30">', unsafe_allow_html=True)
-    if st.sidebar.button("Refresh now"):
+    no_reload_refresh = st.sidebar.toggle("No-reload refresh", value=True, help="Refresh now clears cached data and reruns Streamlit without forcing a full browser page reload.")
+    if st.sidebar.button("Refresh now", help="Fetch fresh data with a Streamlit rerun instead of a browser meta-refresh."):
         st.cache_data.clear()
         st.rerun()
 
@@ -1840,7 +1839,8 @@ def main() -> None:
             for _, row in fdf.head(3).iterrows():
                 st.sidebar.caption(f"{row['kickoff']} — {row['home_team']} {row['score']} {row['away_team']}")
 
-    st.sidebar.caption("Tip: live match clocks tick every second; match data auto-refreshes every 30 seconds.")
+    if no_reload_refresh:
+        st.sidebar.caption("Tip: live match clocks tick every second; use Refresh now to fetch fresh match data without a browser page reload.")
 
     # Global tournament banner: keep identity above the navigation tabs on every page.
     render_hero(matches, source)
@@ -1850,7 +1850,7 @@ def main() -> None:
         <div class="wc-last-refresh" style="text-align:right;color:#a8b3c7;font-size:.78rem;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
           <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-right:7px;"></span>
           Last refreshed: <span id="browser-refresh-time"></span>
-          <span class="wc-refresh-pill" style="margin-left:8px;">Next refresh in <span id="browser-refresh-countdown">30</span>s</span>
+          <span class="wc-refresh-pill" style="margin-left:8px;">No-reload refresh ready</span>
         </div>
         <script>
           const el = document.getElementById("browser-refresh-time");
@@ -1860,14 +1860,6 @@ def main() -> None:
               minute: "2-digit",
               second: "2-digit"
             });
-          }
-          const cd = document.getElementById("browser-refresh-countdown");
-          let left = 30;
-          if (cd) {
-            setInterval(() => {
-              left = left <= 1 ? 30 : left - 1;
-              cd.textContent = left;
-            }, 1000);
           }
         </script>
         """,
