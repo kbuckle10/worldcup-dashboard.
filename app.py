@@ -99,6 +99,31 @@ TEAM_ISO2_MAP = {
     "Algeria":"dz", "Curaçao":"cw", "Curacao":"cw",
 }
 
+
+TEAM_PROFILE_MAP = {
+    "Argentina": {"coach": "Lionel Scaloni", "captain": "Lionel Messi", "ranking": 1, "form": "Elite tournament pedigree"},
+    "France": {"coach": "Didier Deschamps", "captain": "Kylian Mbappé", "ranking": 2, "form": "Explosive transition attack"},
+    "Spain": {"coach": "Luis de la Fuente", "captain": "Álvaro Morata", "ranking": 3, "form": "High-possession control"},
+    "England": {"coach": "Thomas Tuchel", "captain": "Harry Kane", "ranking": 4, "form": "Deep squad, set-piece threat"},
+    "Brazil": {"coach": "Carlo Ancelotti", "captain": "Marquinhos", "ranking": 5, "form": "Creative wide forwards"},
+    "Portugal": {"coach": "Roberto Martínez", "captain": "Cristiano Ronaldo", "ranking": 6, "form": "Clinical final-third quality"},
+    "Netherlands": {"coach": "Ronald Koeman", "captain": "Virgil van Dijk", "ranking": 7, "form": "Balanced defensive spine"},
+    "Belgium": {"coach": "Rudi Garcia", "captain": "Kevin De Bruyne", "ranking": 8, "form": "Chance creation hub"},
+    "Germany": {"coach": "Julian Nagelsmann", "captain": "Joshua Kimmich", "ranking": 9, "form": "Aggressive midfield pressure"},
+    "United States": {"coach": "Mauricio Pochettino", "captain": "Christian Pulisic", "ranking": 10, "form": "Host-nation energy"},
+    "Mexico": {"coach": "Javier Aguirre", "captain": "Edson Álvarez", "ranking": 15, "form": "Home-continent intensity"},
+    "Canada": {"coach": "Jesse Marsch", "captain": "Alphonso Davies", "ranking": 30, "form": "Fast direct runners"},
+}
+
+PLAYER_PROFILE_MAP = {
+    "Kylian Mbappé": {"club": "Real Madrid", "position": "Forward", "age": 27},
+    "Lionel Messi": {"club": "Inter Miami", "position": "Forward", "age": 39},
+    "Erling Haaland": {"club": "Manchester City", "position": "Forward", "age": 25},
+    "Harry Kane": {"club": "Bayern Munich", "position": "Forward", "age": 32},
+    "Vinícius Júnior": {"club": "Real Madrid", "position": "Forward", "age": 25},
+    "Ousmane Dembélé": {"club": "Paris Saint-Germain", "position": "Forward", "age": 29},
+}
+
 PLAYER_IMAGE_MAP = {
     "Kylian Mbappé": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Kylian_Mbapp%C3%A9_2018.jpg/96px-Kylian_Mbapp%C3%A9_2018.jpg",
     "Lionel Messi": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Lionel_Messi_20180626.jpg/96px-Lionel_Messi_20180626.jpg",
@@ -258,6 +283,19 @@ st.markdown(
       .wc-live-team .team-name, .wc-centre-score .team-name {font-size:clamp(.92rem, 1.4vw, 1.08rem);}
       div[data-testid="stSelectbox"] label, div[data-testid="stTextInput"] label, div[data-testid="stRadio"] label, div[data-testid="stToggle"] label {font-size:.9rem; font-weight:800;}
 
+
+      @keyframes riseIn {from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)}}
+      @keyframes routePulse {0%,100%{filter:drop-shadow(0 0 0 rgba(247,201,72,0)); opacity:.62} 50%{filter:drop-shadow(0 0 10px rgba(247,201,72,.55)); opacity:1}}
+      .match-card,.wc-live-card,.wc-stat-card,.wc-summary-card,.wc-story,.wc-team-profile,.wc-player-card {animation:riseIn .36s ease both; transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;}
+      .match-card:hover,.wc-live-card:hover,.wc-summary-card:hover,.wc-player-card:hover {transform:translateY(-2px); border-color:rgba(247,201,72,.46); box-shadow:0 18px 50px rgba(0,0,0,.30);}
+      .wc-live-meta{display:flex;justify-content:space-between;align-items:center;gap:12px}.wc-live-clock{font-weight:950;color:#f7c948;border:1px solid rgba(247,201,72,.32);border-radius:999px;padding:5px 10px;background:rgba(247,201,72,.10)}
+      .wc-centre-hero{border:1px solid rgba(247,201,72,.38);border-radius:24px;padding:18px;background:radial-gradient(circle at 50% 0,rgba(247,201,72,.16),transparent 18rem),rgba(8,20,36,.94)}.wc-centre-score{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;text-align:center;margin-top:14px}.wc-centre-score strong{font-size:clamp(2rem,6vw,4rem);color:#fff}.wc-click-hint,.wc-mini-note{margin-top:10px;color:#a8b3c7;font-size:.84rem;text-align:center}
+      .wc-timeline-strip{height:18px;margin:18px 8px 10px;position:relative;border-radius:999px;background:linear-gradient(90deg,rgba(34,197,94,.25),rgba(247,201,72,.25),rgba(56,189,248,.25))}.wc-timeline-dot{position:absolute;top:50%;width:13px;height:13px;transform:translate(-50%,-50%);border-radius:50%;background:#22c55e;border:2px solid #fff;box-shadow:0 0 18px rgba(34,197,94,.5)}.wc-timeline-dot.away{background:#38bdf8}.wc-match-events{display:grid;grid-template-columns:1fr 54px 1fr;gap:8px;align-items:center}.wc-event-left{text-align:right}.wc-event-right{text-align:left}.wc-event-time{text-align:center;color:#f7c948;font-weight:950}
+      .wc-stat-row{display:grid;grid-template-columns:1fr 150px 1fr;gap:12px;align-items:center;margin:10px 0}.wc-stat-bar{height:9px;border-radius:999px;background:rgba(148,163,184,.18);overflow:hidden}.wc-stat-fill-home,.wc-stat-fill-away{height:100%;border-radius:999px}.wc-stat-fill-home{margin-left:auto;background:linear-gradient(90deg,#22c55e,#f7c948)}.wc-stat-fill-away{background:linear-gradient(90deg,#38bdf8,#818cf8)}
+      .wc-refresh-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(56,189,248,.28);border-radius:999px;padding:5px 10px;background:rgba(56,189,248,.10);font-weight:800;color:#dff6ff}.wc-bracket-board{position:relative}.wc-bracket-board::before{content:"";position:absolute;inset:84px 238px;background:linear-gradient(90deg,transparent 0 8%,rgba(247,201,72,.28) 8% 12%,transparent 12% 88%,rgba(247,201,72,.28) 88% 92%,transparent 92%),linear-gradient(0deg,transparent 0 47%,rgba(247,201,72,.38) 47% 53%,transparent 53%);pointer-events:none;animation:routePulse 2.4s ease-in-out infinite}.wc-bracket-card::before{content:"";position:absolute;top:50%;height:2px;width:18px;background:linear-gradient(90deg,rgba(247,201,72,.15),rgba(247,201,72,.7));animation:routePulse 2.4s ease-in-out infinite}.wc-bracket-side.left .wc-bracket-card::before{right:-18px}.wc-bracket-side.right .wc-bracket-card::before{left:-18px}.wc-route-legend{text-align:center;color:#a8b3c7;margin-top:10px;font-size:.86rem}.wc-team-profile{border:1px solid var(--wc-border);border-radius:24px;padding:18px;background:linear-gradient(135deg,rgba(15,31,53,.94),rgba(8,20,36,.94));}.wc-team-hero{display:flex;gap:14px;align-items:center}.wc-team-flag-xl{font-size:3rem}.wc-form-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.wc-form-badge{height:28px;min-width:28px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:950;background:rgba(148,163,184,.18)}.wc-form-badge.win{background:rgba(34,197,94,.22);color:#bbf7d0}.wc-form-badge.loss{background:rgba(239,68,68,.18);color:#fecaca}.wc-form-badge.draw{background:rgba(247,201,72,.18);color:#fde68a}.wc-player-grid{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}.wc-player-card{border:1px solid var(--wc-border);border-radius:18px;padding:14px;background:rgba(15,31,53,.82)}.wc-player-card-top{display:flex;gap:12px;align-items:center}.wc-player-card .wc-player-photo,.wc-player-card .wc-player-avatar{width:54px;height:54px;font-size:1rem}.wc-player-meta{color:#a8b3c7;font-size:.84rem;margin-top:4px}.wc-player-statline{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.wc-player-stat{border-radius:12px;background:rgba(148,163,184,.12);padding:8px;text-align:center}.wc-player-stat b{display:block;color:#fff;font-size:1.1rem}
+      @media (max-width: 900px) {.wc-stat-row{grid-template-columns:1fr}.wc-centre-score{grid-template-columns:1fr}.wc-player-grid{grid-template-columns:1fr 1fr}.wc-bracket-board{grid-template-columns:1fr;min-width:760px}.wc-bracket-board::before{display:none}}
+      @media (max-width: 640px) {.wc-player-grid{grid-template-columns:1fr}.wc-hero-inner{align-items:flex-start}.wc-trophy{display:none}}
+
       @media (max-width: 900px) {.wc-story-grid,.wc-overview-grid,.wc-basics-grid{grid-template-columns:1fr 1fr}.wc-live-teams{grid-template-columns:1fr}.wc-bracket-grid{grid-template-columns:repeat(3,minmax(210px,1fr));}}
       @media (max-width: 640px) {.wc-story-grid,.wc-overview-grid,.wc-basics-grid{grid-template-columns:1fr}}
     </style>
@@ -340,6 +378,35 @@ def player_photo_html(player: Any) -> str:
         return f'<img class="wc-player-photo" src="{url}" alt="{esc(name)}" loading="lazy">'
     initials = "".join([part[:1] for part in name.split()[:2]]).upper() or "⚽"
     return f'<span class="wc-player-avatar">{esc(initials)}</span>'
+
+
+def client_live_clock_html(row: pd.Series, fallback: str) -> str:
+    """Render a browser-updated live clock when kickoff time is available."""
+    if row.get("status") != "Live" or not isinstance(row.get("date_time"), datetime):
+        return esc(fallback)
+    kickoff_ms = int(row.get("date_time").timestamp() * 1000)
+    return f'<span class="wc-js-clock" data-kickoff="{kickoff_ms}">{esc(fallback)}</span>'
+
+
+def inject_live_clock_script() -> None:
+    components.html(
+        """
+        <script>
+          const doc = window.parent.document;
+          function tickClocks() {
+            doc.querySelectorAll('.wc-js-clock[data-kickoff]').forEach((el) => {
+              const start = Number(el.dataset.kickoff);
+              if (!start) return;
+              const mins = Math.max(1, Math.floor((Date.now() - start) / 60000));
+              el.textContent = mins >= 105 ? `ET ${mins}'` : (mins >= 45 && mins < 60 ? 'HT' : `${Math.min(mins, 120)}'`);
+            });
+          }
+          tickClocks();
+          setInterval(tickClocks, 1000);
+        </script>
+        """,
+        height=0,
+    )
 
 
 def live_minute(row: pd.Series) -> str:
@@ -1005,6 +1072,40 @@ def render_team_route(team: str, matches_df: pd.DataFrame) -> None:
         render_match_card(row, compact=True)
 
 
+def team_profile(team: str, tmatches: pd.DataFrame) -> Dict[str, Any]:
+    profile = TEAM_PROFILE_MAP.get(clean_text(team), {})
+    finished = tmatches[tmatches["status"] == "Finished"].sort_values("date_time", ascending=False, na_position="last") if not tmatches.empty else pd.DataFrame()
+    form = []
+    for _, r in finished.head(5).iterrows():
+        winner = clean_text(r.get("winner"))
+        form.append("W" if winner == team else "D" if winner == "Draw / penalties" else "L")
+    return {
+        "coach": profile.get("coach", "To be confirmed"),
+        "captain": profile.get("captain", "To be confirmed"),
+        "ranking": profile.get("ranking", "—"),
+        "style": profile.get("form", "Tournament profile will sharpen as results arrive"),
+        "form": form or ["—", "—", "—", "—", "—"],
+    }
+
+
+def render_team_profile_card(team: str, tmatches: pd.DataFrame, group: str, code: str) -> None:
+    profile = team_profile(team, tmatches)
+    badges = "".join(
+        f'<span class="wc-form-badge {"win" if x == "W" else "loss" if x == "L" else "draw" if x == "D" else ""}">{esc(x)}</span>'
+        for x in profile["form"]
+    )
+    st.markdown(
+        f'''<div class="wc-team-profile"><div class="wc-team-hero"><div class="wc-team-flag-xl">{team_flag(team)}</div><div>
+          <div class="wc-hero-kicker">{esc("Group " + group if group else "Team profile")}</div>
+          <div class="wc-section-title" style="margin:0;">{team_chip(team)} {f'<span class="team-code">{esc(code)}</span>' if code else ''}</div>
+          <div class="subtle">Coach: <b>{esc(profile['coach'])}</b> • Captain: <b>{esc(profile['captain'])}</b> • FIFA ranking: <b>{esc(profile['ranking'])}</b></div>
+          <div class="subtle">Identity: {esc(profile['style'])}</div>
+          <div class="wc-form-badges"><span class="subtle" style="align-self:center;">Recent form</span>{badges}</div>
+        </div></div></div>''',
+        unsafe_allow_html=True,
+    )
+
+
 def extract_scorers(matches_df: pd.DataFrame) -> pd.DataFrame:
     records = []
     for _, m in matches_df.iterrows():
@@ -1100,7 +1201,7 @@ def render_match_centre(row: pd.Series) -> None:
     home = clean_text(row.get("home_team", "TBD"), "TBD")
     away = clean_text(row.get("away_team", "TBD"), "TBD")
     minute = live_minute(row) or ("FT" if row.get("status") == "Finished" else clean_text(row.get("kickoff", "TBD")))
-    st.markdown(f'''<div class="wc-centre-hero"><div class="wc-live-meta"><span>{status_badge(row.get('status','Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{esc(minute)}</span></div><div class="wc-centre-score"><div>{team_chip(home)}<div class="subtle">{esc(row.get('group',''))}</div></div><strong>{esc(scoreline_label(row))}</strong><div>{team_chip(away)}<div class="subtle">{esc(row.get('venue',''))}</div></div></div></div>''', unsafe_allow_html=True)
+    st.markdown(f'''<div class="wc-centre-hero"><div class="wc-live-meta"><span>{status_badge(row.get('status','Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{client_live_clock_html(row, minute)}</span></div><div class="wc-centre-score"><div>{team_chip(home)}<div class="subtle">{esc(row.get('group',''))}</div></div><strong>{esc(scoreline_label(row))}</strong><div>{team_chip(away)}<div class="subtle">{esc(row.get('venue',''))}</div></div></div></div>''', unsafe_allow_html=True)
     st.markdown(event_timeline_html(row), unsafe_allow_html=True)
     st.write("#### Match breakdown")
     for label, hv, av in match_stat_rows(row):
@@ -1145,7 +1246,7 @@ def render_live_score_card(row: pd.Series, key_prefix: str = "live", standings_d
     home_prob, away_prob = matchup_probabilities(home, away, row)
     events_html = event_timeline_html(row) if row.get("status") == "Live" else ""
     prob_html = probability_row_html(home, away, home_prob, away_prob)
-    st.markdown(f'''<div class="wc-live-card"><div class="wc-live-meta"><span>{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{esc(minute)}</span></div><div class="wc-live-teams"><div class="wc-live-team">{team_chip(home)}<div class="subtle">{esc(team_context_line(home, standings_df))}</div></div><div class="wc-live-score">{esc(score)}</div><div class="wc-live-team">{team_chip(away)}<div class="subtle">{esc(team_context_line(away, standings_df))}</div></div></div><div class="subtle" style="text-align:center;margin-top:8px;">{esc(row.get('kickoff','TBD'))}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div><div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div>{prob_html}{events_html}<div class="wc-click-hint">Open for timeline, stats and source data</div></div>''', unsafe_allow_html=True)
+    st.markdown(f'''<div class="wc-live-card"><div class="wc-live-meta"><span>{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{client_live_clock_html(row, minute)}</span></div><div class="wc-live-teams"><div class="wc-live-team">{team_chip(home)}<div class="subtle">{esc(team_context_line(home, standings_df))}</div></div><div class="wc-live-score">{esc(score)}</div><div class="wc-live-team">{team_chip(away)}<div class="subtle">{esc(team_context_line(away, standings_df))}</div></div></div><div class="subtle" style="text-align:center;margin-top:8px;">{esc(row.get('kickoff','TBD'))}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div><div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div>{prob_html}{events_html}<div class="wc-click-hint">Open for timeline, stats and source data</div></div>''', unsafe_allow_html=True)
     match_key = clean_text(row.get("match_id")) or str(abs(hash(str(row.to_dict()))))
     if st.button(f"Open Match Centre: {home} vs {away}", key=f"{key_prefix}_{match_key}"):
         open_match_centre(row)
@@ -1310,6 +1411,22 @@ def extract_player_stats(matches_df: pd.DataFrame) -> pd.DataFrame:
     return grouped
 
 
+def player_card_html(r: pd.Series) -> str:
+    player = clean_text(r["Player"])
+    meta = PLAYER_PROFILE_MAP.get(player, {})
+    club = meta.get("club", "Club unavailable")
+    position = meta.get("position", "Player")
+    age = meta.get("age", "—")
+    return f'''<div class="wc-player-card"><div class="wc-player-card-top">{player_photo_html(player)}
+        <div><b>{esc(player)}</b><div class="wc-player-meta">{team_chip(r['Country'])} • {esc(position)} • {esc(club)} • Age {esc(age)}</div></div>
+      </div><div class="wc-player-statline">
+        <div class="wc-player-stat"><b>{int(r['G'])}</b><span>Goals</span></div>
+        <div class="wc-player-stat"><b>{int(r['A'])}</b><span>Assists</span></div>
+        <div class="wc-player-stat"><b>{int(r['Open'])}</b><span>Open</span></div>
+        <div class="wc-player-stat"><b>{int(r['Pen'])}</b><span>Pens</span></div>
+      </div></div>'''
+
+
 def render_overview(matches_df: pd.DataFrame, standings_df: pd.DataFrame, source: str) -> None:
     render_dashboard(matches_df, standings_df, source)
 
@@ -1344,6 +1461,9 @@ def render_players_tab(matches_df: pd.DataFrame) -> None:
     if search:
         out = out[out["Player"].str.contains(re.escape(search), case=False, na=False)]
     out = out.sort_values([sort_by, "G", "Player"], ascending=[False, False, True]).reset_index(drop=True)
+    st.write("#### Featured player cards")
+    st.markdown('<div class="wc-player-grid">' + "".join(player_card_html(r) for _, r in out.head(6).iterrows()) + "</div>", unsafe_allow_html=True)
+    st.write("#### Full player table")
     rows = []
     for idx, r in out.iterrows():
         player = clean_text(r["Player"])
@@ -1570,6 +1690,7 @@ def render_knockout_tab(matches_df: pd.DataFrame, standings_df: Optional[pd.Data
         return
     st.write("#### Road to the final")
     render_bracket_wall(knockout)
+    st.markdown('<div class="wc-route-legend">Animated gold routes and connector rails trace each side of the bracket toward the FIFA World Cup Final.</div>', unsafe_allow_html=True)
     st.write("#### Round-by-round details")
     tabs = st.tabs([STAGE_LABELS[s] for s in STAGE_ORDER if s != "group" and s in set(knockout["stage"])])
     for tab, stage_code in zip(tabs, [s for s in STAGE_ORDER if s != "group" and s in set(knockout["stage"])]):
@@ -1592,11 +1713,8 @@ def render_teams_tab(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standings
     team_rows = teams_df[teams_df["team"] == favorite] if not teams_df.empty else pd.DataFrame()
     group = clean_text(team_rows.iloc[0].get("group") if not team_rows.empty else "")
     code = clean_text(team_rows.iloc[0].get("code") if not team_rows.empty else "")
-    st.subheader(f"{favorite} {f'({code})' if code else ''}")
-    if group:
-        st.caption(f"Group {group}")
-
     tmatches = filter_matches(matches_df, team=favorite)
+    render_team_profile_card(favorite, tmatches, group, code)
     finished = tmatches[tmatches["status"] == "Finished"]
     wins = int((finished["winner"] == favorite).sum()) if not finished.empty else 0
     goals_for = 0
@@ -1693,9 +1811,9 @@ def main() -> None:
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
     source_mode = st.sidebar.radio("Data mode", ["Live API", "Demo fallback"], help="Live API can add live minutes when available. Demo fallback is local sample data.")
-    auto_refresh = st.sidebar.toggle("Auto-refresh live view", value=True, help="Refreshes every 60 seconds so live scores and clocks stay current.")
+    auto_refresh = st.sidebar.toggle("Auto-refresh live view", value=True, help="Refreshes every 30 seconds so live scores and clocks stay current.")
     if auto_refresh:
-        st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
+        st.markdown('<meta http-equiv="refresh" content="30">', unsafe_allow_html=True)
     if st.sidebar.button("Refresh now"):
         st.cache_data.clear()
         st.rerun()
@@ -1722,15 +1840,17 @@ def main() -> None:
             for _, row in fdf.head(3).iterrows():
                 st.sidebar.caption(f"{row['kickoff']} — {row['home_team']} {row['score']} {row['away_team']}")
 
-    st.sidebar.caption("Tip: during live matches, refresh every 30–60 seconds to keep scores current.")
+    st.sidebar.caption("Tip: live match clocks tick every second; match data auto-refreshes every 30 seconds.")
 
     # Global tournament banner: keep identity above the navigation tabs on every page.
     render_hero(matches, source)
+    inject_live_clock_script()
     components.html(
         """
         <div class="wc-last-refresh" style="text-align:right;color:#a8b3c7;font-size:.78rem;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
           <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-right:7px;"></span>
           Last refreshed: <span id="browser-refresh-time"></span>
+          <span class="wc-refresh-pill" style="margin-left:8px;">Next refresh in <span id="browser-refresh-countdown">30</span>s</span>
         </div>
         <script>
           const el = document.getElementById("browser-refresh-time");
@@ -1740,6 +1860,14 @@ def main() -> None:
               minute: "2-digit",
               second: "2-digit"
             });
+          }
+          const cd = document.getElementById("browser-refresh-countdown");
+          let left = 30;
+          if (cd) {
+            setInterval(() => {
+              left = left <= 1 ? 30 : left - 1;
+              cd.textContent = left;
+            }, 1000);
           }
         </script>
         """,
