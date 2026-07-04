@@ -767,8 +767,41 @@ def status_badge(status: str) -> str:
     return f"<span class='tag {cls}'>{'<span class=\"wc-live-dot\"></span>' if status == 'Live' else ''}{status}</span>"
 
 
+def ordinal(value: Any) -> str:
+    number = to_int(value, None)
+    if number is None:
+        return ""
+    suffix = "th" if 10 <= number % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(number % 10, "th")
+    return f"{number}{suffix}"
 
-def render_match_card(row: pd.Series, compact: bool = False) -> None:
+
+def group_position_lookup(standings_df: pd.DataFrame) -> Dict[str, str]:
+    if standings_df.empty or "team" not in standings_df.columns:
+        return {}
+    df = standings_df.copy()
+    for col in ["Pts", "GD", "GF"]:
+        if col not in df.columns:
+            df[col] = 0
+    if "group" not in df.columns:
+        df["group"] = ""
+    df = df.sort_values(["group", "Pts", "GD", "GF"], ascending=[True, False, False, False], na_position="last")
+    df["_rank"] = df.groupby("group").cumcount() + 1
+    lookup: Dict[str, str] = {}
+    for _, row in df.iterrows():
+        team = clean_text(row.get("team"))
+        group = clean_text(row.get("group"))
+        if team and group:
+            lookup[team] = f"{ordinal(row.get('_rank'))} · Grp {group.upper()}"
+    return lookup
+
+
+def team_context_line(team: str, standings_df: Optional[pd.DataFrame] = None) -> str:
+    if standings_df is None or standings_df.empty:
+        return team_code(team)
+    return group_position_lookup(standings_df).get(clean_text(team), team_code(team))
+
+
+def render_match_card(row: pd.Series, compact: bool = False, standings_df: Optional[pd.DataFrame] = None) -> None:
     score = scoreline_label(row)
     status = status_badge(row.get("status", "Scheduled"))
     minute = live_minute(row)
@@ -782,9 +815,9 @@ def render_match_card(row: pd.Series, compact: bool = False) -> None:
         f'''<div class="match-card">
           <div>{status}{elapsed_html}<span class="tag">{esc(row.get('stage_label',''))}</span></div>
           <div class="wc-match-line">
-            <div class="wc-team-name">{team_chip(home)}</div>
+            <div class="wc-team-name">{team_chip(home)}<div class="subtle">{esc(team_context_line(home, standings_df))}</div></div>
             <div class="wc-score">{esc(score)}</div>
-            <div class="wc-team-name" style="text-align:right; justify-content:flex-end; display:flex;">{team_chip(away)}</div>
+            <div class="wc-team-name" style="text-align:right;">{team_chip(away)}<div class="subtle">{esc(team_context_line(away, standings_df))}</div></div>
           </div>
           <div class="subtle">{esc(row.get('kickoff','TBD'))}{' • ' + esc(venue) if venue else ''}</div>
           {winner_line if not compact else ''}
@@ -809,23 +842,22 @@ def explain_current_stage(matches_df: pd.DataFrame) -> str:
     return "Fixtures are loaded, but no live or completed status is available."
 
 
-def get_top_team_metric(matches_df: pd.DataFrame) -> Tuple[str, str]:
+def get_current_stage_metric(matches_df: pd.DataFrame) -> Tuple[str, str]:
     if matches_df.empty:
         return "—", "No data"
+    live = matches_df[matches_df["status"] == "Live"].sort_values("date_time", na_position="last")
+    if not live.empty:
+        stage = clean_text(live.iloc[0].get("stage_label"), "Live")
+        return stage, f"{len(live)} live"
+    scheduled = matches_df[matches_df["status"] == "Scheduled"].sort_values("date_time", na_position="last")
+    if not scheduled.empty:
+        row = scheduled.iloc[0]
+        return clean_text(row.get("stage_label"), "Upcoming"), clean_text(row.get("kickoff"), "Next match")
     finished = matches_df[matches_df["status"] == "Finished"]
-    if finished.empty:
-        return "—", "No finished matches yet"
-    attack = []
-    for _, r in finished.iterrows():
-        if not pd.isna(r.get("home_score")):
-            attack.append({"team": r["home_team"], "goals": int(r["home_score"])})
-        if not pd.isna(r.get("away_score")):
-            attack.append({"team": r["away_team"], "goals": int(r["away_score"])})
-    if not attack:
-        return "—", "No goals yet"
-    team_goals = pd.DataFrame(attack).groupby("team", as_index=False)["goals"].sum().sort_values("goals", ascending=False)
-    first = team_goals.iloc[0]
-    return str(first["team"]), f"{int(first['goals'])} goals"
+    if not finished.empty:
+        row = finished.sort_values("date_time", ascending=False, na_position="last").iloc[0]
+        return clean_text(row.get("stage_label"), "Complete"), "latest completed"
+    return "—", "No status"
 
 
 def team_goal_table(matches_df: pd.DataFrame) -> pd.DataFrame:
@@ -1048,7 +1080,7 @@ def open_match_centre(row: pd.Series) -> None:
         st.write(f"### {title}")
         render_match_centre(row)
 
-def render_live_score_card(row: pd.Series, key_prefix: str = "live") -> None:
+def render_live_score_card(row: pd.Series, key_prefix: str = "live", standings_df: Optional[pd.DataFrame] = None) -> None:
     home = clean_text(row.get("home_team", "TBD"), "TBD")
     away = clean_text(row.get("away_team", "TBD"), "TBD")
     score = scoreline_label(row)
@@ -1057,7 +1089,7 @@ def render_live_score_card(row: pd.Series, key_prefix: str = "live") -> None:
     home_prob = max(6, min(94, 50 + (0 if pd.isna(row.get("home_score")) or pd.isna(row.get("away_score")) else int(row.get("home_score"))*12 - int(row.get("away_score"))*12)))
     away_prob = 100 - home_prob
     events_html = event_timeline_html(row) if row.get("status") == "Live" else ""
-    st.markdown(f'''<div class="wc-live-card"><div class="wc-live-meta"><span>{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{esc(minute)}</span></div><div class="wc-live-teams"><div class="wc-live-team">{team_chip(home)}<div class="subtle">{team_code(home)}</div></div><div class="wc-live-score">{esc(score)}</div><div class="wc-live-team">{team_chip(away)}<div class="subtle">{team_code(away)}</div></div></div><div class="subtle" style="text-align:center;margin-top:8px;">{esc(row.get('kickoff','TBD'))}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div><div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div><div class="wc-live-prob-row"><span>{home_prob}% {esc(home)}</span><span>{esc(away)} {away_prob}%</span></div>{events_html}<div class="wc-click-hint">Open for timeline, stats and source data</div></div>''', unsafe_allow_html=True)
+    st.markdown(f'''<div class="wc-live-card"><div class="wc-live-meta"><span>{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{esc(minute)}</span></div><div class="wc-live-teams"><div class="wc-live-team">{team_chip(home)}<div class="subtle">{esc(team_context_line(home, standings_df))}</div></div><div class="wc-live-score">{esc(score)}</div><div class="wc-live-team">{team_chip(away)}<div class="subtle">{esc(team_context_line(away, standings_df))}</div></div></div><div class="subtle" style="text-align:center;margin-top:8px;">{esc(row.get('kickoff','TBD'))}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div><div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div><div class="wc-live-prob-row"><span>{home_prob}% {esc(home)}</span><span>{esc(away)} {away_prob}%</span></div>{events_html}<div class="wc-click-hint">Open for timeline, stats and source data</div></div>''', unsafe_allow_html=True)
     match_key = clean_text(row.get("match_id")) or str(abs(hash(str(row.to_dict()))))
     if st.button(f"Open Match Centre: {home} vs {away}", key=f"{key_prefix}_{match_key}"):
         open_match_centre(row)
@@ -1383,46 +1415,37 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     scheduled = matches_df[matches_df["status"] == "Scheduled"]
     total_goals = int(finished["total_goals"].dropna().sum()) if not finished.empty else 0
     avg_goals = total_goals / len(finished) if len(finished) else 0
-    top_team, top_value = get_top_team_metric(matches_df)
+    current_stage, current_stage_detail = get_current_stage_metric(matches_df)
 
     st.caption(f"Data source: {source} • Auto-refresh cache: 60 seconds for live API data")
 
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
-        render_stat_card("🏟️", total_matches, "Matches loaded")
+        render_stat_card("✅", f"{len(finished)} / {total_matches}", "Matches completed")
     with c2:
-        render_stat_card("✅", len(finished), "Finished")
-    with c3:
         render_stat_card("🔴", len(live), "Live now")
-    with c4:
+    with c3:
         render_stat_card("⚽", total_goals, f"Goals • {avg_goals:.2f}/match")
-    with c5:
-        render_stat_card("🔥", top_team, f"Top attack • {top_value}")
+    with c4:
+        render_stat_card("🏁", current_stage, f"Current stage • {current_stage_detail}")
 
-    st.progress(min(1.0, len(finished) / max(1, total_matches)), text=f"Tournament progress: {len(finished)} of {total_matches} loaded matches completed")
+    pinned = live.sort_values("date_time", na_position="last")
+    pinned_label = "🔴 Live match"
+    if pinned.empty:
+        pinned = scheduled.sort_values("date_time", na_position="last").head(1)
+        pinned_label = "⏭️ Next match"
+    if not pinned.empty:
+        st.markdown(f"#### {pinned_label}")
+        render_live_score_card(pinned.iloc[0], key_prefix="overview_pinned", standings_df=standings_df)
 
     st.markdown("### Overview summary")
     render_overview_summary_cards(matches_df)
 
     st.markdown("### At a glance")
-    col_a, col_b = st.columns([1.15, 0.85])
-    with col_a:
-        st.markdown(f"<div class='explain'><b>Plain-English summary:</b> {explain_current_stage(matches_df)} The winner of each knockout match advances; in the group stage teams advance by points and goal difference.</div>", unsafe_allow_html=True)
-    with col_b:
-        st.write("#### Stage status")
-        stage_counts = matches_df.groupby(["stage_label", "status"]).size().reset_index(name="matches")
-        fig = px.bar(stage_counts, x="stage_label", y="matches", color="status", title="Matches by stage/status", color_discrete_map={"Finished":"#22c55e", "Live":"#ef4444", "Scheduled":"#38bdf8"})
-        fig.update_layout(height=360, xaxis_title="Stage", yaxis_title="Matches", legend_title="Status")
-        st.plotly_chart(fig, use_container_width=True)
-
-        if not standings_df.empty:
-            best_thirds = standings_df[standings_df.get("rank", 0) == 3].sort_values(["Pts", "GD", "GF"], ascending=[False, False, False]).head(8)
-            if not best_thirds.empty:
-                st.write("#### Best 3rd-place race")
-                st.dataframe(best_thirds[["group", "team", "Pts", "GD", "GF"]].rename(columns={"group": "Group", "team": "Team"}), use_container_width=True, hide_index=True)
+    st.markdown(f"<div class='explain'><b>Plain-English summary:</b> {explain_current_stage(matches_df)} The winner of each knockout match advances; in the group stage teams advance by points and goal difference.</div>", unsafe_allow_html=True)
 
 
-def render_matches_tab(matches_df: pd.DataFrame) -> None:
+def render_matches_tab(matches_df: pd.DataFrame, standings_df: Optional[pd.DataFrame] = None) -> None:
     st.markdown('<div class="wc-section-title">Upcoming & Live</div>', unsafe_allow_html=True)
     st.markdown(
         "Every live match is pinned at the top. Click **Open Match Centre** on any card for the live clock, timeline, scorers, comparison bars and source stats."
@@ -1440,7 +1463,7 @@ def render_matches_tab(matches_df: pd.DataFrame) -> None:
         st.markdown(f'<div class="wc-section-kicker">🔴 Live now • {len(live)} match(es)</div>', unsafe_allow_html=True)
         for idx, (_, row) in enumerate(live.iterrows()):
             st.markdown('<div class="wc-live-priority">', unsafe_allow_html=True)
-            render_live_score_card(row, key_prefix=f"live_pinned_{idx}")
+            render_live_score_card(row, key_prefix=f"live_pinned_{idx}", standings_df=standings_df)
             st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.markdown('<div class="wc-section-kicker">No live match right now</div>', unsafe_allow_html=True)
@@ -1473,11 +1496,11 @@ def render_matches_tab(matches_df: pd.DataFrame) -> None:
 
     st.write("#### Match centre cards")
     for idx, (_, row) in enumerate(filtered.drop(columns=["_status_rank"], errors="ignore").head(24).iterrows()):
-        render_live_score_card(row, key_prefix=f"matches_{idx}")
+        render_live_score_card(row, key_prefix=f"matches_{idx}", standings_df=standings_df)
     if len(filtered) > 24:
         st.caption("Showing first 24 cards. Use the filters above to narrow the list.")
 
-def render_knockout_tab(matches_df: pd.DataFrame) -> None:
+def render_knockout_tab(matches_df: pd.DataFrame, standings_df: Optional[pd.DataFrame] = None) -> None:
     st.header("Knockout bracket explorer")
     st.markdown("Every match is sudden-death: win and advance, lose and go home. If tied after extra time, penalties decide the winner.")
     knockout = matches_df[matches_df["stage"] != "group"].copy()
@@ -1494,7 +1517,7 @@ def render_knockout_tab(matches_df: pd.DataFrame) -> None:
             cols = st.columns(2)
             for idx, (_, row) in enumerate(sdf.iterrows()):
                 with cols[idx % 2]:
-                    render_match_card(row)
+                    render_match_card(row, standings_df=standings_df)
 
 
 def render_teams_tab(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standings_df: pd.DataFrame) -> None:
@@ -1659,9 +1682,9 @@ def main() -> None:
     with tab_overview:
         render_overview(matches, standings, source)
     with tab_matches:
-        render_matches_tab(matches)
+        render_matches_tab(matches, standings)
     with tab_knockout:
-        render_knockout_tab(matches)
+        render_knockout_tab(matches, standings)
     with tab_insights:
         render_insights_tab(matches)
     with tab_standings:
