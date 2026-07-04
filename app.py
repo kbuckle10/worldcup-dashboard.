@@ -13,6 +13,7 @@ import html
 import json
 import math
 import re
+from urllib.parse import quote
 from datetime import datetime, date
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -27,6 +28,20 @@ APP_DIR = Path(__file__).parent
 DATA_DIR = APP_DIR / "data"
 DEFAULT_API_BASE = "https://worldcup26.ir"
 OPENFOOTBALL_WORLD_CUP_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json"
+
+TROPHY_SVG = (
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 320' role='img' aria-label='FIFA World Cup trophy'>"
+    "<defs><linearGradient id='g' x1='35%' y1='0%' x2='75%' y2='100%'><stop offset='0' stop-color='%23fff4b8'/>"
+    "<stop offset='.22' stop-color='%23d79a25'/><stop offset='.55' stop-color='%23884b12'/><stop offset='1' stop-color='%23f4d56b'/></linearGradient>"
+    "<radialGradient id='globe' cx='45%' cy='28%' r='48%'><stop offset='0' stop-color='%23fff9d0'/><stop offset='.45' stop-color='%23d89b2f'/>"
+    "<stop offset='1' stop-color='%23532b0a'/></radialGradient><filter id='shadow' x='-30%' y='-20%' width='160%' height='150%'>"
+    "<feDropShadow dx='0' dy='12' stdDeviation='10' flood-color='%23000' flood-opacity='.55'/></filter></defs>"
+    "<rect width='180' height='320' fill='%23070707'/><g filter='url(%23shadow)'><ellipse cx='90' cy='64' rx='58' ry='56' fill='url(%23globe)'/>"
+    "<path d='M45 69c18 20 39 23 70 6 13-7 25-10 31-4-6 28-22 51-45 71-8 43 7 75 18 105H60c11-30 26-62 18-105C55 122 39 98 45 69z' fill='url(%23g)'/>"
+    "<path d='M72 119c28 24 50 62 39 123M103 22c-8 31-34 47-62 47M122 92c-23 7-46 20-65 41' fill='none' stroke='%23fff0aa' stroke-opacity='.42' stroke-width='7' stroke-linecap='round'/>"
+    "<path d='M58 247h64l10 39H48z' fill='%23efe6c8'/><path d='M45 286h90v19H45z' fill='%236da0b7'/><path d='M39 305h102v10H39z' fill='%23e8dfc5'/>"
+    "<text x='90' y='300' text-anchor='middle' font-family='Arial,sans-serif' font-size='10' font-weight='700' fill='%23f7f1d8'>WORLD CUP</text></g></svg>"
+)
 
 STAGE_LABELS = {
     "group": "Group Stage",
@@ -127,17 +142,17 @@ st.markdown(
       h1, h2, h3, h4, h5, h6, p, span, label, div {color: inherit;}
       .main-title {font-size: 2.4rem; font-weight: 900; margin-bottom: 0.2rem; color: var(--wc-text); letter-spacing: -0.04em;}
       .subtle {color: var(--wc-muted) !important; font-size: 0.95rem;}
-      .wc-hero {position: relative; overflow: hidden; border: 1px solid rgba(247, 201, 72, 0.38); border-radius: 22px; padding: 16px 22px; margin: 0 0 12px 0; background: linear-gradient(120deg, rgba(2, 6, 23, .95), rgba(11, 42, 70, .92)), radial-gradient(circle at 12% 20%, rgba(247, 201, 72, .23), transparent 16rem), radial-gradient(circle at 85% 45%, rgba(34, 197, 94, .18), transparent 20rem); box-shadow: 0 22px 55px rgba(0, 0, 0, 0.35);}
+      .wc-hero {position: relative; overflow: hidden; border: 1px solid rgba(247, 201, 72, 0.38); border-radius: 22px; padding: 12px 20px; margin: 0 0 12px 0; background: linear-gradient(120deg, rgba(2, 6, 23, .95), rgba(11, 42, 70, .92)), radial-gradient(circle at 12% 20%, rgba(247, 201, 72, .23), transparent 16rem), radial-gradient(circle at 85% 45%, rgba(34, 197, 94, .18), transparent 20rem); box-shadow: 0 22px 55px rgba(0, 0, 0, 0.35);}
       .wc-hero::after {content: ""; position: absolute; inset: 0; background-image: linear-gradient(120deg, transparent 0%, transparent 60%, rgba(255,255,255,.06) 60%, transparent 78%), repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 90px); pointer-events: none;}
       .wc-hero-inner {position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 20px;}
       .wc-hero-kicker {color: var(--wc-gold); font-weight: 800; text-transform: uppercase; letter-spacing: .16em; font-size: .70rem;}
-      .wc-hero-title {color: #fff; font-size: clamp(1.55rem, 3.0vw, 3.25rem); line-height: .92; font-weight: 950; letter-spacing: -.06em; margin: 4px 0;}
-      .wc-hero-title strong {display: block; color: var(--wc-gold); text-shadow: 0 0 20px rgba(247, 201, 72, .30);}
+      .wc-hero-title {color: #fff; font-size: clamp(1.45rem, 2.7vw, 2.8rem); line-height: 1; white-space: nowrap; font-weight: 950; letter-spacing: -.06em; margin: 4px 0;}
+      .wc-hero-title strong {color: var(--wc-gold); text-shadow: 0 0 20px rgba(247, 201, 72, .30);}
       .wc-hosts {display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
       .wc-host-pill {display:inline-flex; align-items:center; gap:7px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color:#fff; border-radius: 999px; padding: 5px 10px; font-weight: 800; backdrop-filter: blur(10px); font-size:.82rem;}
-      .wc-trophy {width: 92px; height: 92px; min-width: 92px; border-radius: 24px; display:flex; align-items:center; justify-content:center; font-size: 4rem; background: linear-gradient(135deg, rgba(247,201,72,.24), rgba(255,255,255,.07)); border: 1px solid rgba(247,201,72,.36); box-shadow: inset 0 0 45px rgba(247,201,72,.08), 0 18px 50px rgba(0,0,0,.32);}
+      .wc-trophy {width: 78px; height: 96px; min-width: 78px; border-radius: 24px; display:flex; align-items:center; justify-content:center; font-size: 4rem; background: linear-gradient(135deg, rgba(247,201,72,.24), rgba(255,255,255,.07)); border: 1px solid rgba(247,201,72,.36); box-shadow: inset 0 0 45px rgba(247,201,72,.08), 0 18px 50px rgba(0,0,0,.32);}
       .wc-trophy-fallback {font-size:4.2rem; line-height:1; filter:drop-shadow(0 12px 28px rgba(247,201,72,.35));}
-      .wc-trophy-img {max-width:76px; max-height:76px; object-fit:contain; filter:drop-shadow(0 12px 28px rgba(247,201,72,.35));}
+      .wc-trophy-img {max-width:64px; max-height:88px; object-fit:contain; filter:drop-shadow(0 12px 28px rgba(247,201,72,.35));}
       .wc-live-dot {display:inline-block; width:9px; height:9px; border-radius:50%; background:#ef4444; box-shadow:0 0 0 rgba(239,68,68,.8); animation:pulseDot 1.2s infinite; margin-right:7px;}
       @keyframes pulseDot {0%{box-shadow:0 0 0 0 rgba(239,68,68,.7)} 70%{box-shadow:0 0 0 10px rgba(239,68,68,0)} 100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
       .wc-last-refresh {text-align:right; color:var(--wc-muted); font-size:.78rem; margin:-4px 0 8px;}
@@ -222,7 +237,10 @@ st.markdown(
       .wc-player-avatar {width:34px; height:34px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; margin-right:10px; background:linear-gradient(135deg,#1d4ed8,#111827); border:1px solid rgba(255,255,255,.18); color:#fff; font-weight:950; vertical-align:middle;}
       .wc-player-name {display:inline-flex; align-items:center; font-weight:900; color:#fff;}
       .wc-cup-final {display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:250px; border:1px solid rgba(247,201,72,.45); border-radius:28px; background:radial-gradient(circle at 50% 35%, rgba(247,201,72,.20), transparent 7rem), rgba(15,23,42,.72); text-align:center; box-shadow:0 18px 70px rgba(0,0,0,.35);}
-      .wc-cup-icon {font-size:5.2rem; filter:drop-shadow(0 12px 28px rgba(247,201,72,.35));}
+      .wc-cup-icon {filter:drop-shadow(0 12px 28px rgba(247,201,72,.35));}
+      .wc-cup-trophy-img {width:88px; height:142px; object-fit:contain;}
+      .wc-format-line {display:inline-flex; align-items:center; gap:8px; margin-top:8px; padding:7px 12px; border-radius:999px; background:linear-gradient(90deg, rgba(247,201,72,.20), rgba(56,189,248,.13)); border:1px solid rgba(247,201,72,.30); color:#fff; font-weight:950; letter-spacing:.02em;}
+      .wc-format-line b {color:var(--wc-gold);}
       .wc-world-champ {font-size:1.2rem; font-weight:950; color:#fff; letter-spacing:.08em; text-transform:uppercase; margin-top:8px;}
       .wc-bracket-side {display:grid; grid-template-columns:repeat(3, minmax(185px,1fr)); gap:16px; align-items:center;}
       .wc-bracket-side.right {direction:rtl;}
@@ -363,6 +381,10 @@ def timeline_percent(row: pd.Series) -> int:
     return max(4, min(100, int(int(m.group()) / 90 * 100)))
 
 
+def trophy_image_html(class_name: str = "wc-trophy-img") -> str:
+    return f'<img class="{class_name}" src="data:image/svg+xml;utf8,{quote(TROPHY_SVG)}" alt="FIFA World Cup trophy" loading="lazy">'
+
+
 def render_hero(matches_df: pd.DataFrame, source: str = "") -> None:
     live_count = int((matches_df["status"] == "Live").sum()) if not matches_df.empty else 0
     finished_count = int((matches_df["status"] == "Finished").sum()) if not matches_df.empty else 0
@@ -373,8 +395,9 @@ def render_hero(matches_df: pd.DataFrame, source: str = "") -> None:
           <div class="wc-hero-inner">
             <div>
               <div class="wc-hero-kicker">United States • Canada • Mexico</div>
-              <div class="wc-hero-title">FIFA World Cup<strong>2026™</strong></div>
-              <div class="subtle" style="font-size:1.08rem;">Live scores, standings, knockout routes and fan-friendly insights in one place.</div>
+              <div class="wc-hero-title">FIFA World Cup <strong>2026™</strong></div>
+              <div class="subtle" style="font-size:1rem;">Live scores, standings, knockout routes and fan-friendly insights in one place.</div>
+              <div class="wc-format-line"><b>48 teams</b><span>•</span><b>12 groups</b><span>•</span><b>1 winner</b></div>
               <div class="wc-hosts">
                 <span class="wc-host-pill">🇺🇸 United States</span>
                 <span class="wc-host-pill">🇨🇦 Canada</span>
@@ -383,7 +406,7 @@ def render_hero(matches_df: pd.DataFrame, source: str = "") -> None:
                 <span class="wc-host-pill">✅ {finished_count}/{total_count} completed</span>
               </div>
             </div>
-            <div class="wc-trophy"><span class="wc-trophy-fallback" role="img" aria-label="FIFA World Cup trophy">🏆</span></div>
+            <div class="wc-trophy">{trophy_image_html()}</div>
           </div>
         </section>
         ''',
@@ -908,7 +931,7 @@ def render_overview_summary_cards(matches_df: pd.DataFrame) -> None:
     wins = biggest_wins(matches_df)
     cards = [
         ("🏆 Biggest wins", [
-            f"{team_chip(r['home_team'])} {scoreline_label(r)} {team_chip(r['away_team'])} • margin {int(r['margin'])}"
+            f"{team_chip(r['home_team'])} {scoreline_label(r)} {team_chip(r['away_team'])}"
             for _, r in wins.iterrows()
         ] or ["Biggest wins will appear after completed matches."]),
         ("🥇 Top scorers", [
@@ -1182,7 +1205,7 @@ def render_bracket_wall(knockout: pd.DataFrame) -> None:
           <div><div class="wc-bracket-round-title">Quarterfinals</div>{_stack(left['qf'],2,'qf')}</div>
         </div>
         <div><div class="wc-cup-final">
-            <div class="wc-cup-icon"><span class="wc-trophy-fallback" role="img" aria-label="FIFA World Cup trophy">🏆</span></div><div class="wc-world-champ">World Champion</div>
+            <div class="wc-cup-icon">{trophy_image_html("wc-cup-trophy-img")}</div><div class="wc-world-champ">World Champion</div>
             <div style="width:100%; margin-top:14px;">{final_html}</div>
             <div class="subtle" style="margin:8px 0 4px;">Bronze final</div><div style="width:100%;">{third_html}</div>
         </div></div>
@@ -1669,7 +1692,7 @@ def main() -> None:
     st.sidebar.title("⚽ Controls")
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
-    source_mode = st.sidebar.radio("Data mode", ["GitHub OpenFootball", "Live API", "Demo fallback"], help="GitHub OpenFootball uses a public-domain JSON file from GitHub. Live API can add live minutes when available. Demo fallback is local sample data.")
+    source_mode = st.sidebar.radio("Data mode", ["Live API", "Demo fallback"], help="Live API can add live minutes when available. Demo fallback is local sample data.")
     auto_refresh = st.sidebar.toggle("Auto-refresh live view", value=True, help="Refreshes every 60 seconds so live scores and clocks stay current.")
     if auto_refresh:
         st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
