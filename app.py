@@ -8,6 +8,7 @@ Optional token support: set WORLDCUP26_TOKEN in Streamlit secrets if your API in
 
 from __future__ import annotations
 
+import html
 import json
 import math
 import re
@@ -19,11 +20,11 @@ import pandas as pd
 import plotly.express as px
 import requests
 import streamlit as st
-import streamlit.components.v1 as components
 
 APP_DIR = Path(__file__).parent
 DATA_DIR = APP_DIR / "data"
 DEFAULT_API_BASE = "https://worldcup26.ir"
+OPENFOOTBALL_WORLD_CUP_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json"
 
 STAGE_LABELS = {
     "group": "Group Stage",
@@ -81,6 +82,15 @@ TEAM_ISO2_MAP = {
     "Algeria":"dz", "Curaçao":"cw", "Curacao":"cw",
 }
 
+PLAYER_IMAGE_MAP = {
+    "Kylian Mbappé": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Kylian_Mbapp%C3%A9_2018.jpg/96px-Kylian_Mbapp%C3%A9_2018.jpg",
+    "Lionel Messi": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Lionel_Messi_20180626.jpg/96px-Lionel_Messi_20180626.jpg",
+    "Erling Haaland": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Erling_Haaland_2023.jpg/96px-Erling_Haaland_2023.jpg",
+    "Harry Kane": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Harry_Kane_in_Russia_2.jpg/96px-Harry_Kane_in_Russia_2.jpg",
+    "Vinícius Júnior": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Vinicius_Jr_2021.jpg/96px-Vinicius_Jr_2021.jpg",
+    "Ousmane Dembélé": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Ousmane_Demb%C3%A9l%C3%A9_2018.jpg/96px-Ousmane_Demb%C3%A9l%C3%A9_2018.jpg",
+}
+
 st.set_page_config(
     page_title="World Cup 2026 Dashboard",
     page_icon="⚽",
@@ -115,15 +125,20 @@ st.markdown(
       h1, h2, h3, h4, h5, h6, p, span, label, div {color: inherit;}
       .main-title {font-size: 2.4rem; font-weight: 900; margin-bottom: 0.2rem; color: var(--wc-text); letter-spacing: -0.04em;}
       .subtle {color: var(--wc-muted) !important; font-size: 0.95rem;}
-      .wc-hero {position: relative; overflow: hidden; border: 1px solid rgba(247, 201, 72, 0.38); border-radius: 20px; padding: 16px 24px; margin: 0 0 12px 0; background: linear-gradient(120deg, rgba(2, 6, 23, .95), rgba(11, 42, 70, .92)), radial-gradient(circle at 12% 20%, rgba(247, 201, 72, .23), transparent 16rem), radial-gradient(circle at 85% 45%, rgba(34, 197, 94, .18), transparent 20rem); box-shadow: 0 22px 55px rgba(0, 0, 0, 0.35);}
+      .wc-hero {position: relative; overflow: hidden; border: 1px solid rgba(247, 201, 72, 0.38); border-radius: 22px; padding: 16px 22px; margin: 0 0 12px 0; background: linear-gradient(120deg, rgba(2, 6, 23, .95), rgba(11, 42, 70, .92)), radial-gradient(circle at 12% 20%, rgba(247, 201, 72, .23), transparent 16rem), radial-gradient(circle at 85% 45%, rgba(34, 197, 94, .18), transparent 20rem); box-shadow: 0 22px 55px rgba(0, 0, 0, 0.35);}
       .wc-hero::after {content: ""; position: absolute; inset: 0; background-image: linear-gradient(120deg, transparent 0%, transparent 60%, rgba(255,255,255,.06) 60%, transparent 78%), repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 90px); pointer-events: none;}
       .wc-hero-inner {position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 20px;}
-      .wc-hero-kicker {color: var(--wc-gold); font-weight: 800; text-transform: uppercase; letter-spacing: .16em; font-size: .78rem;}
-      .wc-hero-title {color: #fff; font-size: clamp(1.8rem, 3.2vw, 3.2rem); line-height: .94; font-weight: 950; letter-spacing: -.06em; margin: 8px 0;}
-      .wc-hero-title strong {display: inline-block; margin-left: .25rem; color: var(--wc-gold); text-shadow: 0 0 20px rgba(247, 201, 72, .30);}
+      .wc-hero-kicker {color: var(--wc-gold); font-weight: 800; text-transform: uppercase; letter-spacing: .16em; font-size: .70rem;}
+      .wc-hero-title {color: #fff; font-size: clamp(1.55rem, 3.0vw, 3.25rem); line-height: .92; font-weight: 950; letter-spacing: -.06em; margin: 4px 0;}
+      .wc-hero-title strong {display: block; color: var(--wc-gold); text-shadow: 0 0 20px rgba(247, 201, 72, .30);}
       .wc-hosts {display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
-      .wc-host-pill {display:inline-flex; align-items:center; gap:7px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color:#fff; border-radius: 999px; padding: 5px 10px; font-weight: 800; backdrop-filter: blur(10px);}
-      .wc-trophy {width: 76px; height: 76px; min-width: 76px; border-radius: 20px; display:flex; align-items:center; justify-content:center; font-size: 3rem; background: linear-gradient(135deg, rgba(247,201,72,.24), rgba(255,255,255,.07)); border: 1px solid rgba(247,201,72,.36); box-shadow: inset 0 0 45px rgba(247,201,72,.08), 0 18px 50px rgba(0,0,0,.32);}
+      .wc-host-pill {display:inline-flex; align-items:center; gap:7px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color:#fff; border-radius: 999px; padding: 5px 10px; font-weight: 800; backdrop-filter: blur(10px); font-size:.82rem;}
+      .wc-trophy {width: 92px; height: 92px; min-width: 92px; border-radius: 24px; display:flex; align-items:center; justify-content:center; font-size: 4rem; background: linear-gradient(135deg, rgba(247,201,72,.24), rgba(255,255,255,.07)); border: 1px solid rgba(247,201,72,.36); box-shadow: inset 0 0 45px rgba(247,201,72,.08), 0 18px 50px rgba(0,0,0,.32);}
+
+      .wc-trophy-img {max-width:76px; max-height:76px; object-fit:contain; filter:drop-shadow(0 12px 28px rgba(247,201,72,.35));}
+      .wc-live-dot {display:inline-block; width:9px; height:9px; border-radius:50%; background:#ef4444; box-shadow:0 0 0 rgba(239,68,68,.8); animation:pulseDot 1.2s infinite; margin-right:7px;}
+      @keyframes pulseDot {0%{box-shadow:0 0 0 0 rgba(239,68,68,.7)} 70%{box-shadow:0 0 0 10px rgba(239,68,68,0)} 100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+      .wc-last-refresh {text-align:right; color:var(--wc-muted); font-size:.78rem; margin:-4px 0 8px;}
       .wc-stat-card, .match-card, .wc-live-card, .wc-bracket-card {border: 1px solid var(--wc-border); border-radius: 18px; background: linear-gradient(180deg, rgba(15, 31, 53, .92), rgba(8, 20, 36, .92)); color: var(--wc-text) !important; box-shadow: 0 14px 38px rgba(0,0,0,.22);}
       .wc-stat-card {padding: 16px; display:flex; align-items:center; gap:14px;}
       .wc-stat-icon {height:48px; width:48px; border-radius:16px; display:flex; align-items:center; justify-content:center; background: rgba(56,189,248,.13); font-size:1.55rem;}
@@ -163,18 +178,43 @@ st.markdown(
       div[data-testid="stMetricValue"] {font-size: 1.65rem;}
       div[data-testid="stDataFrame"] {border-radius: 16px; overflow: hidden;}
 
-      .wc-trophy-img {width:58px; height:58px; object-fit:contain; filter:drop-shadow(0 8px 18px rgba(247,201,72,.28));}
-      .wc-live-dot {width:10px; height:10px; display:inline-block; border-radius:999px; background:#ef4444; margin-right:7px; box-shadow:0 0 0 rgba(239,68,68,.7); animation:dotPulse 1.2s infinite;}
-      @keyframes dotPulse {0%{box-shadow:0 0 0 0 rgba(239,68,68,.75)}70%{box-shadow:0 0 0 10px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
-      .wc-win-row {display:flex; justify-content:space-between; align-items:center; gap:18px; margin-top:8px; font-weight:900; color:#f8fafc;}
-      .wc-win-row span {white-space:nowrap;}
-      .wc-win-home {color:#f43f5e;} .wc-win-away {color:#22d3ee;}
-      .wc-live-card .wc-team-name {display:flex; justify-content:center;}
-      .flag-img {width:25px; height:17px; object-fit:cover; border-radius:3px; box-shadow:0 0 0 1px rgba(255,255,255,.20); vertical-align:-3px; margin-right:8px;}
-      .team-chip {display:inline-flex; align-items:center; gap:4px; min-width:0;}
+      .wc-section-title {font-size:1.6rem; font-weight:950; margin-top:10px; margin-bottom:4px; color:#fff;}
+      .wc-section-title::after {content:""; display:block; width:76px; height:3px; margin-top:10px; background:linear-gradient(90deg, #2dd4bf, #f7c948); border-radius:99px;}
+      .wc-panel {border:1px solid var(--wc-border); border-radius:18px; background:linear-gradient(180deg, rgba(15,31,53,.90), rgba(8,20,36,.92)); padding:16px; box-shadow:0 14px 38px rgba(0,0,0,.20);}
+      .wc-story-grid {display:grid; grid-template-columns:repeat(4, minmax(180px,1fr)); gap:12px; margin-top:14px;}
+      .wc-story {border:1px solid var(--wc-border); border-radius:14px; padding:13px; background:rgba(15,31,53,.72); min-height:92px;}
+      .wc-story b {color:#fff;}
+      .wc-small {font-size:.82rem; color:var(--wc-muted);}
+      .wc-table-note {color:var(--wc-muted); font-size:.90rem; margin:6px 0 14px;}
+      .wc-rank-row {display:grid; grid-template-columns:28px 1.1fr 2fr 42px; gap:10px; align-items:center; margin:9px 0;}
+      .wc-rank-num {background:rgba(247,201,72,.18); color:#f7c948; border-radius:7px; text-align:center; font-weight:900; padding:3px;}
+      .wc-bar {height:14px; border-radius:99px; background:rgba(148,163,184,.20); overflow:hidden;}
+      .wc-bar-fill {height:100%; border-radius:99px; background:linear-gradient(90deg,#f43f5e,#22d3ee);}
+
+      .flag-img {width:24px; height:16px; object-fit:cover; border-radius:3px; box-shadow:0 0 0 1px rgba(255,255,255,.18); vertical-align:-3px; margin-right:8px;}
+      .team-chip {display:inline-flex; align-items:center; gap:5px; min-width:0;}
       .team-chip .team-name {font-weight:900; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-      .team-code {font-size:.68rem; color:#94a3b8; font-weight:950; letter-spacing:.06em; margin-left:4px;}
-      .wc-team-hero-code {display:block; color:#9fb0c9; font-size:.78rem; font-weight:900; margin-top:4px;}
+      .team-code {font-size:.68rem; color:#94a3b8; font-weight:900; letter-spacing:.06em; margin-left:3px;}
+      .wc-player-photo {width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,.22); box-shadow:0 0 0 3px rgba(56,189,248,.08); vertical-align:middle; margin-right:10px;}
+      .wc-player-avatar {width:34px; height:34px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; margin-right:10px; background:linear-gradient(135deg,#1d4ed8,#111827); border:1px solid rgba(255,255,255,.18); color:#fff; font-weight:950; vertical-align:middle;}
+      .wc-player-name {display:inline-flex; align-items:center; font-weight:900; color:#fff;}
+      .wc-cup-final {display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:250px; border:1px solid rgba(247,201,72,.45); border-radius:28px; background:radial-gradient(circle at 50% 35%, rgba(247,201,72,.20), transparent 7rem), rgba(15,23,42,.72); text-align:center; box-shadow:0 18px 70px rgba(0,0,0,.35);}
+      .wc-cup-icon {font-size:5.2rem; filter:drop-shadow(0 12px 28px rgba(247,201,72,.35));}
+      .wc-world-champ {font-size:1.2rem; font-weight:950; color:#fff; letter-spacing:.08em; text-transform:uppercase; margin-top:8px;}
+      .wc-bracket-side {display:grid; grid-template-columns:repeat(3, minmax(185px,1fr)); gap:16px; align-items:center;}
+      .wc-bracket-side.right {direction:rtl;}
+      .wc-bracket-side.right * {direction:ltr;}
+      .wc-bracket-round-title {color:var(--wc-gold); font-size:.70rem; text-transform:uppercase; letter-spacing:.14em; font-weight:950; margin-bottom:10px; text-align:center;}
+      .wc-bracket-stack {display:flex; flex-direction:column; gap:12px; justify-content:center;}
+      .wc-bracket-stack.r16 {gap:54px;}
+      .wc-bracket-stack.qf {gap:130px;}
+      .wc-bracket-card {min-height:90px;}
+      .wc-bracket-team {font-size:.82rem;}
+      .wc-bracket-card::after {display:none;}
+      .wc-bracket-shell {overflow-x:auto; border:1px solid var(--wc-border); border-radius:24px; background:linear-gradient(180deg,rgba(8,14,25,.94),rgba(2,6,23,.96)); padding:24px;}
+      .wc-bracket-board {min-width:1180px; display:grid; grid-template-columns:1fr 260px 1fr; gap:24px; align-items:center;}
+
+      @media (max-width: 900px) {.wc-story-grid{grid-template-columns:1fr 1fr}.wc-live-teams{grid-template-columns:1fr}.wc-bracket-grid{grid-template-columns:repeat(3,minmax(210px,1fr));}}
     </style>
     """,
     unsafe_allow_html=True,
@@ -199,9 +239,20 @@ def clean_text(value: Any, default: str = "") -> str:
 
 
 
+def build_flag_map(teams_df: pd.DataFrame) -> Dict[str, str]:
+    flags = dict(FALLBACK_FLAGS)
+    if not teams_df.empty:
+        for _, row in teams_df.iterrows():
+            team = clean_text(row.get("team"))
+            flag = clean_text(row.get("flag"))
+            if team and flag and not flag.lower().startswith("http"):
+                flags[team] = flag
+    return flags
+
+
 def esc(value: Any) -> str:
-    import html as _html
-    return _html.escape(clean_text(value), quote=True)
+    return html.escape(clean_text(value), quote=True)
+
 
 def team_code(team: Any) -> str:
     name = clean_text(team)
@@ -211,8 +262,10 @@ def team_code(team: Any) -> str:
         return name.upper()
     return TEAM_CODE_MAP.get(name, re.sub(r"[^A-Za-z]", "", name).upper()[:3].ljust(3, "X"))
 
+
 def team_iso2(team: Any) -> str:
     return TEAM_ISO2_MAP.get(clean_text(team), "")
+
 
 def flag_img(team: Any) -> str:
     name = clean_text(team)
@@ -222,23 +275,12 @@ def flag_img(team: Any) -> str:
         return f'<img class="flag-img" src="https://flagcdn.com/w40/{iso}.png" alt="{esc(name)} flag" loading="lazy">'
     return f'<span class="wc-flag">{emoji}</span>'
 
+
 def team_chip(team: Any, show_code: bool = True) -> str:
     name = clean_text(team, "TBD")
-    code_html = f'<span class="team-code">{team_code(name)}</span>' if show_code else ""
+    code = team_code(name)
+    code_html = f'<span class="team-code">{code}</span>' if show_code else ""
     return f'<span class="team-chip">{flag_img(name)}<span class="team-name">{esc(name)}</span>{code_html}</span>'
-
-def build_flag_map(teams_df: pd.DataFrame) -> Dict[str, str]:
-    flags = dict(FALLBACK_FLAGS)
-    if not teams_df.empty:
-        for _, row in teams_df.iterrows():
-            team = clean_text(row.get("team"))
-            flag = clean_text(row.get("flag"))
-            code = clean_text(row.get("code"))
-            if team and flag and not flag.lower().startswith("http"):
-                flags[team] = flag
-            if team and code and team not in flags:
-                flags[team] = FALLBACK_FLAGS.get(team, "⚽")
-    return flags
 
 
 def team_flag(team: Any) -> str:
@@ -246,23 +288,37 @@ def team_flag(team: Any) -> str:
     return TEAM_FLAG_MAP.get(name) or FALLBACK_FLAGS.get(name) or "⚽"
 
 
+def player_photo_html(player: Any) -> str:
+    name = clean_text(player)
+    url = PLAYER_IMAGE_MAP.get(name)
+    if url:
+        return f'<img class="wc-player-photo" src="{url}" alt="{esc(name)}" loading="lazy">'
+    initials = "".join([part[:1] for part in name.split()[:2]]).upper() or "⚽"
+    return f'<span class="wc-player-avatar">{esc(initials)}</span>'
+
+
 def live_minute(row: pd.Series) -> str:
+    """Return the best available live clock from the source, then a kickoff-based estimate while Live."""
     if row.get("status") != "Live":
         return ""
     raw = row.get("raw") if isinstance(row.get("raw"), dict) else {}
-    for value in [row.get("elapsed"), raw.get("elapsed"), raw.get("time_elapsed"), raw.get("minute"), raw.get("match_minute"), raw.get("current_minute"), raw.get("status_short")]:
+    candidates = [row.get("elapsed"), raw.get("elapsed"), raw.get("time_elapsed"), raw.get("minute"), raw.get("match_minute"), raw.get("current_minute"), raw.get("status_short"), raw.get("status"), raw.get("match_status")]
+    for value in candidates:
         txt = clean_text(value)
         low = txt.lower()
         if not txt or low in {"live", "in_play", "in play", "0", "scheduled", "notstarted", "not started"}:
             continue
         if low in {"ht", "half time", "halftime"}:
             return "HT"
+        if low in {"et", "extra time"}:
+            return "ET"
         if re.search(r"\d", txt):
             return txt if txt.endswith("'") else f"{txt}'"
         return txt.upper()
     dt = row.get("date_time")
     if isinstance(dt, datetime):
-        mins = int((datetime.now() - dt).total_seconds() // 60)
+        diff = datetime.now() - dt
+        mins = int(diff.total_seconds() // 60)
         if 0 <= mins <= 130:
             if 45 <= mins < 60:
                 return "HT"
@@ -270,6 +326,7 @@ def live_minute(row: pd.Series) -> str:
                 return "ET"
             return f"{max(1, mins)}'"
     return "LIVE"
+
 
 def timeline_percent(row: pd.Series) -> int:
     minute = live_minute(row)
@@ -299,7 +356,7 @@ def render_hero(matches_df: pd.DataFrame, source: str = "") -> None:
                 <span class="wc-host-pill">✅ {finished_count}/{total_count} completed</span>
               </div>
             </div>
-            <div class="wc-trophy"><img class="wc-trophy-img" src="data:image/png;base64,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" alt="FIFA World Cup trophy"></div>
+            <div class="wc-trophy"><img class="wc-trophy-img" src="https://upload.wikimedia.org/wikipedia/en/thumb/0/09/2026_FIFA_World_Cup.svg/160px-2026_FIFA_World_Cup.svg.png" alt="FIFA World Cup 2026 trophy"></div>
           </div>
         </section>
         ''',
@@ -697,32 +754,31 @@ def scoreline_label(row: pd.Series) -> str:
 
 def status_badge(status: str) -> str:
     cls = "live" if status == "Live" else "finished" if status == "Finished" else "scheduled"
-    return f"<span class='tag {cls}'>{status}</span>"
+    return f"<span class='tag {cls}'>{'<span class=\"wc-live-dot\"></span>' if status == 'Live' else ''}{status}</span>"
+
 
 
 def render_match_card(row: pd.Series, compact: bool = False) -> None:
     score = scoreline_label(row)
     status = status_badge(row.get("status", "Scheduled"))
     minute = live_minute(row)
-    elapsed_html = f"<span class='tag live'>⏱ {minute}</span>" if minute else ""
+    elapsed_html = f"<span class='tag live'>⏱ {esc(minute)}</span>" if minute else ""
     venue = clean_text(row.get("venue"))
     winner = clean_text(row.get("winner"))
-    winner_line = f"<div class='subtle'>Winner: <b>{winner}</b></div>" if winner and winner != "Draw / penalties" else ""
+    winner_line = f"<div class='subtle'>Winner: <b>{team_chip(winner)}</b></div>" if winner and winner != "Draw / penalties" else ""
     home = clean_text(row.get("home_team", "TBD"), "TBD")
     away = clean_text(row.get("away_team", "TBD"), "TBD")
     st.markdown(
-        f"""
-        <div class="match-card">
-          <div>{status}{elapsed_html}<span class="tag">{row.get('stage_label','')}</span></div>
+        f'''<div class="match-card">
+          <div>{status}{elapsed_html}<span class="tag">{esc(row.get('stage_label',''))}</span></div>
           <div class="wc-match-line">
             <div class="wc-team-name">{team_chip(home)}</div>
-            <div class="wc-score">{score}</div>
+            <div class="wc-score">{esc(score)}</div>
             <div class="wc-team-name" style="text-align:right; justify-content:flex-end; display:flex;">{team_chip(away)}</div>
           </div>
-          <div class="subtle">{row.get('kickoff','TBD')}{' • ' + venue if venue else ''}</div>
+          <div class="subtle">{esc(row.get('kickoff','TBD'))}{' • ' + esc(venue) if venue else ''}</div>
           {winner_line if not compact else ''}
-        </div>
-        """,
+        </div>''',
         unsafe_allow_html=True,
     )
 
@@ -837,33 +893,124 @@ def extract_scorers(matches_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(records).groupby(["player", "team"], as_index=False)["goals"].sum().sort_values("goals", ascending=False)
 
 
-def render_live_score_card(row: pd.Series) -> None:
+
+
+def scorer_events(row: pd.Series) -> List[Dict[str, Any]]:
+    events: List[Dict[str, Any]] = []
+    for side in ["home", "away"]:
+        team = clean_text(row.get(f"{side}_team"))
+        raw = clean_text(row.get(f"{side}_scorers"))
+        if not raw:
+            continue
+        for piece in re.split(r",|;|\|", raw):
+            player = clean_player_name(piece)
+            minute_match = re.search(r"(\d+)(?:['’])?(?:\+(\d+))?", piece)
+            minute = 0
+            label = ""
+            if minute_match:
+                minute = int(minute_match.group(1)) + int(minute_match.group(2) or 0)
+                label = minute_match.group(0)
+                if not label.endswith("'"):
+                    label += "'"
+            if player:
+                events.append({"side": side, "team": team, "player": player, "minute": minute, "label": label or "Goal", "kind": "Goal"})
+    return sorted(events, key=lambda e: e.get("minute", 0))
+
+
+def event_timeline_html(row: pd.Series) -> str:
+    events = scorer_events(row)
+    if not events:
+        return '<div class="wc-mini-note">No detailed event feed is available yet from this data source. Goals, cards and substitutions appear here when supplied by the API.</div>'
+    dots = []
+    rows = []
+    for ev in events:
+        pct = max(1, min(99, int(ev.get("minute", 0) / 90 * 100))) if ev.get("minute") else 50
+        is_away = ev.get("side") == "away"
+        dots.append(f'<span class="wc-timeline-dot {"away" if is_away else ""}" style="left:{pct}%" title="{esc(ev.get("player"))} {esc(ev.get("label"))}"></span>')
+        if not is_away:
+            rows.append(f'<div class="wc-event-left"><b>{esc(ev.get("player"))}</b></div><div class="wc-event-time">{esc(ev.get("label"))}</div><div></div>')
+        else:
+            rows.append(f'<div></div><div class="wc-event-time">{esc(ev.get("label"))}</div><div class="wc-event-right"><b>{esc(ev.get("player"))}</b></div>')
+    return f'<div class="wc-timeline-strip">{"".join(dots)}</div><div class="wc-match-events">{"".join(rows)}</div>'
+
+
+def match_stat_rows(row: pd.Series) -> List[Tuple[str, int, int]]:
+    raw = row.get("raw") if isinstance(row.get("raw"), dict) else {}
+    stats: List[Tuple[str, int, int]] = []
+    for key in ["statistics", "stats", "match_stats"]:
+        val = raw.get(key)
+        if isinstance(val, dict):
+            for label in ["possession", "shots", "shots_on_target", "corners", "fouls", "yellow_cards"]:
+                item = val.get(label)
+                if isinstance(item, dict):
+                    h = to_int(item.get("home") or item.get("home_team"), None)
+                    a = to_int(item.get("away") or item.get("away_team"), None)
+                    if h is not None and a is not None:
+                        stats.append((label.replace("_", " ").title(), h, a))
+    hscore = 0 if pd.isna(row.get("home_score")) else int(row.get("home_score"))
+    ascore = 0 if pd.isna(row.get("away_score")) else int(row.get("away_score"))
+    stats.insert(0, ("Goals scored", hscore, ascore))
+    home_first = len([e for e in scorer_events(row) if e["side"] == "home" and e.get("minute", 91) <= 45])
+    away_first = len([e for e in scorer_events(row) if e["side"] == "away" and e.get("minute", 91) <= 45])
+    if home_first or away_first:
+        stats.append(("First-half goals", home_first, away_first))
+        stats.append(("Second-half goals", max(0, hscore-home_first), max(0, ascore-away_first)))
+    return stats[:8]
+
+
+def render_stat_comparison(label: str, home_value: int, away_value: int) -> None:
+    total = max(1, home_value + away_value)
+    hp = int(home_value / total * 100)
+    ap = int(away_value / total * 100)
+    st.markdown(f'''<div class="wc-stat-row"><div><div style="text-align:right;font-weight:900;">{home_value}</div><div class="wc-stat-bar"><div class="wc-stat-fill-home" style="width:{hp}%"></div></div></div><div class="subtle" style="text-align:center;text-transform:uppercase;font-size:.72rem;font-weight:900;">{esc(label)}</div><div><div style="font-weight:900;">{away_value}</div><div class="wc-stat-bar"><div class="wc-stat-fill-away" style="width:{ap}%"></div></div></div></div>''', unsafe_allow_html=True)
+
+
+def render_match_centre(row: pd.Series) -> None:
+    home = clean_text(row.get("home_team", "TBD"), "TBD")
+    away = clean_text(row.get("away_team", "TBD"), "TBD")
+    minute = live_minute(row) or ("FT" if row.get("status") == "Finished" else clean_text(row.get("kickoff", "TBD")))
+    st.markdown(f'''<div class="wc-centre-hero"><div class="wc-live-meta"><span>{status_badge(row.get('status','Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{esc(minute)}</span></div><div class="wc-centre-score"><div>{team_chip(home)}<div class="subtle">{esc(row.get('group',''))}</div></div><strong>{esc(scoreline_label(row))}</strong><div>{team_chip(away)}<div class="subtle">{esc(row.get('venue',''))}</div></div></div></div>''', unsafe_allow_html=True)
+    st.markdown(event_timeline_html(row), unsafe_allow_html=True)
+    st.write("#### Match breakdown")
+    for label, hv, av in match_stat_rows(row):
+        render_stat_comparison(label, hv, av)
+    with st.expander("Raw event/data feed", expanded=False):
+        st.json(row.get("raw") if isinstance(row.get("raw"), dict) else {})
+
+
+def open_match_centre(row: pd.Series) -> None:
+    title = f"{clean_text(row.get('home_team'))} {scoreline_label(row)} {clean_text(row.get('away_team'))}"
+    if hasattr(st, "dialog"):
+        @st.dialog(title, width="large")
+        def _dlg():
+            render_match_centre(row)
+        _dlg()
+    else:
+        st.write(f"### {title}")
+        render_match_centre(row)
+
+def render_live_score_card(row: pd.Series, key_prefix: str = "live") -> None:
     home = clean_text(row.get("home_team", "TBD"), "TBD")
     away = clean_text(row.get("away_team", "TBD"), "TBD")
     score = scoreline_label(row)
     minute = live_minute(row) or ("FT" if row.get("status") == "Finished" else clean_text(row.get("kickoff", "TBD")))
     progress = timeline_percent(row) if row.get("status") == "Live" else (100 if row.get("status") == "Finished" else 0)
-    home_pct = max(0, min(100, progress if row.get("status") == "Live" else 50))
-    away_pct = 100 - home_pct if row.get("status") == "Live" else 50
-    live_dot = '<span class="wc-live-dot"></span>' if row.get("status") == "Live" else ""
-    st.markdown(
-        f'''
-        <div class="wc-live-card">
-          <div>{live_dot}{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span><span class="tag">⏱ {esc(minute)}</span></div>
-          <div class="wc-live-teams">
-            <div class="wc-live-team"><div class="wc-team-name">{team_chip(home)}</div><span class="wc-team-hero-code">{team_code(home)}</span></div>
-            <div class="wc-live-score">{esc(score)}</div>
-            <div class="wc-live-team"><div class="wc-team-name">{team_chip(away)}</div><span class="wc-team-hero-code">{team_code(away)}</span></div>
-          </div>
-          <div class="subtle" style="text-align:center;margin-top:8px;">{esc(row.get('kickoff','TBD'))}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div>
-          <div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div>
-          <div class="wc-win-row"><span class="wc-win-home">{home_pct}% {esc(home)}</span><span class="wc-win-away">{esc(away)} {away_pct}%</span></div>
-        </div>
-        ''',
-        unsafe_allow_html=True,
-    )
+    home_prob = max(6, min(94, 50 + (0 if pd.isna(row.get("home_score")) or pd.isna(row.get("away_score")) else int(row.get("home_score"))*12 - int(row.get("away_score"))*12)))
+    away_prob = 100 - home_prob
+    events_html = event_timeline_html(row) if row.get("status") == "Live" else ""
+    st.markdown(f'''<div class="wc-live-card"><div class="wc-live-meta"><span>{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{esc(minute)}</span></div><div class="wc-live-teams"><div class="wc-live-team">{team_chip(home)}<div class="subtle">{team_code(home)}</div></div><div class="wc-live-score">{esc(score)}</div><div class="wc-live-team">{team_chip(away)}<div class="subtle">{team_code(away)}</div></div></div><div class="subtle" style="text-align:center;margin-top:8px;">{esc(row.get('kickoff','TBD'))}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div><div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div><div class="wc-live-prob-row"><span>{home_prob}% {esc(home)}</span><span>{esc(away)} {away_prob}%</span></div>{events_html}<div class="wc-click-hint">Open for timeline, stats and source data</div></div>''', unsafe_allow_html=True)
+    match_key = clean_text(row.get("match_id")) or str(abs(hash(str(row.to_dict()))))
+    if st.button(f"Open Match Centre: {home} vs {away}", key=f"{key_prefix}_{match_key}"):
+        open_match_centre(row)
 
-def bracket_card_html(row: pd.Series) -> str:
+
+def bracket_card_html(row: Optional[pd.Series] = None, placeholder: str = "TBD") -> str:
+    if row is None:
+        return f'''<div class="wc-bracket-card">
+            <div class="wc-bracket-team"><span>• {esc(placeholder)}</span><span class="wc-bracket-score">?</span></div>
+            <div class="wc-bracket-team"><span>• TBD</span><span class="wc-bracket-score">?</span></div>
+            <div class="subtle" style="font-size:.76rem;margin-top:6px;">Path to be decided</div>
+          </div>'''
     home = clean_text(row.get("home_team", "TBD"), "TBD")
     away = clean_text(row.get("away_team", "TBD"), "TBD")
     hs = "-" if pd.isna(row.get("home_score")) else str(int(row.get("home_score")))
@@ -871,28 +1018,299 @@ def bracket_card_html(row: pd.Series) -> str:
     winner = clean_text(row.get("winner"))
     home_cls = " wc-bracket-winner" if winner == home else ""
     away_cls = " wc-bracket-winner" if winner == away else ""
-    return f'''
-      <div class="wc-bracket-card">
+    return f'''<div class="wc-bracket-card">
         <div style="margin-bottom:5px;">{status_badge(row.get('status', 'Scheduled'))}</div>
         <div class="wc-bracket-team{home_cls}"><span>{team_chip(home)}</span><span class="wc-bracket-score">{hs}</span></div>
         <div class="wc-bracket-team{away_cls}"><span>{team_chip(away)}</span><span class="wc-bracket-score">{aw}</span></div>
-        <div class="subtle" style="font-size:.76rem;margin-top:6px;">{row.get('kickoff','TBD')}</div>
-      </div>
-    '''
+        <div class="subtle" style="font-size:.76rem;margin-top:6px;">{esc(row.get('kickoff','TBD'))}</div>
+      </div>'''
+
+
+def _stage_cards(knockout: pd.DataFrame, stage: str) -> List[str]:
+    sdf = knockout[knockout["stage"] == stage].sort_values("date_time", na_position="last")
+    return [bracket_card_html(row) for _, row in sdf.iterrows()]
+
+
+def _stack(cards: List[str], count: int, cls: str = "") -> str:
+    cards = cards[:count] + [bracket_card_html(None) for _ in range(max(0, count - len(cards)))]
+    return f'<div class="wc-bracket-stack {cls}">' + ''.join(cards) + '</div>'
 
 
 def render_bracket_wall(knockout: pd.DataFrame) -> None:
     if knockout.empty:
         st.info("Knockout data is not loaded yet.")
         return
-    cols_html = []
-    for stage_code in [s for s in STAGE_ORDER if s != "group"]:
-        sdf = knockout[knockout["stage"] == stage_code].sort_values("date_time", na_position="last")
-        if sdf.empty:
+    r32 = _stage_cards(knockout, "r32")
+    r16 = _stage_cards(knockout, "r16")
+    qf = _stage_cards(knockout, "qf")
+    sf = _stage_cards(knockout, "sf")
+    final_cards = _stage_cards(knockout, "final")
+    third_cards = _stage_cards(knockout, "third")
+    left = {"r32": r32[:8], "r16": r16[:4], "qf": qf[:2], "sf": sf[:1]}
+    right = {"r32": r32[8:16], "r16": r16[4:8], "qf": qf[2:4], "sf": sf[1:2]}
+    final_html = final_cards[0] if final_cards else bracket_card_html(None, "Final")
+    third_html = third_cards[0] if third_cards else bracket_card_html(None, "Bronze final")
+    html_out = f'''<div class="wc-bracket-shell">
+      <div class="wc-bracket-board">
+        <div class="wc-bracket-side left">
+          <div><div class="wc-bracket-round-title">Round of 32</div>{_stack(left['r32'],8)}</div>
+          <div><div class="wc-bracket-round-title">Round of 16</div>{_stack(left['r16'],4,'r16')}</div>
+          <div><div class="wc-bracket-round-title">Quarterfinals</div>{_stack(left['qf'],2,'qf')}</div>
+        </div>
+        <div><div class="wc-cup-final">
+            <div class="wc-cup-icon"><img class="wc-trophy-img" src="https://upload.wikimedia.org/wikipedia/en/thumb/0/09/2026_FIFA_World_Cup.svg/160px-2026_FIFA_World_Cup.svg.png" alt="FIFA World Cup trophy"></div><div class="wc-world-champ">World Champion</div>
+            <div style="width:100%; margin-top:14px;">{final_html}</div>
+            <div class="subtle" style="margin:8px 0 4px;">Bronze final</div><div style="width:100%;">{third_html}</div>
+        </div></div>
+        <div class="wc-bracket-side right">
+          <div><div class="wc-bracket-round-title">Round of 32</div>{_stack(right['r32'],8)}</div>
+          <div><div class="wc-bracket-round-title">Round of 16</div>{_stack(right['r16'],4,'r16')}</div>
+          <div><div class="wc-bracket-round-title">Quarterfinals</div>{_stack(right['qf'],2,'qf')}</div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:18px;">
+        <div><div class="wc-bracket-round-title">Left Semifinal</div>{_stack(left['sf'],1)}</div>
+        <div><div class="wc-bracket-round-title">Right Semifinal</div>{_stack(right['sf'],1)}</div>
+      </div>
+    </div>'''
+    st.markdown(html_out, unsafe_allow_html=True)
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
+    """Load public-domain OpenFootball JSON when available.
+
+    OpenFootball is excellent for open public-domain match results, but it usually
+    does not provide minute-by-minute live clock, assists, cards, or rich player
+    event data. The app therefore keeps the live API mode for live match minutes.
+    """
+    try:
+        raw = requests.get(OPENFOOTBALL_WORLD_CUP_URL, timeout=15).json()
+        games = []
+        for rnd in raw.get("rounds", []):
+            round_name = clean_text(rnd.get("name"), "Group Stage")
+            for m in rnd.get("matches", []):
+                team1 = m.get("team1") or {}
+                team2 = m.get("team2") or {}
+                score1 = m.get("score1")
+                score2 = m.get("score2")
+                games.append({
+                    "id": clean_text(m.get("num") or f"of-{len(games)+1}"),
+                    "date": clean_text(m.get("date")) + (" " + clean_text(m.get("time")) if clean_text(m.get("time")) else ""),
+                    "home_team": clean_text(team1.get("name") or team1.get("code"), "TBD"),
+                    "away_team": clean_text(team2.get("name") or team2.get("code"), "TBD"),
+                    "home_score": score1,
+                    "away_score": score2,
+                    "stage": round_name,
+                    "status": "Finished" if score1 is not None and score2 is not None else "Scheduled",
+                    "stadium_id": clean_text((m.get("stadium") or {}).get("name")),
+                })
+        matches = normalize_matches(games)
+        team_names = sorted(set(matches.get("home_team", [])) | set(matches.get("away_team", []))) if not matches.empty else []
+        teams = pd.DataFrame([{"team": t, "code": "", "group": "", "flag": FALLBACK_FLAGS.get(t, "⚽")} for t in team_names])
+        stadiums = pd.DataFrame()
+        groups = calculate_standings_from_matches(matches, teams)
+        return matches, teams, groups, stadiums, "OpenFootball public-domain JSON"
+    except Exception as exc:
+        matches, teams, groups, stadiums, source = load_fallback()
+        st.warning("OpenFootball data could not be loaded, so the app is using the demo fallback snapshot. Details: " + str(exc))
+        return matches, teams, groups, stadiums, source
+
+
+def clean_player_name(name: str) -> str:
+    name = clean_text(name)
+    name = re.sub(r"[{}\[\]\"`]+", "", name)
+    name = re.sub(r"\b(goal|penalty|own goal|og|assist|card)\b", "", name, flags=re.I)
+    name = re.sub(r"\d+['’]?(\+\d+)?", "", name)
+    name = re.sub(r"\s+", " ", name).strip(" -•,:;")
+    bad = {"", "none", "null", "nan", "tbd", "own", "own goal"}
+    return "" if name.lower() in bad or len(name) < 2 else name
+
+
+def extract_player_stats(matches_df: pd.DataFrame) -> pd.DataFrame:
+    records = []
+    for _, m in matches_df.iterrows():
+        for side in ["home", "away"]:
+            team = clean_text(m.get(f"{side}_team"))
+            scorers = clean_text(m.get(f"{side}_scorers"))
+            if not scorers:
+                continue
+            pieces = re.split(r",|;|\|", scorers)
+            for raw in pieces:
+                is_pen = bool(re.search(r"\bpen\b|penalty|\(p\)", raw, flags=re.I))
+                is_og = bool(re.search(r"own goal|\bog\b", raw, flags=re.I))
+                name = clean_player_name(raw)
+                if not name or is_og:
+                    continue
+                records.append({
+                    "Player": name,
+                    "Country": team,
+                    "Flag": team_flag(team),
+                    "G": 1,
+                    "A": 0,
+                    "G+A": 1,
+                    "Open": 0 if is_pen else 1,
+                    "Pen": 1 if is_pen else 0,
+                    "Card": "—",
+                })
+    if not records:
+        return pd.DataFrame(columns=["Player", "Country", "Flag", "G", "A", "G+A", "Open", "Pen", "Card"])
+    df = pd.DataFrame(records)
+    grouped = df.groupby(["Player", "Country", "Flag"], as_index=False).agg({"G":"sum", "A":"sum", "Open":"sum", "Pen":"sum"})
+    grouped["G+A"] = grouped["G"] + grouped["A"]
+    grouped["Card"] = "—"
+    grouped = grouped.sort_values(["G", "G+A", "Open", "Player"], ascending=[False, False, False, True])
+    return grouped
+
+
+def render_overview(matches_df: pd.DataFrame, standings_df: pd.DataFrame, source: str) -> None:
+    render_dashboard(matches_df, standings_df, source)
+
+
+
+def render_players_tab(matches_df: pd.DataFrame) -> None:
+    st.markdown('<div class="wc-section-title">Players</div>', unsafe_allow_html=True)
+    players = extract_player_stats(matches_df)
+    if players.empty:
+        st.info("Player scorer data is not available from the current data source. Use Live API if the endpoint exposes scorer strings, or connect a richer provider for assists/cards/photos.")
+        return
+    total_goals = int(players["G"].sum())
+    total_assists = int(players["A"].sum())
+    diff_scorers = players["Player"].nunique()
+    golden = players.iloc[0]
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: render_stat_card("⚽", total_goals, "Goals in scorer feed")
+    with c2: render_stat_card("🅰️", total_assists, "Assists in feed")
+    with c3: render_stat_card("👥", diff_scorers, "Different scorers")
+    with c4: render_stat_card("🏅", f"{int(golden['G'])}", f"Golden Boot • {golden['Player']}")
+    countries = sorted(players["Country"].dropna().unique())
+    f1, f2, f3 = st.columns([1.1, 2.4, 1.1])
+    with f1:
+        country = st.selectbox("Country", ["All countries"] + countries)
+    with f2:
+        search = st.text_input("Search player", placeholder="e.g. Messi, Mbappé, Kane")
+    with f3:
+        sort_by = st.selectbox("Sort by", ["G", "G+A", "Open", "Pen", "A"])
+    out = players.copy()
+    if country != "All countries":
+        out = out[out["Country"] == country]
+    if search:
+        out = out[out["Player"].str.contains(re.escape(search), case=False, na=False)]
+    out = out.sort_values([sort_by, "G", "Player"], ascending=[False, False, True]).reset_index(drop=True)
+    rows = []
+    for idx, r in out.iterrows():
+        player = clean_text(r["Player"])
+        rows.append(f'''<tr style="border-top:1px solid rgba(148,163,184,.18);">
+            <td style="padding:12px; color:#94a3b8;">{idx+1}</td>
+            <td style="padding:12px;"><span class="wc-player-name">{player_photo_html(player)}{esc(player)}</span></td>
+            <td style="padding:12px;">{team_chip(r['Country'])}</td>
+            <td style="text-align:center;padding:12px;"><b>{int(r['G'])}</b></td>
+            <td style="text-align:center;padding:12px;">{int(r['A'])}</td>
+            <td style="text-align:center;padding:12px;"><b>{int(r['G+A'])}</b></td>
+            <td style="text-align:center;padding:12px;">{int(r['Open'])}</td>
+            <td style="text-align:center;padding:12px;">{int(r['Pen'])}</td>
+            <td style="text-align:center;padding:12px;">{esc(r['Card'])}</td>
+          </tr>''')
+    st.markdown('<div class="wc-table-note">Player photos appear where a known public image is mapped; otherwise the app uses an initials avatar. Assists/cards are shown only when the data source provides them.</div>', unsafe_allow_html=True)
+    st.markdown(f'''<div class="wc-panel" style="padding:0; overflow:hidden;">
+        <table style="width:100%; border-collapse:collapse;">
+          <thead><tr style="background:rgba(148,163,184,.10); color:#94a3b8; text-transform:uppercase; font-size:.72rem; letter-spacing:.08em;">
+              <th style="text-align:left;padding:12px;">#</th><th style="text-align:left;padding:12px;">Player</th><th style="text-align:left;padding:12px;">Country</th>
+              <th style="text-align:center;padding:12px;">Goals</th><th style="text-align:center;padding:12px;">Assists</th><th style="text-align:center;padding:12px;">G+A</th>
+              <th style="text-align:center;padding:12px;">Open</th><th style="text-align:center;padding:12px;">Pen</th><th style="text-align:center;padding:12px;">Card</th>
+          </tr></thead><tbody>{''.join(rows)}</tbody></table></div>''', unsafe_allow_html=True)
+
+
+def render_insights_tab_v2(matches_df: pd.DataFrame) -> None:
+    st.markdown('<div class="wc-section-title">Stats & Insights</div>', unsafe_allow_html=True)
+    finished = matches_df[matches_df["status"] == "Finished"].copy()
+    if finished.empty:
+        st.info("Insights will populate once matches are finished.")
+        return
+    total_goals = int(finished["total_goals"].dropna().sum())
+    avg_goals = total_goals / len(finished) if len(finished) else 0
+    over15 = (finished["total_goals"] > 1.5).mean() * 100
+    btts = ((finished["home_score"] > 0) & (finished["away_score"] > 0)).mean() * 100
+    players = extract_player_stats(matches_df)
+    penalties = int(players["Pen"].sum()) if not players.empty else 0
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: render_stat_card("📊", len(finished), "Matches played")
+    with c2: render_stat_card("⚽", total_goals, "Goals")
+    with c3: render_stat_card("📈", f"{avg_goals:.2f}", "Goals per match")
+    with c4: render_stat_card("🎯", penalties, "Penalties recorded")
+
+    # team attack/defense records
+    attack_records = []
+    for _, r in finished.iterrows():
+        if pd.isna(r.get("home_score")) or pd.isna(r.get("away_score")):
             continue
-        cards = "".join(bracket_card_html(row) for _, row in sdf.iterrows())
-        cols_html.append(f'''<div class="wc-bracket-col"><div class="wc-bracket-title">{STAGE_LABELS.get(stage_code, stage_code)}</div>{cards}</div>''')
-    st.markdown(f'''<div class="wc-bracket-grid">{''.join(cols_html)}</div>''', unsafe_allow_html=True)
+        attack_records.append({"team": r["home_team"], "GF": int(r["home_score"]), "GA": int(r["away_score"]), "P": 1})
+        attack_records.append({"team": r["away_team"], "GF": int(r["away_score"]), "GA": int(r["home_score"]), "P": 1})
+    teams = pd.DataFrame(attack_records).groupby("team", as_index=False).sum() if attack_records else pd.DataFrame()
+    if not teams.empty:
+        teams["GD"] = teams["GF"] - teams["GA"]
+        teams["GF_pg"] = teams["GF"] / teams["P"]
+        teams["GA_pg"] = teams["GA"] / teams["P"]
+        hottest = teams.sort_values(["GF_pg", "GF"], ascending=[False, False]).iloc[0]
+        meanest = teams.sort_values(["GA_pg", "GA"], ascending=[True, True]).iloc[0]
+        top_team = teams.sort_values(["GD", "GF"], ascending=[False, False]).iloc[0]
+    else:
+        hottest = meanest = top_team = None
+
+    st.write("#### Storylines")
+    stories = []
+    if top_team is not None:
+        stories.append(("👑 Top team profile", f"<b>{team_chip(top_team['team'])}</b> lead the profile board with GD {int(top_team['GD'])} and {int(top_team['GF'])} goals."))
+    if not players.empty:
+        boot = players.iloc[0]
+        stories.append(("🏅 Golden Boot race", f"<b>{boot['Player']}</b> leads with <b>{int(boot['G'])}</b> goals for {team_chip(boot['Country'])}."))
+    if hottest is not None:
+        stories.append(("🔥 Hottest attack", f"<b>{team_chip(hottest['team'])}</b> are scoring <b>{hottest['GF_pg']:.2f}</b> goals per match."))
+    if meanest is not None:
+        stories.append(("🛡️ Meanest defense", f"<b>{team_chip(meanest['team'])}</b> concede <b>{meanest['GA_pg']:.2f}</b> goals per match."))
+    stories.append(("🌊 Goal trend", f"<b>{over15:.0f}%</b> of finished matches cleared 1.5 goals; <b>{btts:.0f}%</b> had both teams scoring."))
+    stories.append(("🧠 Data honesty", "Player assists/cards are shown only when provided by the source, not inferred."))
+    st.markdown('<div class="wc-story-grid">' + ''.join([f'<div class="wc-story"><b>{t}</b><br><span class="wc-small">{body}</span></div>' for t, body in stories]) + '</div>', unsafe_allow_html=True)
+
+    left, right = st.columns(2)
+    with left:
+        st.write("#### Team Power Rankings")
+        if not teams.empty:
+            rank = teams.copy()
+            rank["score"] = (rank["GD"] * 8 + rank["GF"] * 4 - rank["GA"] * 3 + rank["P"] * 2)
+            minv, maxv = rank["score"].min(), rank["score"].max()
+            rank["power"] = 100 if maxv == minv else ((rank["score"] - minv) / (maxv - minv) * 100).round().astype(int)
+            rank = rank.sort_values("power", ascending=False).head(10)
+            html = '<div class="wc-panel">'
+            for i, r in enumerate(rank.itertuples(), start=1):
+                html += f'<div class="wc-rank-row"><div class="wc-rank-num">{i}</div><div><b>{team_flag(r.team)} {r.team}</b><br><span class="wc-small">GD {int(r.GD)}</span></div><div class="wc-bar"><div class="wc-bar-fill" style="width:{int(r.power)}%;"></div></div><b>{int(r.power)}</b></div>'
+            html += '</div>'
+            st.markdown(html, unsafe_allow_html=True)
+    with right:
+        st.write("#### Golden Boot & creators")
+        if not players.empty:
+            rank = players.head(10)
+            maxg = max(1, int(rank["G"].max()))
+            html = '<div class="wc-panel">'
+            for i, r in enumerate(rank.itertuples(), start=1):
+                width = int(int(r.G) / maxg * 100)
+                html += f'<div class="wc-rank-row"><div class="wc-rank-num">{i}</div><div><b>{r.Player}</b><br><span class="wc-small">{team_flag(r.Country)} {r.Country}</span></div><div class="wc-bar"><div class="wc-bar-fill" style="width:{width}%;"></div></div><b>{int(r.G)}</b></div>'
+            html += '</div>'
+            st.markdown(html, unsafe_allow_html=True)
+
+    chart_left, chart_right = st.columns(2)
+    with chart_left:
+        stage_goals = finished.groupby("stage_label", as_index=False).agg(matches=("match_id", "count"), goals=("total_goals", "sum"))
+        stage_goals["goals_per_match"] = stage_goals["goals"] / stage_goals["matches"]
+        fig = px.bar(stage_goals, x="stage_label", y="goals_per_match", title="Goals per match by stage")
+        fig.update_layout(height=380, template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        st.plotly_chart(fig, use_container_width=True)
+    with chart_right:
+        scorelines = finished.assign(scoreline=finished.apply(scoreline_label, axis=1)).groupby("scoreline", as_index=False).size().sort_values("size", ascending=False).head(10)
+        fig3 = px.pie(scorelines, values="size", names="scoreline", title="Most common scorelines")
+        fig3.update_layout(height=380, template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)")
+        st.plotly_chart(fig3, use_container_width=True)
 
 
 def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, source: str) -> None:
@@ -908,8 +1326,7 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     avg_goals = total_goals / len(finished) if len(finished) else 0
     top_team, top_value = get_top_team_metric(matches_df)
 
-    render_hero(matches_df, source)
-    st.caption(f"Data source: {source} • Last refreshed: {datetime.now().strftime('%I:%M:%S %p')} • Auto-refresh: 60 seconds")
+    st.caption(f"Data source: {source} • Auto-refresh cache: 60 seconds for live API data")
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
@@ -933,12 +1350,12 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
         shortlist = pd.concat([live, scheduled]).sort_values("date_time", na_position="last").head(5)
         if shortlist.empty:
             st.info("No live or upcoming matches in the loaded data.")
-        for _, row in shortlist.iterrows():
-            render_live_score_card(row)
+        for idx, (_, row) in enumerate(shortlist.iterrows()):
+            render_live_score_card(row, key_prefix=f"overview_{idx}")
     with col_b:
         st.write("#### Stage status")
         stage_counts = matches_df.groupby(["stage_label", "status"]).size().reset_index(name="matches")
-        fig = px.bar(stage_counts, x="stage_label", y="matches", color="status", title="Matches by stage/status", color_discrete_map={"Scheduled":"#38bdf8", "Finished":"#22c55e", "Live":"#ef4444"})
+        fig = px.bar(stage_counts, x="stage_label", y="matches", color="status", title="Matches by stage/status", color_discrete_map={"Finished":"#22c55e", "Live":"#ef4444", "Scheduled":"#38bdf8"})
         fig.update_layout(height=360, xaxis_title="Stage", yaxis_title="Matches", legend_title="Status")
         st.plotly_chart(fig, use_container_width=True)
 
@@ -950,7 +1367,28 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
 
 
 def render_matches_tab(matches_df: pd.DataFrame) -> None:
-    st.header("Matches, scores & fixtures")
+    st.markdown('<div class="wc-section-title">Upcoming & Live</div>', unsafe_allow_html=True)
+    st.markdown(
+        "Every live match is pinned at the top. Click **Open Match Centre** on any card for the live clock, timeline, scorers, comparison bars and source stats."
+    )
+
+    if matches_df.empty:
+        st.info("No match data loaded.")
+        return
+
+    live = matches_df[matches_df["status"] == "Live"].sort_values("date_time", na_position="last")
+    scheduled = matches_df[matches_df["status"] == "Scheduled"].sort_values("date_time", na_position="last")
+    finished = matches_df[matches_df["status"] == "Finished"].sort_values("date_time", ascending=False, na_position="last")
+
+    if not live.empty:
+        st.markdown(f'<div class="wc-section-kicker">🔴 Live now • {len(live)} match(es)</div>', unsafe_allow_html=True)
+        for idx, (_, row) in enumerate(live.iterrows()):
+            st.markdown('<div class="wc-live-priority">', unsafe_allow_html=True)
+            render_live_score_card(row, key_prefix=f"live_pinned_{idx}")
+            st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="wc-section-kicker">No live match right now</div>', unsafe_allow_html=True)
+
     teams = sorted(set(matches_df["home_team"].dropna()) | set(matches_df["away_team"].dropna()))
     stages = [s for s in matches_df["stage_label"].dropna().unique()]
     c1, c2, c3, c4 = st.columns([1, 1, 1, 1.4])
@@ -959,21 +1397,29 @@ def render_matches_tab(matches_df: pd.DataFrame) -> None:
     with c2:
         stage = st.selectbox("Stage", ["All"] + sorted(stages, key=lambda x: list(STAGE_LABELS.values()).index(x) if x in STAGE_LABELS.values() else 99))
     with c3:
-        status = st.selectbox("Status", ["All", "Live", "Scheduled", "Finished"])
+        status = st.selectbox("Status", ["All", "Live", "Scheduled", "Finished"], index=0)
     with c4:
         text = st.text_input("Search", placeholder="e.g. Argentina, Final, Brazil")
+
     filtered = filter_matches(matches_df, team, stage, status, text)
+
+    # Show live first, then upcoming, then latest results.
+    status_rank = {"Live": 0, "Scheduled": 1, "Finished": 2}
+    filtered = filtered.copy()
+    filtered["_status_rank"] = filtered["status"].map(status_rank).fillna(9)
+    filtered = filtered.sort_values(["_status_rank", "date_time"], ascending=[True, True], na_position="last")
+
     st.caption(f"Showing {len(filtered)} of {len(matches_df)} matches")
     view_cols = ["kickoff", "stage_label", "status", "home_team", "score", "away_team", "winner", "venue"]
     available = [c for c in view_cols if c in filtered.columns]
-    st.dataframe(filtered[available].rename(columns={"kickoff": "Kickoff", "stage_label": "Stage", "status": "Status", "home_team": "Home", "away_team": "Away", "score": "Score", "winner": "Winner", "venue": "Venue"}), use_container_width=True, hide_index=True)
+    table_view = filtered[available].rename(columns={"kickoff": "Kickoff", "stage_label": "Stage", "status": "Status", "home_team": "Home", "away_team": "Away", "score": "Score", "winner": "Winner", "venue": "Venue"})
+    st.dataframe(table_view, use_container_width=True, hide_index=True)
 
-    st.write("#### Match cards")
-    for _, row in filtered.head(20).iterrows():
-        render_match_card(row)
-    if len(filtered) > 20:
-        st.caption("Showing first 20 cards. Use the filters above to narrow the list.")
-
+    st.write("#### Match centre cards")
+    for idx, (_, row) in enumerate(filtered.drop(columns=["_status_rank"], errors="ignore").head(24).iterrows()):
+        render_live_score_card(row, key_prefix=f"matches_{idx}")
+    if len(filtered) > 24:
+        st.caption("Showing first 24 cards. Use the filters above to narrow the list.")
 
 def render_knockout_tab(matches_df: pd.DataFrame) -> None:
     st.header("Knockout bracket explorer")
@@ -1006,7 +1452,7 @@ def render_teams_tab(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standings
     team_rows = teams_df[teams_df["team"] == favorite] if not teams_df.empty else pd.DataFrame()
     group = clean_text(team_rows.iloc[0].get("group") if not team_rows.empty else "")
     code = clean_text(team_rows.iloc[0].get("code") if not team_rows.empty else "")
-    st.subheader(f"{team_flag(favorite)} {favorite} ({team_code(favorite)})")
+    st.subheader(f"{favorite} {f'({code})' if code else ''}")
     if group:
         st.caption(f"Group {group}")
 
@@ -1039,48 +1485,7 @@ def render_teams_tab(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standings
 
 
 def render_insights_tab(matches_df: pd.DataFrame) -> None:
-    st.header("Stats & insights")
-    finished = matches_df[matches_df["status"] == "Finished"].copy()
-    if finished.empty:
-        st.info("Insights will populate once matches are finished.")
-        return
-
-    c1, c2, c3 = st.columns(3)
-    total_goals = int(finished["total_goals"].dropna().sum())
-    over15 = (finished["total_goals"] > 1.5).mean() * 100
-    btts = ((finished["home_score"] > 0) & (finished["away_score"] > 0)).mean() * 100
-    c1.metric("Goals per match", f"{total_goals / len(finished):.2f}")
-    c2.metric("Over 1.5 goals", f"{over15:.0f}%")
-    c3.metric("Both teams scored", f"{btts:.0f}%")
-
-    stage_goals = finished.groupby("stage_label", as_index=False).agg(matches=("match_id", "count"), goals=("total_goals", "sum"))
-    stage_goals["goals_per_match"] = stage_goals["goals"] / stage_goals["matches"]
-    fig = px.bar(stage_goals, x="stage_label", y="goals_per_match", title="Goals per match by stage")
-    fig.update_layout(xaxis_title="Stage", yaxis_title="Goals per match", height=380)
-    st.plotly_chart(fig, use_container_width=True)
-
-    attack_records = []
-    for _, r in finished.iterrows():
-        attack_records.append({"team": r["home_team"], "GF": int(r["home_score"]), "GA": int(r["away_score"])})
-        attack_records.append({"team": r["away_team"], "GF": int(r["away_score"]), "GA": int(r["home_score"])})
-    attack = pd.DataFrame(attack_records).groupby("team", as_index=False).sum()
-    attack["GD"] = attack["GF"] - attack["GA"]
-    attack = attack.sort_values(["GF", "GD"], ascending=[False, False]).head(12)
-    fig2 = px.bar(attack, x="team", y="GF", title="Top scoring teams")
-    fig2.update_layout(xaxis_title="Team", yaxis_title="Goals", height=420)
-    st.plotly_chart(fig2, use_container_width=True)
-
-    scorelines = finished.assign(scoreline=finished.apply(scoreline_label, axis=1)).groupby("scoreline", as_index=False).size().sort_values("size", ascending=False).head(10)
-    fig3 = px.pie(scorelines, values="size", names="scoreline", title="Most common scorelines")
-    fig3.update_layout(height=420)
-    st.plotly_chart(fig3, use_container_width=True)
-
-    scorers = extract_scorers(matches_df)
-    if not scorers.empty:
-        st.write("#### Top scorers parsed from available scorer text")
-        st.dataframe(scorers.head(20), use_container_width=True, hide_index=True)
-    else:
-        st.caption("Top-scorer parsing needs scorer/event data from the API. The app will show it when the endpoint includes scorer strings.")
+    render_insights_tab_v2(matches_df)
 
 
 def render_fan_guide() -> None:
@@ -1138,14 +1543,12 @@ streamlit run app.py
 
 def main() -> None:
     st.sidebar.title("⚽ Controls")
-    auto_refresh = st.sidebar.toggle("Auto-refresh live view", value=True, help="Reloads the app every 60 seconds during live viewing.")
-    if auto_refresh:
-        components.html("<script>setTimeout(() => window.parent.location.reload(), 60000)</script>", height=0)
-    last_refresh = datetime.now().strftime("%I:%M:%S %p")
-    st.sidebar.caption(f"Last refreshed: {last_refresh}")
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
-    source_mode = st.sidebar.radio("Data mode", ["Live API", "Demo fallback"], help="Use fallback only for offline demos or when API rate limits/auth blocks access.")
+    source_mode = st.sidebar.radio("Data mode", ["Live API", "Demo fallback"], help="Live API gives score/minute updates when available. Use demo fallback only if the live API is unavailable.")
+    auto_refresh = st.sidebar.toggle("Auto-refresh live view", value=True, help="Refreshes every 60 seconds so live scores and clocks stay current.")
+    if auto_refresh:
+        st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
     if st.sidebar.button("Refresh now"):
         st.cache_data.clear()
         st.rerun()
@@ -1170,25 +1573,31 @@ def main() -> None:
             for _, row in fdf.head(3).iterrows():
                 st.sidebar.caption(f"{row['kickoff']} — {row['home_team']} {row['score']} {row['away_team']}")
 
-    st.sidebar.caption("Live games auto-refresh every 60 seconds when enabled.")
+    st.sidebar.caption("Tip: during live matches, refresh every 30–60 seconds to keep scores current.")
 
-    tab_dashboard, tab_matches, tab_standings, tab_knockout, tab_teams, tab_insights, tab_guide, tab_deploy = st.tabs(
-        ["Dashboard", "Matches", "Standings", "Knockout", "Teams", "Insights", "New Fan Guide", "Deploy"]
+    # Global tournament banner: keep identity above the navigation tabs on every page.
+    render_hero(matches, source)
+    st.markdown(f'<div class="wc-last-refresh"><span class="wc-live-dot"></span>Last refreshed: {datetime.now().strftime("%I:%M:%S %p")}</div>', unsafe_allow_html=True)
+
+    tab_overview, tab_matches, tab_knockout, tab_insights, tab_standings, tab_teams, tab_players, tab_guide, tab_deploy = st.tabs(
+        ["Overview", "Upcoming & Live", "Knockout Bracket", "Stats & Insights", "Groups & Standings", "Teams", "Players", "Learn the Basics", "Deploy"]
     )
-    with tab_dashboard:
-        render_dashboard(matches, standings, source)
+    with tab_overview:
+        render_overview(matches, standings, source)
     with tab_matches:
         render_matches_tab(matches)
-    with tab_standings:
-        st.header("Group standings")
-        st.markdown("Top teams advance from each group; third-place teams can also qualify depending on the tournament format and table ranking.")
-        render_standings(standings, teams)
     with tab_knockout:
         render_knockout_tab(matches)
-    with tab_teams:
-        render_teams_tab(matches, teams, standings)
     with tab_insights:
         render_insights_tab(matches)
+    with tab_standings:
+        st.header("Groups & Standings")
+        st.markdown("Top teams advance from each group; third-place teams can also qualify depending on the tournament format and table ranking.")
+        render_standings(standings, teams)
+    with tab_teams:
+        render_teams_tab(matches, teams, standings)
+    with tab_players:
+        render_players_tab(matches)
     with tab_guide:
         render_fan_guide()
     with tab_deploy:
