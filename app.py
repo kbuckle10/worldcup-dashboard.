@@ -141,16 +141,16 @@ st.markdown(
       @keyframes pulseDot {0%{box-shadow:0 0 0 0 rgba(239,68,68,.7)} 70%{box-shadow:0 0 0 10px rgba(239,68,68,0)} 100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
       .wc-last-refresh {text-align:right; color:var(--wc-muted); font-size:.78rem; margin:-4px 0 8px;}
       .wc-stat-card, .match-card, .wc-live-card, .wc-bracket-card {border: 1px solid var(--wc-border); border-radius: 18px; background: linear-gradient(180deg, rgba(15, 31, 53, .92), rgba(8, 20, 36, .92)); color: var(--wc-text) !important; box-shadow: 0 14px 38px rgba(0,0,0,.22);}
-      .wc-stat-card {padding: 16px; display:flex; align-items:center; gap:14px;}
-      .wc-stat-icon {height:48px; width:48px; border-radius:16px; display:flex; align-items:center; justify-content:center; background: rgba(56,189,248,.13); font-size:1.55rem;}
-      .wc-stat-value {font-size:1.85rem; line-height:1; font-weight:950; color:#fff;}
-      .wc-stat-label {color:var(--wc-muted); font-size:.86rem; margin-top:4px;}
+      .wc-stat-card {padding: 16px; display:flex; align-items:center; gap:14px; min-height:92px;}
+      .wc-stat-icon {height:46px; width:46px; flex:0 0 46px; border-radius:16px; display:flex; align-items:center; justify-content:center; background: rgba(56,189,248,.13); font-size:1.45rem;}
+      .wc-stat-value {font-size:clamp(1.25rem, 2vw, 1.72rem); line-height:1.05; font-weight:950; color:#fff; overflow-wrap:anywhere;}
+      .wc-stat-label {color:var(--wc-muted); font-size:.84rem; line-height:1.25; margin-top:5px;}
       .match-card {padding: 15px; margin-bottom: 12px;}
       .match-card h4, .match-card b {color: #ffffff !important;}
-      .wc-match-line {display:flex; align-items:center; justify-content:space-between; gap:12px; margin:11px 0 7px;}
+      .wc-match-line {display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr); align-items:center; gap:12px; margin:11px 0 7px;}
       .wc-team-name {font-weight:850; color:#fff;}
       .wc-score {color:#fff; font-size:1.35rem; font-weight:950; white-space:nowrap;}
-      .wc-flag {font-size:1.32rem; margin-right:6px; vertical-align:-1px;}
+      .wc-flag {width:28px; height:20px; flex:0 0 28px; display:inline-flex; align-items:center; justify-content:center; overflow:hidden; border-radius:4px; box-shadow:0 0 0 1px rgba(255,255,255,.22); background:rgba(255,255,255,.08); font-size:1.18rem; line-height:1; margin-right:0;}
       .tag {display:inline-block; padding:3px 9px; border-radius:999px; background:rgba(148,163,184,.14); color:var(--wc-text); font-size:.76rem; font-weight:800; margin-right:5px; border:1px solid rgba(255,255,255,.08);}
       .live {background:rgba(239,68,68,.16); color:#fecaca; border-color:rgba(239,68,68,.4); animation:pulseLive 1.5s infinite;}
       .finished {background:rgba(34,197,94,.14); color:#bbf7d0; border-color:rgba(34,197,94,.32);}
@@ -197,8 +197,8 @@ st.markdown(
       .wc-bar {height:14px; border-radius:99px; background:rgba(148,163,184,.20); overflow:hidden;}
       .wc-bar-fill {height:100%; border-radius:99px; background:linear-gradient(90deg,#f43f5e,#22d3ee);}
 
-      .flag-img {width:24px; height:16px; object-fit:cover; border-radius:3px; box-shadow:0 0 0 1px rgba(255,255,255,.18); vertical-align:-3px; margin-right:8px;}
-      .team-chip {display:inline-flex; align-items:center; gap:5px; min-width:0;}
+      .flag-img {width:28px; height:20px; flex:0 0 28px; display:inline-block; object-fit:cover; border-radius:4px; box-shadow:0 0 0 1px rgba(255,255,255,.22); background:rgba(255,255,255,.08); vertical-align:middle; margin-right:0;}
+      .team-chip {display:inline-flex; align-items:center; gap:7px; min-width:0; max-width:100%; line-height:1.15;}
       .team-chip .team-name {font-weight:900; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
       .team-code {font-size:.68rem; color:#94a3b8; font-weight:900; letter-spacing:.06em; margin-left:3px;}
       .wc-player-photo {width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,.22); box-shadow:0 0 0 3px rgba(56,189,248,.08); vertical-align:middle; margin-right:10px;}
@@ -219,6 +219,9 @@ st.markdown(
       .wc-bracket-card::after {display:none;}
       .wc-bracket-shell {overflow-x:auto; border:1px solid var(--wc-border); border-radius:24px; background:linear-gradient(180deg,rgba(8,14,25,.94),rgba(2,6,23,.96)); padding:24px;}
       .wc-bracket-board {min-width:1180px; display:grid; grid-template-columns:1fr 260px 1fr; gap:24px; align-items:center;}
+      .wc-live-team .team-chip, .wc-centre-score .team-chip {justify-content:center;}
+      .wc-live-team .team-name, .wc-centre-score .team-name {font-size:clamp(.92rem, 1.4vw, 1.08rem);}
+      div[data-testid="stSelectbox"] label, div[data-testid="stTextInput"] label, div[data-testid="stRadio"] label, div[data-testid="stToggle"] label {font-size:.9rem; font-weight:800;}
 
       @media (max-width: 900px) {.wc-story-grid,.wc-overview-grid{grid-template-columns:1fr 1fr}.wc-live-teams{grid-template-columns:1fr}.wc-bracket-grid{grid-template-columns:repeat(3,minmax(210px,1fr));}}
       @media (max-width: 640px) {.wc-story-grid,.wc-overview-grid{grid-template-columns:1fr}}
@@ -852,18 +855,9 @@ def biggest_wins(matches_df: pd.DataFrame, limit: int = 3) -> pd.DataFrame:
 
 def render_overview_summary_cards(matches_df: pd.DataFrame) -> None:
     players = extract_player_stats(matches_df)
-    upcoming = matches_df[matches_df["status"] == "Scheduled"].sort_values("date_time", na_position="last").head(3)
     team_goals = team_goal_table(matches_df).head(3)
     wins = biggest_wins(matches_df)
-
-    rules_items = [
-        "48 teams play 104 matches across the United States, Canada and Mexico.",
-        "Group stage: 12 groups of four; wins are 3 points, draws 1 point.",
-        "Top two teams in each group plus the eight best third-place teams enter the Round of 32.",
-        "Knockout matches use extra time and penalties if level after 90 minutes.",
-    ]
     cards = [
-        ("📋 Latest rules", rules_items),
         ("🏆 Biggest wins", [
             f"{team_chip(r['home_team'])} {scoreline_label(r)} {team_chip(r['away_team'])} • margin {int(r['margin'])}"
             for _, r in wins.iterrows()
@@ -872,18 +866,10 @@ def render_overview_summary_cards(matches_df: pd.DataFrame) -> None:
             f"{esc(r.Player)} • {team_chip(r.Country)} • {int(r.G)} goal{'s' if int(r.G) != 1 else ''}"
             for r in players.head(3).itertuples()
         ] if not players.empty else ["Scorer data is not available from the current feed yet."]),
-        ("📅 Upcoming games", [
-            f"{team_chip(r['home_team'])} vs {team_chip(r['away_team'])} • {esc(r['kickoff'])}"
-            for _, r in upcoming.iterrows()
-        ] or ["No upcoming games in the loaded data."]),
         ("🔥 Team most goals", [
             f"{team_chip(r.team)} • {int(r.goals)} goal{'s' if int(r.goals) != 1 else ''}"
             for r in team_goals.itertuples()
         ] if not team_goals.empty else ["Team goal totals will populate after completed matches."]),
-        ("🅰️ Most assists", [
-            f"{esc(r.Player)} • {team_chip(r.Country)} • {int(r.A)} assist{'s' if int(r.A) != 1 else ''}"
-            for r in players[players["A"] > 0].sort_values(["A", "G"], ascending=[False, False]).head(3).itertuples()
-        ] if not players.empty and int(players["A"].sum()) > 0 else ["Assists are displayed when the active data source provides assist events."]),
     ]
     html_cards = []
     for title, items in cards:
@@ -1422,12 +1408,6 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     col_a, col_b = st.columns([1.15, 0.85])
     with col_a:
         st.markdown(f"<div class='explain'><b>Plain-English summary:</b> {explain_current_stage(matches_df)} The winner of each knockout match advances; in the group stage teams advance by points and goal difference.</div>", unsafe_allow_html=True)
-        st.write("#### Live / next matches")
-        shortlist = pd.concat([live, scheduled]).sort_values("date_time", na_position="last").head(5)
-        if shortlist.empty:
-            st.info("No live or upcoming matches in the loaded data.")
-        for idx, (_, row) in enumerate(shortlist.iterrows()):
-            render_live_score_card(row, key_prefix=f"overview_{idx}")
     with col_b:
         st.write("#### Stage status")
         stage_counts = matches_df.groupby(["stage_label", "status"]).size().reset_index(name="matches")
