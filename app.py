@@ -222,8 +222,9 @@ st.markdown(
       div[role="radiogroup"][aria-label="Dashboard section"] label:has(input:checked), div[role="radiogroup"][aria-label="Dashboard section selector"] label:has(input:checked) {color:#06111f !important; background:linear-gradient(135deg, #f7c948, #38bdf8); border-color:rgba(255,255,255,.45); box-shadow:0 10px 28px rgba(56,189,248,.20);}
       div[role="radiogroup"][aria-label="Dashboard section"] label:has(input:checked) *, div[role="radiogroup"][aria-label="Dashboard section selector"] label:has(input:checked) * {color:#06111f !important;}
       div[role="radiogroup"][aria-label="Dashboard section"] label > div:first-child, div[role="radiogroup"][aria-label="Dashboard section selector"] label > div:first-child {display:none !important;}
-      .wc-basics-link {color:#67e8f9 !important; font-weight:900; text-decoration:none; border-bottom:1px solid rgba(103,232,249,.55);}
-      .wc-basics-link:hover {color:#f7c948 !important; border-bottom-color:#f7c948;}
+      .wc-basics-link, .wc-entity-link {color:inherit !important; font-weight:inherit; text-decoration:none;}
+      .wc-basics-link {color:#67e8f9 !important; font-weight:900; border-bottom:1px solid rgba(103,232,249,.55);}
+      .wc-entity-link:hover, .wc-basics-link:hover {color:#f7c948 !important; border-bottom:1px solid #f7c948;}
       div.stButton > button[kind="secondary"] {border-radius:999px;}
       .wc-live-prob-row {display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; font-weight:900;}
       .wc-prob-side {display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:12px; background:rgba(148,163,184,.12); border:1px solid rgba(148,163,184,.18); color:#f8fafc;}
@@ -270,8 +271,7 @@ st.markdown(
       .wc-format-line b {color:var(--wc-gold);}
       .wc-world-champ {font-size:1.2rem; font-weight:950; color:#fff; letter-spacing:.08em; text-transform:uppercase; margin-top:8px;}
       .wc-bracket-side {display:grid; grid-template-columns:repeat(3, minmax(185px,1fr)); gap:16px; align-items:center;}
-      .wc-bracket-side.right {direction:rtl;}
-      .wc-bracket-side.right * {direction:ltr;}
+      .wc-bracket-side.right {direction:ltr;}
       .wc-bracket-round-title {color:var(--wc-gold); font-size:.70rem; text-transform:uppercase; letter-spacing:.14em; font-weight:950; margin-bottom:10px; text-align:center;}
       .wc-bracket-stack {display:flex; flex-direction:column; gap:12px; justify-content:center;}
       .wc-bracket-stack.r16 {gap:54px;}
@@ -379,11 +379,28 @@ def flag_img(team: Any) -> str:
     return f'<span class="wc-flag">{emoji}</span>'
 
 
+
+def app_link(tab: str, **params: Any) -> str:
+    query = {"tab": tab, **{k: v for k, v in params.items() if clean_text(v)}}
+    return "?" + "&".join(f"{quote(str(k))}={quote(clean_text(v))}" for k, v in query.items())
+
+def team_link(team: Any, label_html: str) -> str:
+    name = clean_text(team, "TBD")
+    if name == "TBD":
+        return label_html
+    return f'<a class="wc-entity-link" href="{app_link("Teams", team=name)}" target="_self">{label_html}</a>'
+
+def player_link(player: Any, label_html: str) -> str:
+    name = clean_text(player)
+    if not name:
+        return label_html
+    return f'<a class="wc-entity-link" href="{app_link("Players", player=name)}" target="_self">{label_html}</a>'
+
 def team_chip(team: Any, show_code: bool = True) -> str:
     name = clean_text(team, "TBD")
     code = team_code(name)
     code_html = f'<span class="team-code">{code}</span>' if show_code else ""
-    return f'<span class="team-chip">{flag_img(name)}<span class="team-name">{esc(name)}</span>{code_html}</span>'
+    return team_link(name, f'<span class="team-chip">{flag_img(name)}<span class="team-name">{esc(name)}</span>{code_html}</span>')
 
 
 def team_flag(team: Any) -> str:
@@ -559,11 +576,14 @@ def stage_name(stage_code: str) -> str:
 
 def normalize_stage(row: Dict[str, Any]) -> str:
     raw = clean_text(row.get("type") or row.get("stage") or row.get("round") or row.get("group"), "group").lower()
+    raw = raw.replace("matchday", "group").replace("group stage", "group")
     raw = raw.replace("round_of_32", "r32").replace("round of 32", "r32")
     raw = raw.replace("round_of_16", "r16").replace("round of 16", "r16")
     raw = raw.replace("quarterfinal", "qf").replace("quarter-final", "qf").replace("quarter finals", "qf")
     raw = raw.replace("semifinal", "sf").replace("semi-final", "sf")
     raw = raw.replace("3rd", "third").replace("third place playoff", "third")
+    if raw.startswith("group") or raw.startswith("first stage"):
+        return "group"
     if raw in STAGE_LABELS:
         return raw
     if raw in [g.lower() for g in GROUPS]:
@@ -1014,21 +1034,33 @@ def biggest_wins(matches_df: pd.DataFrame, limit: int = 3) -> pd.DataFrame:
 
 def render_overview_summary_cards(matches_df: pd.DataFrame) -> None:
     players = extract_player_stats(matches_df)
-    team_goals = team_goal_table(matches_df).head(3)
-    wins = biggest_wins(matches_df)
+    team_goals = team_goal_table(matches_df).head(10)
+    high_scores = matches_df[(matches_df["status"] == "Finished") & (matches_df["total_goals"] > 3)].copy() if not matches_df.empty else pd.DataFrame()
+    if not high_scores.empty:
+        high_scores = high_scores.sort_values(["total_goals", "date_time"], ascending=[False, False], na_position="last").head(10)
+    upcoming = matches_df[matches_df["status"] == "Scheduled"].sort_values("date_time", na_position="last").head(6) if not matches_df.empty else pd.DataFrame()
+    latest = matches_df[matches_df["status"] == "Finished"].sort_values("date_time", ascending=False, na_position="last").head(6) if not matches_df.empty else pd.DataFrame()
     cards = [
-        ("🏆 Biggest wins", [
-            f"{team_chip(r['home_team'])} {scoreline_label(r)} {team_chip(r['away_team'])}"
-            for _, r in wins.iterrows()
-        ] or ["Biggest wins will appear after completed matches."]),
-        ("🥇 Top scorers", [
-            f"{esc(r.Player)} • {team_chip(r.Country)} • {int(r.G)} goal{'s' if int(r.G) != 1 else ''}"
-            for r in players.head(3).itertuples()
+        ("🥇 Top 10 scorers", [
+            f"{player_link(r.Player, esc(r.Player))} • {team_chip(r.Country)} • {int(r.G)} goal{'s' if int(r.G) != 1 else ''}"
+            for r in players.head(10).itertuples()
         ] if not players.empty else ["Scorer data is not available from the current feed yet."]),
-        ("🔥 Team most goals", [
+        ("🎆 Biggest scores (4+ goals)", [
+            f"{team_chip(r.home_team)} {scoreline_label(pd.Series(r._asdict()))} {team_chip(r.away_team)} • {int(r.total_goals)} goals"
+            for r in high_scores.itertuples()
+        ] if not high_scores.empty else ["Matches with more than 3 total goals will appear here."]),
+        ("🔥 Top team goals", [
             f"{team_chip(r.team)} • {int(r.goals)} goal{'s' if int(r.goals) != 1 else ''}"
             for r in team_goals.itertuples()
         ] if not team_goals.empty else ["Team goal totals will populate after completed matches."]),
+        ("⏭️ Upcoming matches", [
+            f"{team_chip(r.home_team)} vs {team_chip(r.away_team)} • {esc(r.kickoff)}"
+            for r in upcoming.itertuples()
+        ] if not upcoming.empty else ["No upcoming matches are currently loaded."]),
+        ("🕘 Latest results", [
+            f"{team_chip(r.home_team)} {scoreline_label(pd.Series(r._asdict()))} {team_chip(r.away_team)} • {esc(r.stage_label)}"
+            for r in latest.itertuples()
+        ] if not latest.empty else ["Latest results will appear after completed matches."]),
     ]
     html_cards = []
     for title, items in cards:
@@ -1585,8 +1617,15 @@ def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, 
             for m in rnd.get("matches", []):
                 team1 = m.get("team1") or {}
                 team2 = m.get("team2") or {}
+                if not isinstance(team1, dict):
+                    team1 = {"name": team1}
+                if not isinstance(team2, dict):
+                    team2 = {"name": team2}
                 score1 = m.get("score1")
                 score2 = m.get("score2")
+                venue = m.get("stadium") or m.get("venue") or {}
+                if not isinstance(venue, dict):
+                    venue = {"name": venue}
                 games.append({
                     "id": clean_text(m.get("num") or f"of-{len(games)+1}"),
                     "date": clean_text(m.get("date")) + (" " + clean_text(m.get("time")) if clean_text(m.get("time")) else ""),
@@ -1596,7 +1635,7 @@ def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, 
                     "away_score": score2,
                     "stage": round_name,
                     "status": "Finished" if score1 is not None and score2 is not None else "Scheduled",
-                    "stadium_id": clean_text((m.get("stadium") or {}).get("name")),
+                    "stadium_id": clean_text(venue.get("name")),
                 })
         matches = normalize_matches(games)
         team_names = sorted(set(matches.get("home_team", [])) | set(matches.get("away_team", []))) if not matches.empty else []
@@ -1663,7 +1702,7 @@ def player_card_html(r: pd.Series) -> str:
     position = meta.get("position", "Player")
     age = meta.get("age", "—")
     return f'''<div class="wc-player-card"><div class="wc-player-card-top">{player_photo_html(player)}
-        <div><b>{esc(player)}</b><div class="wc-player-meta">{team_chip(r['Country'])} • {esc(position)} • {esc(club)} • Age {esc(age)}</div></div>
+        <div><b>{player_link(player, esc(player))}</b><div class="wc-player-meta">{team_chip(r['Country'])} • {esc(position)} • {esc(club)} • Age {esc(age)}</div></div>
       </div><div class="wc-player-statline">
         <div class="wc-player-stat"><b>{int(r['G'])}</b><span>Goals</span></div>
         <div class="wc-player-stat"><b>{int(r['A'])}</b><span>Assists</span></div>
@@ -1697,7 +1736,8 @@ def render_players_tab(matches_df: pd.DataFrame) -> None:
     with f1:
         country = st.selectbox("Country", ["All countries"] + countries)
     with f2:
-        search = st.text_input("Search player", placeholder="e.g. Messi, Mbappé, Kane")
+        requested_player = clean_text(st.query_params.get("player", ""))
+        search = st.text_input("Search player", value=requested_player, placeholder="e.g. Messi, Mbappé, Kane")
     with f3:
         sort_by = st.selectbox("Sort by", ["G", "G+A", "Open", "Pen", "A"])
     out = players.copy()
@@ -1719,7 +1759,7 @@ def render_players_tab(matches_df: pd.DataFrame) -> None:
         player = clean_text(r["Player"])
         rows.append(f'''<tr style="border-top:1px solid rgba(148,163,184,.18);">
             <td style="padding:12px; color:#94a3b8;">{idx+1}</td>
-            <td style="padding:12px;"><span class="wc-player-name">{player_photo_html(player)}{esc(player)}</span></td>
+            <td style="padding:12px;"><span class="wc-player-name">{player_photo_html(player)}{player_link(player, esc(player))}</span></td>
             <td style="padding:12px;">{team_chip(r['Country'])}</td>
             <td style="text-align:center;padding:12px;"><b>{int(r['G'])}</b></td>
             <td style="text-align:center;padding:12px;">{int(r['A'])}</td>
@@ -1819,7 +1859,7 @@ def render_insights_tab_v2(matches_df: pd.DataFrame) -> None:
             html = '<div class="wc-panel">'
             for i, r in enumerate(rank.itertuples(), start=1):
                 width = int(int(r.G) / maxg * 100)
-                html += f'<div class="wc-rank-row"><div class="wc-rank-num">{i}</div><div><b>{r.Player}</b><br><span class="wc-small">{team_flag(r.Country)} {r.Country}</span></div><div class="wc-bar"><div class="wc-bar-fill" style="width:{width}%;"></div></div><b>{int(r.G)}</b></div>'
+                html += f'<div class="wc-rank-row"><div class="wc-rank-num">{i}</div><div><b>{player_link(r.Player, esc(r.Player))}</b><br><span class="wc-small">{team_flag(r.Country)} {r.Country}</span></div><div class="wc-bar"><div class="wc-bar-fill" style="width:{width}%;"></div></div><b>{int(r.G)}</b></div>'
             html += '</div>'
             st.markdown(html, unsafe_allow_html=True)
 
@@ -1965,7 +2005,9 @@ def render_teams_tab(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standings
     if not all_teams:
         st.info("No teams loaded.")
         return
-    favorite = st.selectbox("Choose a team", all_teams, index=0)
+    requested_team = clean_text(st.query_params.get("team", ""))
+    team_index = all_teams.index(requested_team) if requested_team in all_teams else 0
+    favorite = st.selectbox("Choose a team", all_teams, index=team_index)
 
     team_rows = teams_df[teams_df["team"] == favorite] if not teams_df.empty else pd.DataFrame()
     group = clean_text(team_rows.iloc[0].get("group") if not team_rows.empty else "")
@@ -2079,12 +2121,14 @@ def main() -> None:
     st.sidebar.title("⚽ Controls")
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
-    source_mode = st.sidebar.radio("Data mode", ["Live API", "Demo fallback"], help="Live API can add live minutes when available. Demo fallback is local sample data.")
+    source_mode = st.sidebar.radio("Data mode", ["OpenFootball", "Live API", "Demo fallback"], help="OpenFootball is the default public JSON feed. Live API can add live minutes when available. Demo fallback is local sample data.")
     if st.sidebar.button("Refresh now", help="Fetch fresh data with a Streamlit rerun."):
         st.cache_data.clear()
         st.rerun()
 
-    if source_mode == "Live API":
+    if source_mode == "OpenFootball":
+        matches, teams, groups, stadiums, source = load_openfootball_data()
+    elif source_mode == "Live API":
         matches, teams, groups, stadiums, source = load_live_data(api_base, token)
     else:
         matches, teams, groups, stadiums, source = load_fallback()
