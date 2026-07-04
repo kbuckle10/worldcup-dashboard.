@@ -2,7 +2,8 @@
 World Cup 2026 Dashboard & Explorer
 Deployable on Streamlit Community Cloud.
 
-Default data source: https://worldcup26.ir public World Cup 2026 API
+Default data source: GitHub-hosted OpenFootball public-domain JSON
+Optional live source: https://worldcup26.ir public World Cup 2026 API
 Optional token support: set WORLDCUP26_TOKEN in Streamlit secrets if your API instance requires auth.
 """
 
@@ -173,11 +174,13 @@ st.markdown(
       .wc-bracket-team span:first-child {white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
       .wc-bracket-score {font-weight:950; color:#fff;}
       .wc-bracket-winner {border-left:3px solid var(--wc-green); padding-left:6px;}
-      .wc-tab-nav {display:flex; flex-wrap:wrap; gap:0; border-top:1px solid rgba(148,163,184,.18); border-bottom:1px solid rgba(148,163,184,.28); margin:8px 0 28px;}
-      .wc-tab-divider {width:1px; background:rgba(148,163,184,.24); min-height:48px;}
-      div[role="radiogroup"][aria-label="Dashboard section"] {gap:0 !important;}
-      div[role="radiogroup"][aria-label="Dashboard section"] label {border-right:1px solid rgba(148,163,184,.20); padding:10px 16px !important; min-height:48px; font-weight:900;}
-      div[role="radiogroup"][aria-label="Dashboard section"] label:first-child {border-left:1px solid rgba(148,163,184,.20);}
+      .wc-tab-nav {margin:8px 0 24px; padding:8px; border:1px solid rgba(148,163,184,.22); border-radius:22px; background:linear-gradient(90deg, rgba(15,31,53,.92), rgba(8,20,36,.82)); box-shadow:0 14px 38px rgba(0,0,0,.20); overflow-x:auto;}
+      div[role="radiogroup"][aria-label="Dashboard section"] {display:flex !important; flex-wrap:nowrap !important; gap:7px !important; align-items:stretch !important;}
+      div[role="radiogroup"][aria-label="Dashboard section"] label {position:relative; min-width:0 !important; white-space:nowrap; border:1px solid rgba(148,163,184,.24); border-radius:999px; padding:8px 12px !important; min-height:40px; font-weight:950; background:rgba(148,163,184,.10); transition:all .18s ease;}
+      div[role="radiogroup"][aria-label="Dashboard section"] label:hover {border-color:rgba(56,189,248,.70); background:rgba(56,189,248,.16); transform:translateY(-1px);}
+      div[role="radiogroup"][aria-label="Dashboard section"] label:has(input:checked) {color:#06111f !important; background:linear-gradient(135deg, #f7c948, #38bdf8); border-color:rgba(255,255,255,.45); box-shadow:0 10px 28px rgba(56,189,248,.20);}
+      div[role="radiogroup"][aria-label="Dashboard section"] label:has(input:checked) * {color:#06111f !important;}
+      div[role="radiogroup"][aria-label="Dashboard section"] label > div:first-child {display:none !important;}
       .wc-basics-link {color:#67e8f9 !important; font-weight:900; text-decoration:none; border-bottom:1px solid rgba(103,232,249,.55);}
       .wc-basics-link:hover {color:#f7c948 !important; border-bottom-color:#f7c948;}
       .wc-live-prob-row {display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; font-weight:900;}
@@ -1447,7 +1450,11 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     avg_goals = total_goals / len(finished) if len(finished) else 0
     current_stage, current_stage_detail = get_current_stage_metric(matches_df)
 
-    st.caption(f"Data source: {source} • Auto-refresh cache: 60 seconds for live API data")
+    cache_note = "60 seconds" if source == "Live API" else "1 hour"
+    st.caption(f"Data source: {source} • Cache: {cache_note}")
+
+    st.markdown("### At a glance")
+    st.markdown(f"<div class='explain'><b>Overview shows:</b> current tournament status, live or next match, completed-match progress, goal pace, and headline summary cards. {explain_current_stage(matches_df)} New to football? Start with the <a class='wc-basics-link' href='?tab=Football%20101' target='_self'>Football 101</a> tab for quick rules and tournament basics.</div>", unsafe_allow_html=True)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -1470,9 +1477,6 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
 
     st.markdown("### Overview summary")
     render_overview_summary_cards(matches_df)
-
-    st.markdown("### At a glance")
-    st.markdown(f"<div class='explain'><b>Plain-English summary:</b> {explain_current_stage(matches_df)} New to football? Start with the <a class='wc-basics-link' href='?tab=Learn%20the%20Basics' target='_self'>Learn the Basics</a> tab. The winner of each knockout match advances; in the group stage teams advance by points and goal difference.</div>", unsafe_allow_html=True)
 
 
 def render_matches_tab(matches_df: pd.DataFrame, standings_df: Optional[pd.DataFrame] = None) -> None:
@@ -1606,7 +1610,7 @@ def render_fan_guide() -> None:
         """
         <section class="wc-basics-hero">
           <div class="wc-hero-kicker">Football 101</div>
-          <div class="wc-section-title" style="margin-top:4px;">Learn the Basics</div>
+          <div class="wc-section-title" style="margin-top:4px;">Football 101</div>
           <p class="subtle" style="font-size:1.05rem;">A quick, friendly guide to follow the World Cup even if this is your first football tournament.</p>
         </section>
         <div class="wc-basics-grid">
@@ -1665,7 +1669,7 @@ def main() -> None:
     st.sidebar.title("⚽ Controls")
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
-    source_mode = st.sidebar.radio("Data mode", ["Live API", "Demo fallback"], help="Live API gives score/minute updates when available. Use demo fallback only if the live API is unavailable.")
+    source_mode = st.sidebar.radio("Data mode", ["GitHub OpenFootball", "Live API", "Demo fallback"], help="GitHub OpenFootball uses a public-domain JSON file from GitHub. Live API can add live minutes when available. Demo fallback is local sample data.")
     auto_refresh = st.sidebar.toggle("Auto-refresh live view", value=True, help="Refreshes every 60 seconds so live scores and clocks stay current.")
     if auto_refresh:
         st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
@@ -1673,7 +1677,9 @@ def main() -> None:
         st.cache_data.clear()
         st.rerun()
 
-    if source_mode == "Live API":
+    if source_mode == "GitHub OpenFootball":
+        matches, teams, groups, stadiums, source = load_openfootball_data()
+    elif source_mode == "Live API":
         matches, teams, groups, stadiums, source = load_live_data(api_base, token)
     else:
         matches, teams, groups, stadiums, source = load_fallback()
@@ -1717,8 +1723,10 @@ def main() -> None:
         height=28,
     )
 
-    tab_names = ["Overview", "Upcoming & Live", "Knockout Bracket", "Stats & Insights", "Groups & Standings", "Teams", "Players", "Learn the Basics", "Deploy"]
+    tab_names = ["Overview", "Upcoming & Live", "Knockout Bracket", "Stats & Insights", "Groups & Standings", "Teams", "Players", "Football 101"]
     requested_tab = st.query_params.get("tab", "Overview")
+    if requested_tab == "Learn the Basics":
+        requested_tab = "Football 101"
     default_index = tab_names.index(requested_tab) if requested_tab in tab_names else 0
     st.markdown('<div class="wc-tab-nav">', unsafe_allow_html=True)
     active_tab = st.radio("Dashboard section", tab_names, index=default_index, horizontal=True, label_visibility="collapsed")
@@ -1742,10 +1750,8 @@ def main() -> None:
         render_teams_tab(matches, teams, standings)
     elif active_tab == "Players":
         render_players_tab(matches)
-    elif active_tab == "Learn the Basics":
+    elif active_tab == "Football 101":
         render_fan_guide()
-    elif active_tab == "Deploy":
-        render_deploy_notes(api_base, source)
 
 
 if __name__ == "__main__":

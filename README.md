@@ -8,20 +8,22 @@ A Streamlit web app for World Cup fans and non-football fans:
 - Knockout tab showing each knockout round and route to the final
 - Teams tab for team-by-team route and quick stats
 - Insights tab with goals-per-match, over 1.5, both-teams-scored, top attacks, and scoreline trends
-- New Fan Guide tab explaining the tournament in plain English
+- Football 101 tab explaining the tournament in plain English
 
 ## Data source
 
-Default live API base: `https://worldcup26.ir`
+Default data mode: GitHub-hosted OpenFootball public-domain JSON.
 
-The app uses these endpoints:
+Optional live API base: `https://worldcup26.ir`
+
+When Live API mode is selected, the app uses these endpoints:
 
 - `/get/games`
 - `/get/groups`
 - `/get/teams`
 - `/get/stadiums`
 
-A demo fallback snapshot is included so the app still opens if the live API is unavailable.
+A demo fallback snapshot is included so the app still opens if the GitHub feed or live API is unavailable.
 
 ## Run locally
 
