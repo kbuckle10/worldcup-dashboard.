@@ -28,6 +28,11 @@ APP_DIR = Path(__file__).parent
 DATA_DIR = APP_DIR / "data"
 DEFAULT_API_BASE = "https://worldcup26.ir"
 OPENFOOTBALL_WORLD_CUP_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json"
+ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard"
+ESPN_SUMMARY_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary"
+THESPORTSDB_API_BASE = "https://www.thesportsdb.com/api/v1/json/3"
+THESPORTSDB_LEAGUE_ID = "4429"
+THESPORTSDB_SEASON = "2026"
 
 TROPHY_SVG = (
     "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 320' role='img' aria-label='FIFA World Cup trophy'>"
@@ -1337,20 +1342,30 @@ def scorer_events(row: pd.Series) -> List[Dict[str, Any]]:
     for side in ["home", "away"]:
         team = clean_text(row.get(f"{side}_team"))
         raw = clean_text(row.get(f"{side}_scorers"))
-        if not raw:
+        if raw:
+            for piece in re.split(r",|;|\|", raw):
+                player = clean_player_name(piece)
+                minute_match = re.search(r"(\d+)(?:['’])?(?:\+(\d+))?", piece)
+                minute = 0
+                label = ""
+                if minute_match:
+                    minute = int(minute_match.group(1)) + int(minute_match.group(2) or 0)
+                    label = minute_match.group(0)
+                    if not label.endswith("'"):
+                        label += "'"
+                if player:
+                    events.append({"side": side, "team": team, "player": player, "minute": minute, "label": label or "Goal", "kind": "Goal"})
+    home_key = team_match_key(row.get("home_team")); away_key = team_match_key(row.get("away_team"))
+    for item in event_list_from_raw(row, ["events", "timeline", "goals"]):
+        typ = clean_text(item.get("type") or item.get("event") or item.get("strTimeline") or item.get("strEvent"))
+        if not re.search(r"goal|scor", typ, flags=re.I):
             continue
-        for piece in re.split(r",|;|\|", raw):
-            player = clean_player_name(piece)
-            minute_match = re.search(r"(\d+)(?:['’])?(?:\+(\d+))?", piece)
-            minute = 0
-            label = ""
-            if minute_match:
-                minute = int(minute_match.group(1)) + int(minute_match.group(2) or 0)
-                label = minute_match.group(0)
-                if not label.endswith("'"):
-                    label += "'"
-            if player:
-                events.append({"side": side, "team": team, "player": player, "minute": minute, "label": label or "Goal", "kind": "Goal"})
+        team = canonical_team_name(item.get("team") or item.get("team_name") or item.get("strTeam") or item.get("strHomeTeam"))
+        player = clean_player_name(item.get("player") or item.get("player_name") or item.get("strPlayer") or item.get("strTimelineDetail") or item.get("text"))
+        minute = to_int(item.get("minute") or item.get("time") or item.get("intTime") or item.get("intTimeline"), 0) or 0
+        side = "away" if team_match_key(team) == away_key else "home" if team_match_key(team) == home_key else "home"
+        if player:
+            events.append({"side": side, "team": team or clean_text(row.get(f"{side}_team")), "player": player, "minute": minute, "label": f"{minute}'" if minute else "Goal", "kind": "Goal"})
     return sorted(events, key=lambda e: e.get("minute", 0))
 
 
@@ -1631,11 +1646,33 @@ def render_team_popup(team: str, matches_df: pd.DataFrame, standings_df: pd.Data
 
 
 def matchup_probabilities(home: str, away: str, row: pd.Series) -> Tuple[int, int]:
-    """Return display win probabilities for the match card."""
-    pair = {clean_text(home), clean_text(away)}
-    if pair == {"Canada", "Morocco"}:
-        return (36, 64) if clean_text(home) == "Canada" else (64, 36)
-    home_prob = max(6, min(94, 50 + (0 if pd.isna(row.get("home_score")) or pd.isna(row.get("away_score")) else int(row.get("home_score"))*12 - int(row.get("away_score"))*12)))
+    """Return API win probability or fallback model probability for the match card."""
+    raw = row.get("raw") if isinstance(row.get("raw"), dict) else {}
+    for key in ["probabilities", "win_probability", "odds"]:
+        prob = raw.get(key)
+        if isinstance(prob, dict):
+            hp = to_int(prob.get("home") or prob.get("home_win") or prob.get("homeWinPercentage"), None)
+            ap = to_int(prob.get("away") or prob.get("away_win") or prob.get("awayWinPercentage"), None)
+            if hp is not None and ap is not None and hp + ap > 0:
+                total = hp + ap
+                return round(hp / total * 100), round(ap / total * 100)
+    home_score = 0 if pd.isna(row.get("home_score")) else int(row.get("home_score"))
+    away_score = 0 if pd.isna(row.get("away_score")) else int(row.get("away_score"))
+    minute = to_int(live_minute(row).replace("'", "") if live_minute(row) else row.get("elapsed"), 0) or 0
+    stage_weight = {"group": 1.0, "r32": 1.08, "r16": 1.12, "qf": 1.16, "sf": 1.2, "third": 1.1, "final": 1.25}.get(clean_text(row.get("stage")), 1.0)
+    rank_home = TEAM_PROFILE_MAP.get(home, {}).get("ranking", 45)
+    rank_away = TEAM_PROFILE_MAP.get(away, {}).get("ranking", 45)
+    strength = max(-18, min(18, (rank_away - rank_home) * 0.7))
+    stat_map = {label.lower(): (hv, av) for label, hv, av in match_stat_rows(row)}
+    shots = stat_map.get("shots", stat_map.get("total shots", (0, 0)))
+    sot = stat_map.get("shots on target", (0, 0))
+    poss = stat_map.get("possession", (50, 50))
+    reds = stat_map.get("red cards", (0, 0))
+    xg = stat_map.get("expected goals", stat_map.get("xg", (0, 0)))
+    time_factor = 0.55 + min(45, minute) / 100 if row.get("status") == "Live" else 1.0
+    score_component = (home_score - away_score) * 18 * time_factor * stage_weight
+    stat_component = (shots[0] - shots[1]) * 0.7 + (sot[0] - sot[1]) * 1.7 + (poss[0] - poss[1]) * 0.12 + (xg[0] - xg[1]) * 4 - (reds[0] - reds[1]) * 8
+    home_prob = int(round(max(4, min(96, 50 + strength + score_component + stat_component))))
     return home_prob, 100 - home_prob
 
 
@@ -1856,6 +1893,195 @@ def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, 
         matches, teams, groups, stadiums, source = load_fallback()
         st.warning("OpenFootball data could not be loaded, so the app is using the demo fallback snapshot. Details: " + str(exc))
         return matches, teams, groups, stadiums, source
+
+
+
+
+def canonical_team_name(value: Any) -> str:
+    text = clean_text(value)
+    aliases = {
+        "us": "United States", "usa": "United States", "united states of america": "United States",
+        "cote d'ivoire": "Ivory Coast", "côte d’ivoire": "Ivory Coast", "côte d'ivoire": "Ivory Coast",
+        "korea republic": "South Korea", "republic of korea": "South Korea",
+        "ir iran": "Iran", "turkiye": "Turkey", "cabo verde": "Cape Verde",
+    }
+    return aliases.get(text.lower(), text)
+
+
+def team_match_key(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]", "", canonical_team_name(value).lower())
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def fetch_public_json(url: str, params: Optional[Dict[str, Any]] = None) -> Any:
+    resp = requests.get(
+        url,
+        params=params,
+        headers={"Accept": "application/json", "User-Agent": "worldcup-dashboard/1.0"},
+        timeout=20,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def source_labels_text(source: str) -> str:
+    return f"{source} • Base data: OpenFootball • Live overlay: ESPN • Enrichment: TheSportsDB"
+
+
+def normalize_espn_status(competition: Dict[str, Any], status: Dict[str, Any]) -> str:
+    state = clean_text(status.get("type", {}).get("state") or status.get("type", {}).get("name") or status.get("type", {}).get("description")).lower()
+    completed = status.get("type", {}).get("completed") or competition.get("status", {}).get("type", {}).get("completed")
+    if completed or state in {"post", "final", "full time"}:
+        return "Finished"
+    if state in {"in", "pre-halftime", "in progress"}:
+        return "Live"
+    return "Scheduled"
+
+
+def espn_competitor_map(competition: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    out = {"home": {}, "away": {}}
+    for comp in competition.get("competitors", []) or []:
+        side = clean_text(comp.get("homeAway"))
+        team = comp.get("team") or {}
+        if side in out:
+            out[side] = {"name": canonical_team_name(team.get("displayName") or team.get("shortDisplayName") or team.get("name")), "score": to_int(comp.get("score"), None), "raw": comp}
+    return out
+
+
+def espn_events_from_summary(summary: Dict[str, Any], home: str, away: str) -> List[Dict[str, Any]]:
+    events: List[Dict[str, Any]] = []
+    for item in summary.get("scoringPlays", []) or []:
+        team_name = canonical_team_name((item.get("team") or {}).get("displayName") or item.get("team"))
+        events.append({"type": "Goal", "event": "Goal", "minute": clean_text(item.get("clock", {}).get("displayValue") or item.get("minute")), "team": team_name, "player": clean_text(item.get("athlete", {}).get("displayName") or item.get("text"), "Goal"), "source": "ESPN"})
+    for item in summary.get("keyEvents", []) or summary.get("events", []) or []:
+        typ = clean_text(item.get("type", {}).get("text") or item.get("type") or item.get("playType") or item.get("text"))
+        team_name = canonical_team_name((item.get("team") or {}).get("displayName") or item.get("team"))
+        player = clean_text((item.get("athlete") or {}).get("displayName") or item.get("player") or item.get("text"), "Event")
+        events.append({"type": typ, "event": typ, "minute": clean_text(item.get("clock", {}).get("displayValue") or item.get("minute")), "team": team_name, "player": player, "source": "ESPN"})
+    return events
+
+
+def espn_stats_from_summary(summary: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
+    stats: Dict[str, Dict[str, int]] = {}
+    box = summary.get("boxscore") or {}
+    for team_block in box.get("teams", []) or []:
+        side = clean_text(team_block.get("homeAway"))
+        for stat in team_block.get("statistics", []) or []:
+            label = clean_text(stat.get("name") or stat.get("label") or stat.get("displayName")).lower().replace(" ", "_")
+            val = to_int(str(stat.get("displayValue") or stat.get("value") or "").replace("%", ""), None)
+            if label and val is not None:
+                stats.setdefault(label, {})[side] = val
+    return stats
+
+
+def lineups_from_espn_summary(summary: Dict[str, Any]) -> Dict[str, List[str]]:
+    result = {"home": [], "away": []}
+    for team_block in (summary.get("boxscore") or {}).get("players", []) or []:
+        side = clean_text(team_block.get("homeAway"))
+        athletes = []
+        for group in team_block.get("statistics", []) or []:
+            athletes.extend(group.get("athletes", []) or [])
+        names = [clean_text((a.get("athlete") or {}).get("displayName") or a.get("displayName")) for a in athletes]
+        if side in result:
+            result[side] = [n for n in names if n][:11]
+    return result
+
+
+def apply_espn_overlay(matches: pd.DataFrame) -> Tuple[pd.DataFrame, str]:
+    if matches.empty:
+        return matches, "ESPN unavailable"
+    try:
+        board = fetch_public_json(ESPN_SCOREBOARD_URL)
+    except Exception as exc:
+        return matches, f"ESPN unavailable ({exc})"
+    df = matches.copy()
+    event_count = 0
+    for event in board.get("events", []) or []:
+        comp = (event.get("competitions") or [{}])[0]
+        teams = espn_competitor_map(comp)
+        home, away = teams.get("home", {}).get("name"), teams.get("away", {}).get("name")
+        if not home or not away:
+            continue
+        mask = ((df["home_team"].map(team_match_key) == team_match_key(home)) & (df["away_team"].map(team_match_key) == team_match_key(away))) | ((df["home_team"].map(team_match_key) == team_match_key(away)) & (df["away_team"].map(team_match_key) == team_match_key(home)))
+        if not mask.any():
+            continue
+        idx = df[mask].index[0]
+        event_id = clean_text(event.get("id"))
+        status = event.get("status") or comp.get("status") or {}
+        df.at[idx, "status"] = normalize_espn_status(comp, status)
+        df.at[idx, "elapsed"] = clean_text(status.get("displayClock") or status.get("type", {}).get("shortDetail") or status.get("type", {}).get("detail"))
+        if teams["home"].get("score") is not None:
+            df.at[idx, "home_score"] = teams["home"].get("score") if team_match_key(df.at[idx, "home_team"]) == team_match_key(home) else teams["away"].get("score")
+            df.at[idx, "away_score"] = teams["away"].get("score") if team_match_key(df.at[idx, "away_team"]) == team_match_key(away) else teams["home"].get("score")
+        raw = df.at[idx, "raw"] if isinstance(df.at[idx, "raw"], dict) else {}
+        raw.setdefault("sources", {})["live_overlay"] = "ESPN"
+        raw["espn_event_id"] = event_id
+        raw["espn_scoreboard"] = event
+        try:
+            summary = fetch_public_json(ESPN_SUMMARY_URL, {"event": event_id}) if event_id else {}
+            raw["espn_summary"] = summary
+            raw.setdefault("events", []).extend(espn_events_from_summary(summary, home, away))
+            raw["stats"] = {**raw.get("stats", {}), **espn_stats_from_summary(summary)}
+            raw["lineups"] = lineups_from_espn_summary(summary) or raw.get("lineups", {})
+        except Exception as exc:
+            raw["espn_summary_error"] = str(exc)
+        df.at[idx, "raw"] = raw
+        event_count += 1
+    df["score"] = df.apply(lambda r: "TBD" if pd.isna(r.get("home_score")) or pd.isna(r.get("away_score")) else f"{int(r['home_score'])}-{int(r['away_score'])}", axis=1)
+    df["winner"] = df.apply(match_winner, axis=1)
+    return df, f"ESPN scoreboard/summary ({event_count} matched)"
+
+
+def apply_thesportsdb_enrichment(matches: pd.DataFrame, teams: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, str]:
+    try:
+        season = fetch_public_json(f"{THESPORTSDB_API_BASE}/eventsseason.php", {"id": THESPORTSDB_LEAGUE_ID, "s": THESPORTSDB_SEASON})
+        today = fetch_public_json(f"{THESPORTSDB_API_BASE}/eventsday.php", {"d": date.today().isoformat(), "l": "FIFA World Cup"})
+    except Exception as exc:
+        return matches, teams, f"TheSportsDB unavailable ({exc})"
+    events = (season.get("events") or []) + (today.get("events") or [])
+    df = matches.copy()
+    tdf = teams.copy()
+    matched = 0
+    for ev in events:
+        home = canonical_team_name(ev.get("strHomeTeam")); away = canonical_team_name(ev.get("strAwayTeam"))
+        if not home or not away:
+            continue
+        mask = ((df["home_team"].map(team_match_key) == team_match_key(home)) & (df["away_team"].map(team_match_key) == team_match_key(away)))
+        if not mask.any():
+            continue
+        idx = df[mask].index[0]
+        raw = df.at[idx, "raw"] if isinstance(df.at[idx, "raw"], dict) else {}
+        raw.setdefault("sources", {})["enrichment"] = "TheSportsDB"
+        raw["thesportsdb_event"] = ev
+        for side, key in [("home", "strHomeGoalDetails"), ("away", "strAwayGoalDetails")]:
+            if clean_text(ev.get(key)):
+                df.at[idx, f"{side}_scorers"] = clean_text(ev.get(key)).replace(";", ", ")
+        if clean_text(ev.get("idEvent")):
+            try:
+                timeline = fetch_public_json(f"{THESPORTSDB_API_BASE}/lookuptimeline.php", {"id": ev.get("idEvent")})
+                raw.setdefault("events", []).extend([{**x, "source": "TheSportsDB"} for x in (timeline.get("timeline") or []) if isinstance(x, dict)])
+            except Exception as exc:
+                raw["thesportsdb_timeline_error"] = str(exc)
+        df.at[idx, "raw"] = raw
+        matched += 1
+        for team_name, badge_key in [(home, "strHomeTeamBadge"), (away, "strAwayTeamBadge")]:
+            if not tdf.empty and team_match_key(team_name) in set(tdf["team"].map(team_match_key)) and clean_text(ev.get(badge_key)):
+                tdf.loc[tdf["team"].map(team_match_key) == team_match_key(team_name), "flag"] = ev.get(badge_key)
+    return df, tdf, f"TheSportsDB eventsday/lookuptimeline/eventsseason ({matched} enriched)"
+
+
+def build_normalized_secondary_frames(matches: pd.DataFrame, teams: pd.DataFrame, standings: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    players_df = extract_player_stats(matches)
+    event_rows, stat_rows, prob_rows = [], [], []
+    for _, row in matches.iterrows():
+        home, away = clean_text(row.get("home_team")), clean_text(row.get("away_team"))
+        hp, ap = matchup_probabilities(home, away, row)
+        prob_rows.append({"match_id": row.get("match_id"), "home_team": home, "away_team": away, "home_win_probability": hp, "away_win_probability": ap, "source": "API or fallback model"})
+        for ev in scorer_events(row) + cards_from_raw(row) + substitutions_from_raw(row):
+            event_rows.append({"match_id": row.get("match_id"), "home_team": home, "away_team": away, **ev})
+        for label, hv, av in match_stat_rows(row):
+            stat_rows.append({"match_id": row.get("match_id"), "stat": label, "home": hv, "away": av, "source": "ESPN/TheSportsDB/local"})
+    return players_df, pd.DataFrame(event_rows), pd.DataFrame(stat_rows), pd.DataFrame(prob_rows)
 
 
 def clean_player_name(name: str) -> str:
@@ -2330,15 +2556,22 @@ def main() -> None:
     st.sidebar.title("⚽ Controls")
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
-    source_mode = st.sidebar.radio("Data mode", ["OpenFootball", "Live API", "Demo fallback"], help="OpenFootball is the default public JSON feed. Live API can add live minutes when available. Demo fallback is local sample data.")
+    source_mode = st.sidebar.radio("Data mode", ["OpenFootball + ESPN + TheSportsDB", "OpenFootball", "Live API", "Demo fallback"], help="Default uses OpenFootball fixtures with ESPN live overlay and TheSportsDB enrichment. Live API keeps worldcup26.ir as a fallback source.")
     if st.sidebar.button("Refresh now", help="Fetch fresh data with a Streamlit rerun."):
         st.cache_data.clear()
         st.rerun()
 
-    if source_mode == "OpenFootball":
+    if source_mode == "OpenFootball + ESPN + TheSportsDB":
         matches, teams, groups, stadiums, source = load_openfootball_data()
+        matches, espn_source = apply_espn_overlay(matches)
+        matches, teams, tdb_source = apply_thesportsdb_enrichment(matches, teams)
+        source = source_labels_text(f"Base data: OpenFootball | Live overlay: {espn_source} | Enrichment: {tdb_source}")
+    elif source_mode == "OpenFootball":
+        matches, teams, groups, stadiums, source = load_openfootball_data()
+        source = "Base data: OpenFootball"
     elif source_mode == "Live API":
         matches, teams, groups, stadiums, source = load_live_data(api_base, token)
+        source = f"{source} (worldcup26.ir fallback)"
     else:
         matches, teams, groups, stadiums, source = load_fallback()
 
@@ -2347,7 +2580,16 @@ def main() -> None:
     TEAM_FLAG_MAP = build_flag_map(teams)
     calc_table = calculate_standings_from_matches(matches, teams)
     standings = calc_table if not calc_table.empty else groups
-    html_payload = component_payload(matches, teams, standings)
+    matches_df = matches
+    teams_df = teams
+    standings_df = standings
+    players_df, events_df, match_stats_df, probabilities_df = build_normalized_secondary_frames(matches_df, teams_df, standings_df)
+    st.session_state["normalized_dataframes"] = {
+        "matches_df": matches_df, "teams_df": teams_df, "standings_df": standings_df,
+        "players_df": players_df, "events_df": events_df,
+        "match_stats_df": match_stats_df, "probabilities_df": probabilities_df,
+    }
+    html_payload = component_payload(matches_df, teams_df, standings_df)
 
     all_teams = sorted(set(matches["home_team"].dropna()) | set(matches["away_team"].dropna())) if not matches.empty else []
     if all_teams:
@@ -2360,7 +2602,7 @@ def main() -> None:
 
 
     # Global tournament banner: keep identity above the navigation tabs on every page.
-    render_hero(matches, source)
+    render_hero(matches_df, source)
     inject_live_clock_script()
     components.html(
         """
