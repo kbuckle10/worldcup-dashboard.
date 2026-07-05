@@ -273,6 +273,28 @@ st.markdown(
       .wc-basics-icon {width:44px; height:44px; border-radius:15px; display:flex; align-items:center; justify-content:center; font-size:1.45rem; background:rgba(56,189,248,.14); margin-bottom:10px;}
       .wc-basics-card b {color:#fff;}
       .wc-basics-card p {color:var(--wc-muted); margin:.35rem 0 0; font-size:.92rem;}
+
+      .wc-match-hub-intro {display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 12px;}
+      .wc-match-filter-row {display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 16px;}
+      .wc-match-filter-pill {border:1px solid rgba(148,163,184,.46);border-radius:999px;padding:7px 13px;background:rgba(15,31,53,.78);color:#cbd5e1!important;font-weight:950;font-size:.82rem;text-decoration:none;}
+      .wc-match-filter-pill.active {border-color:#ef4444;background:linear-gradient(90deg,rgba(239,68,68,.22),rgba(56,189,248,.14));color:#fff!important;box-shadow:0 0 18px rgba(239,68,68,.16);}
+      .wc-match-group-title {margin:18px 0 8px;color:#fff;font-size:1rem;font-weight:950;letter-spacing:.02em;display:flex;align-items:center;gap:9px;}
+      .wc-match-group-title::before {content:"";width:8px;height:8px;border-radius:50%;background:#f7c948;box-shadow:0 0 14px rgba(247,201,72,.5);}
+      .wc-hub-card {border:1px solid var(--wc-border);border-radius:14px;background:linear-gradient(180deg,rgba(15,31,53,.90),rgba(8,20,36,.94));padding:10px 12px;margin-bottom:8px;box-shadow:0 12px 30px rgba(0,0,0,.18);}
+      .wc-hub-card.winner-home .wc-hub-team.home .team-name,.wc-hub-card.winner-away .wc-hub-team.away .team-name {color:#bbf7d0!important;}
+      .wc-hub-row {display:grid;grid-template-columns:minmax(0,1fr) minmax(58px,auto) minmax(0,1fr) auto;gap:12px;align-items:center;}
+      .wc-hub-team {min-width:0;font-weight:950;}
+      .wc-hub-team.away {text-align:right;}
+      .wc-hub-team.away .team-chip {justify-content:flex-end;}
+      .wc-hub-vs,.wc-hub-score {text-align:center;color:#fff;font-weight:950;font-variant-numeric:tabular-nums;white-space:nowrap;}
+      .wc-hub-score {font-size:1.45rem;min-width:58px;}
+      .wc-hub-time {color:#cbd5e1;font-size:.82rem;font-weight:900;white-space:nowrap;text-align:right;}
+      .wc-hub-note {color:#a8b3c7;font-size:.80rem;margin-top:5px;text-align:center;}
+      .wc-source-badge {display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid rgba(45,212,191,.34);background:rgba(45,212,191,.10);color:#ccfbf1;font-size:.76rem;font-weight:900;padding:4px 9px;}
+      .wc-live-card .wc-live-score {min-width:100px;text-align:center;}
+      .wc-live-card .wc-live-meta {font-size:.84rem;}
+      .wc-live-card .wc-live-team .team-code,.wc-hub-card .team-code {color:#f7c948;}
+      @media (max-width: 720px) {.wc-hub-row{grid-template-columns:1fr auto 1fr}.wc-hub-time{grid-column:1/-1;text-align:center}.wc-live-card .wc-live-teams{grid-template-columns:1fr auto 1fr;gap:8px}.wc-live-score{font-size:2rem!important;}}
       div[data-testid="stMetricValue"] {font-size: 1.65rem;}
       div[data-testid="stDataFrame"] {border-radius: 16px; overflow: hidden;}
 
@@ -684,6 +706,49 @@ FIFA_2026_EMBLEM_URL = "https://commons.wikimedia.org/wiki/Special:Redirect/file
 def trophy_image_html(class_name: str = "wc-trophy-img") -> str:
     return f'<img class="{class_name}" src="{FIFA_2026_EMBLEM_URL}" alt="FIFA World Cup 2026 emblem" loading="lazy">'
 
+
+
+def kickoff_time_only(row: pd.Series) -> str:
+    dt = row.get("date_time")
+    if isinstance(dt, datetime):
+        return dt.strftime("%-I:%M %p")
+    kickoff = clean_text(row.get("kickoff"), "TBD")
+    match = re.search(r"(\d{1,2}:\d{2}\s*(?:AM|PM)?)", kickoff, flags=re.I)
+    return match.group(1).upper() if match else kickoff
+
+
+def match_date_header(value: Any, today: Optional[date] = None) -> str:
+    today = today or date.today()
+    if isinstance(value, datetime):
+        d = value.date()
+        if d == today:
+            return "Today"
+        from datetime import timedelta
+        if d == today + timedelta(days=1):
+            return "Tomorrow"
+        return value.strftime("%b %-d, %Y")
+    return "Date TBD"
+
+
+def extra_time_penalty_note(row: pd.Series) -> str:
+    raw = row.get("raw") if isinstance(row.get("raw"), dict) else {}
+    bits = []
+    if clean_text(raw.get("extra_time") or raw.get("extraTime") or raw.get("status_short")).lower() in {"et", "aet", "extra time", "after extra time"}:
+        bits.append("AET")
+    hp = to_int(raw.get("home_penalties") or raw.get("homePenalty") or raw.get("penalty_home"), None)
+    ap = to_int(raw.get("away_penalties") or raw.get("awayPenalty") or raw.get("penalty_away"), None)
+    if hp is not None and ap is not None:
+        bits.append(f"Pens {hp}-{ap}")
+    return " • ".join(bits)
+
+
+def source_quality_badge(row: pd.Series) -> str:
+    raw = row.get("raw") if isinstance(row.get("raw"), dict) else {}
+    source = clean_text(row.get("source") or raw.get("source") or raw.get("provider"), "Live API")
+    event_count = len(event_list_from_raw(row, ["events", "timeline", "goals", "cards", "substitutions"]))
+    stats_count = max(0, len(match_stat_rows(row)) - 1)
+    quality = "rich" if event_count and stats_count else "partial" if event_count or stats_count else "basic"
+    return f'<span class="wc-source-badge">{esc(source)} • {quality}</span>'
 
 def render_hero(matches_df: pd.DataFrame, source: str = "") -> None:
     live_count = int((matches_df["status"] == "Live").sum()) if not matches_df.empty else 0
@@ -1620,6 +1685,8 @@ def match_stat_rows(row: pd.Series) -> List[Tuple[str, int, int]]:
         ("shots_on_target", "Shots on target"),
         ("corners", "Corners"),
         ("fouls", "Fouls"),
+        ("xg", "xG"),
+        ("expected_goals", "xG"),
         ("offside", "Offside"),
         ("yellow_cards", "Yellow cards"),
         ("red_cards", "Red cards"),
@@ -1639,7 +1706,12 @@ def match_stat_rows(row: pd.Series) -> List[Tuple[str, int, int]]:
     hscore = 0 if pd.isna(row.get("home_score")) else int(row.get("home_score"))
     ascore = 0 if pd.isna(row.get("away_score")) else int(row.get("away_score"))
     stats: List[Tuple[str, int, int]] = [("Goals", hscore, ascore)]
-    stats.extend((label, *found.get(label, (0, 0))) for _, label in wanted)
+    seen = {"Goals"}
+    for _, label in wanted:
+        if label in seen:
+            continue
+        stats.append((label, *found.get(label, (0, 0))))
+        seen.add(label)
     return stats
 
 
@@ -1697,10 +1769,13 @@ def cards_from_raw(row: pd.Series) -> List[Dict[str, Any]]:
         label = clean_text(item.get("type") or item.get("event") or item.get("card"))
         if not re.search(r"card|yellow|red", label, flags=re.I):
             continue
+        player = clean_player_name(item.get("player") or item.get("player_name") or item.get("name"), teams=[row.get("home_team"), row.get("away_team")])
+        if not player:
+            continue
         cards.append({
             "minute": clean_text(item.get("minute") or item.get("time") or item.get("elapsed"), "—"),
             "team": clean_text(item.get("team") or item.get("team_name") or item.get("country")),
-            "player": clean_text(item.get("player") or item.get("player_name") or item.get("name"), "Unknown player"),
+            "player": player,
             "card": label.title() if label else "Card",
         })
     return cards
@@ -1712,8 +1787,8 @@ def substitutions_from_raw(row: pd.Series) -> List[Dict[str, Any]]:
         label = clean_text(item.get("type") or item.get("event"))
         if label and not re.search(r"sub", label, flags=re.I):
             continue
-        player_in = clean_text(item.get("player_in") or item.get("in") or item.get("playerIn") or item.get("player"))
-        player_out = clean_text(item.get("player_out") or item.get("out") or item.get("playerOut") or item.get("assist"))
+        player_in = clean_player_name(item.get("player_in") or item.get("in") or item.get("playerIn") or item.get("player"), teams=[row.get("home_team"), row.get("away_team")])
+        player_out = clean_player_name(item.get("player_out") or item.get("out") or item.get("playerOut") or item.get("assist"), teams=[row.get("home_team"), row.get("away_team")])
         if not player_in and not player_out:
             continue
         subs.append({
@@ -1933,6 +2008,9 @@ def render_live_score_card(row: pd.Series, key_prefix: str = "live", standings_d
     minute = live_minute(row) or ("FT" if row.get("status") == "Finished" else clean_text(row.get("kickoff", "TBD")))
     progress = timeline_percent(row) if row.get("status") == "Live" else (100 if row.get("status") == "Finished" else 0)
     home_prob, away_prob = matchup_probabilities(home, away, row)
+    events = scorer_events(row)
+    latest = events[-1] if events else {}
+    latest_html = f'<div class="wc-hub-note">Latest: {esc(latest.get("label"))} {esc(latest.get("player"))} ({esc(latest.get("team"))})</div>' if latest else '<div class="wc-hub-note">Latest event appears here as soon as the live feed supplies it.</div>'
     events_html = event_timeline_html(row) if row.get("status") == "Live" else ""
     prob_html = probability_row_html(home, away, home_prob, away_prob)
     match_key = clean_text(row.get("match_id")) or str(abs(hash(str(row.to_dict()))))
@@ -1940,8 +2018,8 @@ def render_live_score_card(row: pd.Series, key_prefix: str = "live", standings_d
     if detail_key not in st.session_state:
         st.session_state[detail_key] = row.get("status") == "Live"
 
-    st.markdown(f'''<div class="wc-live-card"><div class="wc-live-meta"><span>{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span></span><span class="wc-live-clock">{client_live_clock_html(row, minute)}</span></div><div class="wc-live-teams"><div class="wc-live-team">{team_chip(home)}<div class="subtle">{esc(team_context_line(home, standings_df))}</div></div><div class="wc-live-score">{esc(score)}</div><div class="wc-live-team">{team_chip(away)}<div class="subtle">{esc(team_context_line(away, standings_df))}</div></div></div><div class="subtle" style="text-align:center;margin-top:8px;">{esc(row.get('kickoff','TBD'))}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div><div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div>{prob_html}{events_html}<div class="wc-click-hint">Use the match tile control below to expand/collapse timeline, stats and source data</div></div>''', unsafe_allow_html=True)
-    if st.button(f"{'Hide' if st.session_state[detail_key] else 'Show'} details: {home} vs {away}", key=f"{key_prefix}_{match_key}_tile_toggle", use_container_width=True):
+    st.markdown(f'''<div class="wc-live-card"><div class="wc-live-meta"><span>{status_badge(row.get('status', 'Scheduled'))}<span class="tag">{esc(row.get('stage_label',''))}</span><span class="tag">KO {esc(kickoff_time_only(row))}</span></span><span class="wc-live-clock">{client_live_clock_html(row, minute)}</span></div><div class="wc-live-teams"><div class="wc-live-team">{team_chip(home)}<div class="subtle">{esc(team_context_line(home, standings_df))}</div></div><div class="wc-live-score">{esc(score)}</div><div class="wc-live-team">{team_chip(away)}<div class="subtle">{esc(team_context_line(away, standings_df))}</div></div></div><div class="subtle" style="text-align:center;margin-top:8px;">{source_quality_badge(row)}{' • ' + esc(clean_text(row.get('venue'))) if clean_text(row.get('venue')) else ''}</div><div class="wc-timeline"><div class="wc-timeline-fill" style="width:{progress}%;"></div></div>{prob_html}{latest_html}{events_html}<div class="wc-click-hint">Open Match Centre for timeline, stats, goals, cards, substitutions and source quality</div></div>''', unsafe_allow_html=True)
+    if st.button(f"{'Close' if st.session_state[detail_key] else 'Open'} Match Centre: {home} vs {away}", key=f"{key_prefix}_{match_key}_tile_toggle", use_container_width=True):
         st.session_state[detail_key] = not st.session_state[detail_key]
     if standings_df is not None:
         st.markdown('<div class="wc-inline-actions">', unsafe_allow_html=True)
@@ -2800,66 +2878,132 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     render_overview_summary_cards(matches_df)
 
 
+
+def render_upcoming_hub_card(row: pd.Series) -> None:
+    home = clean_text(row.get("home_team", "TBD"), "TBD")
+    away = clean_text(row.get("away_team", "TBD"), "TBD")
+    st.markdown(f"""<div class="wc-hub-card scheduled"><div class="wc-hub-row">
+      <div class="wc-hub-team home">{team_chip(home)}</div>
+      <div class="wc-hub-vs">vs</div>
+      <div class="wc-hub-team away">{team_chip(away)}</div>
+      <div class="wc-hub-time">{esc(kickoff_time_only(row))}</div>
+    </div></div>""", unsafe_allow_html=True)
+
+
+def render_finished_hub_card(row: pd.Series) -> None:
+    home = clean_text(row.get("home_team", "TBD"), "TBD")
+    away = clean_text(row.get("away_team", "TBD"), "TBD")
+    winner = clean_text(row.get("winner"))
+    winner_cls = "winner-home" if winner == home else "winner-away" if winner == away else ""
+    note = extra_time_penalty_note(row)
+    note_html = f'<div class="wc-hub-note">{esc(note)}</div>' if note else ""
+    st.markdown(f"""<div class="wc-hub-card finished {winner_cls}"><div class="wc-hub-row">
+      <div class="wc-hub-team home">{team_chip(home)}</div>
+      <div class="wc-hub-score">{esc(scoreline_label(row))}</div>
+      <div class="wc-hub-team away">{team_chip(away)}</div>
+      <div class="wc-hub-time">FT</div>
+    </div>{note_html}</div>""", unsafe_allow_html=True)
+
+
+def render_match_group(label: str, rows: pd.DataFrame, standings_df: Optional[pd.DataFrame] = None) -> None:
+    if rows.empty:
+        return
+    st.markdown(f'<div class="wc-match-group-title">{esc(label)}</div>', unsafe_allow_html=True)
+    for idx, (_, row) in enumerate(rows.iterrows()):
+        status = clean_text(row.get("status"))
+        if status == "Live":
+            render_live_score_card(row, key_prefix=f"hub_{label}_{idx}", standings_df=standings_df)
+        elif status == "Finished":
+            render_finished_hub_card(row)
+        else:
+            render_upcoming_hub_card(row)
+
 def render_matches_tab(matches_df: pd.DataFrame, standings_df: Optional[pd.DataFrame] = None) -> None:
     st.markdown('<div class="wc-section-title">Upcoming & Live</div>', unsafe_allow_html=True)
-    st.markdown(
-        "Every live match is pinned at the top. Click a match tile control for the live clock, timeline, scorers, comparison bars and source stats."
-    )
+    st.markdown('<div class="wc-match-hub-intro"><div>Live matches are pinned first, followed by Today, Tomorrow and Upcoming fixtures in compact match-hub cards.</div><div class="wc-refresh-pill">Auto-refreshes every 60s</div></div>', unsafe_allow_html=True)
 
     if matches_df.empty:
         st.info("No match data loaded.")
         return
 
-    live = matches_df[matches_df["status"] == "Live"].sort_values("date_time", na_position="last")
-    scheduled = matches_df[matches_df["status"] == "Scheduled"].sort_values("date_time", na_position="last")
-    finished = matches_df[matches_df["status"] == "Finished"].sort_values("date_time", ascending=False, na_position="last")
-
-    if not live.empty:
-        st.markdown(f'<div class="wc-section-kicker">🔴 Live now • {len(live)} match(es)</div>', unsafe_allow_html=True)
-        for idx, (_, row) in enumerate(live.iterrows()):
-            st.markdown('<div class="wc-live-priority">', unsafe_allow_html=True)
-            render_live_score_card(row, key_prefix=f"live_pinned_{idx}", standings_df=standings_df)
-            st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="wc-section-kicker">No live match right now</div>', unsafe_allow_html=True)
+    filter_options = ["All", "Live", "Today", "Knockout", "Group Stage", "Finished", "My Team"]
+    selected_filter = clean_text(st.query_params.get("match_filter", "All"), "All")
+    if selected_filter not in filter_options:
+        selected_filter = "All"
+    st.markdown(
+        '<div class="wc-match-filter-row">' + ''.join(
+            f'<a class="wc-match-filter-pill {"active" if option == selected_filter else ""}" href="{app_link("Upcoming & Live", match_filter=option)}" target="_self">{esc(option)}</a>'
+            for option in filter_options
+        ) + '</div>',
+        unsafe_allow_html=True,
+    )
 
     teams = sorted(set(matches_df["home_team"].dropna()) | set(matches_df["away_team"].dropna()))
-    stages = [s for s in matches_df["stage_label"].dropna().unique()]
-    c1, c2, c3, c4 = st.columns([1, 1, 1, 1.4])
-    with c1:
-        team = st.selectbox("Team", ["All"] + teams)
-    with c2:
-        ordered_stages = sorted(stages, key=lambda x: list(STAGE_LABELS.values()).index(x) if x in STAGE_LABELS.values() else 99)
-        current_stage_label = current_stage_label_for_filter(matches_df)
-        stage_options = ["All"] + ordered_stages
-        default_stage_index = stage_options.index(current_stage_label) if current_stage_label in stage_options else 0
-        stage = st.selectbox("Stage", stage_options, index=default_stage_index)
-    with c3:
-        status = st.selectbox("Status", ["All", "Live", "Scheduled", "Finished"], index=0)
-    with c4:
-        text = st.text_input("Search", placeholder="e.g. Argentina, Final, Brazil")
+    favorite = clean_text(st.session_state.get("favorite_team_quick_filter"), "None")
+    if selected_filter == "My Team" and favorite in {"", "None"}:
+        favorite = st.selectbox("Choose My Team", ["None"] + teams, key="match_hub_my_team")
 
-    filtered = filter_matches(matches_df, team, stage, status, text)
-    if status == "All":
-        filtered = filtered[filtered["status"].isin(["Live", "Scheduled"])]
+    text = st.text_input("Search matches", placeholder="Team, stage or venue", label_visibility="collapsed")
+    hub = matches_df.copy()
+    if text:
+        pattern = re.escape(text.strip())
+        hub = hub[
+            hub["home_team"].str.contains(pattern, case=False, na=False)
+            | hub["away_team"].str.contains(pattern, case=False, na=False)
+            | hub["stage_label"].str.contains(pattern, case=False, na=False)
+            | hub.get("venue", pd.Series("", index=hub.index)).astype(str).str.contains(pattern, case=False, na=False)
+        ]
 
-    # Show live first, then upcoming; finished matches only appear when explicitly requested.
-    status_rank = {"Live": 0, "Scheduled": 1, "Finished": 2}
-    filtered = filtered.copy()
-    filtered["_status_rank"] = filtered["status"].map(status_rank).fillna(9)
-    filtered = filtered.sort_values(["_status_rank", "date_time"], ascending=[True, True], na_position="last")
+    today = date.today()
+    dated = hub[hub["date_time"].apply(lambda value: isinstance(value, datetime))].copy()
+    undated = hub[~hub["date_time"].apply(lambda value: isinstance(value, datetime))].copy()
+    if not dated.empty:
+        dated["match_date"] = dated["date_time"].dt.date
+    else:
+        dated["match_date"] = pd.Series(dtype=object)
 
-    st.caption(f"Showing {len(filtered)} of {len(matches_df)} matches")
-    view_cols = ["kickoff", "stage_label", "status", "home_team", "score", "away_team", "winner", "venue"]
-    available = [c for c in view_cols if c in filtered.columns]
-    table_view = filtered[available].rename(columns={"kickoff": "Kickoff", "stage_label": "Stage", "status": "Status", "home_team": "Home", "away_team": "Away", "score": "Score", "winner": "Winner", "venue": "Venue"})
-    st.dataframe(table_view, use_container_width=True, hide_index=True)
+    if selected_filter == "Live":
+        hub = hub[hub["status"] == "Live"]
+    elif selected_filter == "Today":
+        hub = dated[dated["match_date"] == today]
+    elif selected_filter == "Knockout":
+        hub = hub[hub["stage"] != "group"]
+    elif selected_filter == "Group Stage":
+        hub = hub[hub["stage"] == "group"]
+    elif selected_filter == "Finished":
+        hub = hub[hub["status"] == "Finished"]
+    elif selected_filter == "My Team":
+        if favorite and favorite != "None":
+            hub = hub[(hub["home_team"] == favorite) | (hub["away_team"] == favorite)]
+        else:
+            st.info("Pick a favorite team in the sidebar or choose one above to use My Team.")
+            hub = hub.iloc[0:0]
 
-    st.write("#### Match centre cards")
-    for idx, (_, row) in enumerate(filtered.drop(columns=["_status_rank"], errors="ignore").head(24).iterrows()):
-        render_live_score_card(row, key_prefix=f"matches_{idx}", standings_df=standings_df)
-    if len(filtered) > 24:
-        st.caption("Showing first 24 cards. Use the filters above to narrow the list.")
+    live = hub[hub["status"] == "Live"].sort_values(["stage_rank", "date_time"], na_position="last")
+    render_match_group(f"Live now • {len(live)} match(es)" if not live.empty else "Live now", live, standings_df)
+    if live.empty:
+        st.markdown('<div class="wc-mini-note">No live match right now.</div>', unsafe_allow_html=True)
+
+    non_live = hub[hub["status"] != "Live"].copy()
+    if non_live.empty:
+        return
+    dated = non_live[non_live["date_time"].apply(lambda value: isinstance(value, datetime))].copy()
+    undated = non_live[~non_live["date_time"].apply(lambda value: isinstance(value, datetime))].copy()
+    if not dated.empty:
+        dated["match_date"] = dated["date_time"].dt.date
+        today_rows = dated[dated["match_date"] == today].sort_values(["status", "date_time"], na_position="last")
+        tomorrow_rows = dated[dated["match_date"] == today + pd.Timedelta(days=1).to_pytimedelta()].sort_values(["status", "date_time"], na_position="last")
+        upcoming_rows = dated[dated["match_date"] > today + pd.Timedelta(days=1).to_pytimedelta()].sort_values(["date_time", "stage_rank"], na_position="last")
+        if selected_filter == "Finished":
+            older_finished = dated[dated["match_date"] < today].sort_values("date_time", ascending=False, na_position="last").head(36)
+            render_match_group("Finished", older_finished, standings_df)
+        else:
+            render_match_group("Today", today_rows, standings_df)
+            render_match_group("Tomorrow", tomorrow_rows, standings_df)
+            for header, rows in upcoming_rows.groupby(upcoming_rows["date_time"].apply(lambda dt: match_date_header(dt, today)), sort=False):
+                render_match_group(header if header not in {"Today", "Tomorrow"} else "Upcoming", rows.head(12), standings_df)
+    if not undated.empty:
+        render_match_group("Upcoming", undated.sort_values(["stage_rank"], na_position="last").head(24), standings_df)
 
 def render_knockout_tab(matches_df: pd.DataFrame, standings_df: Optional[pd.DataFrame] = None) -> None:
     st.header("Knockout bracket explorer")
@@ -3098,7 +3242,7 @@ def main() -> None:
 
     all_teams = sorted(set(matches["home_team"].dropna()) | set(matches["away_team"].dropna())) if not matches.empty else []
     if all_teams:
-        favorite = st.sidebar.selectbox("Favorite team quick filter", ["None"] + all_teams)
+        favorite = st.sidebar.selectbox("Favorite team quick filter", ["None"] + all_teams, key="favorite_team_quick_filter")
         if favorite != "None":
             st.sidebar.write("Next/route")
             fdf = filter_matches(matches, team=favorite).sort_values("date_time", na_position="last")
