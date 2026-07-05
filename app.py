@@ -163,11 +163,13 @@ st.markdown(
         color: var(--wc-text) !important;
       }
       [data-testid="stHeader"], [data-testid="stToolbar"] {background: transparent !important;}
+      .block-container {padding-top: 0.35rem !important;}
+      [data-testid="stAppViewContainer"] .main .block-container {max-width: 100%;}
       [data-testid="stSidebar"] {background: linear-gradient(180deg, #07111f 0%, #0b1728 100%) !important; border-right: 1px solid var(--wc-border);}
       h1, h2, h3, h4, h5, h6, p, span, label, div {color: inherit;}
       .main-title {font-size: 2.4rem; font-weight: 900; margin-bottom: 0.2rem; color: var(--wc-text); letter-spacing: -0.04em;}
       .subtle {color: var(--wc-muted) !important; font-size: 0.95rem;}
-      .wc-hero {position: relative; overflow: hidden; border: 1px solid rgba(247, 201, 72, 0.38); border-radius: 22px; padding: 12px 20px; margin: 0 0 12px 0; background: linear-gradient(120deg, rgba(2, 6, 23, .95), rgba(11, 42, 70, .92)), radial-gradient(circle at 12% 20%, rgba(247, 201, 72, .23), transparent 16rem), radial-gradient(circle at 85% 45%, rgba(34, 197, 94, .18), transparent 20rem); box-shadow: 0 22px 55px rgba(0, 0, 0, 0.35);}
+      .wc-hero {position: relative; overflow: hidden; border: 1px solid rgba(247, 201, 72, 0.38); border-radius: 22px; padding: 12px 20px; margin: -0.2rem 0 10px 0; background: linear-gradient(120deg, rgba(2, 6, 23, .95), rgba(11, 42, 70, .92)), radial-gradient(circle at 12% 20%, rgba(247, 201, 72, .23), transparent 16rem), radial-gradient(circle at 85% 45%, rgba(34, 197, 94, .18), transparent 20rem); box-shadow: 0 22px 55px rgba(0, 0, 0, 0.35);}
       .wc-hero::after {content: ""; position: absolute; inset: 0; background-image: linear-gradient(120deg, transparent 0%, transparent 60%, rgba(255,255,255,.06) 60%, transparent 78%), repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 90px); pointer-events: none;}
       .wc-hero-inner {position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 20px;}
       .wc-hero-kicker {color: var(--wc-gold); font-weight: 800; text-transform: uppercase; letter-spacing: .16em; font-size: .70rem;}
@@ -271,7 +273,7 @@ st.markdown(
       .wc-player-photo {width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,.22); box-shadow:0 0 0 3px rgba(56,189,248,.08); vertical-align:middle; margin-right:10px;}
       .wc-player-avatar {width:34px; height:34px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; margin-right:10px; background:linear-gradient(135deg,#1d4ed8,#111827); border:1px solid rgba(255,255,255,.18); color:#fff; font-weight:950; vertical-align:middle;}
       .wc-player-name {display:inline-flex; align-items:center; font-weight:900; color:#fff;}
-      .wc-cup-final {display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:250px; border:1px solid rgba(247,201,72,.45); border-radius:28px; background:radial-gradient(circle at 50% 35%, rgba(247,201,72,.20), transparent 7rem), rgba(15,23,42,.72); text-align:center; box-shadow:0 18px 70px rgba(0,0,0,.35);}
+      .wc-cup-final {display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:250px; border:1px solid rgba(247,201,72,.45); border-radius:28px; background:radial-gradient(circle at 50% 35%, rgba(247,201,72,.20), transparent 7rem), rgba(15,23,42,.72); text-align:center; box-shadow:0 18px 70px rgba(0,0,0,.35); animation:championGlow 2.4s ease-in-out infinite;}
       .wc-cup-icon {filter:drop-shadow(0 12px 28px rgba(247,201,72,.35));}
       .wc-cup-trophy-img {width:88px; height:142px; object-fit:contain;}
       .wc-format-line {display:inline-flex; align-items:center; gap:8px; margin-top:8px; padding:7px 12px; border-radius:999px; background:linear-gradient(90deg, rgba(247,201,72,.20), rgba(56,189,248,.13)); border:1px solid rgba(247,201,72,.30); color:#fff; font-weight:950; letter-spacing:.02em;}
@@ -294,7 +296,7 @@ st.markdown(
 
 
       @keyframes riseIn {from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)}}
-      @keyframes routePulse {0%,100%{filter:drop-shadow(0 0 0 rgba(247,201,72,0)); opacity:.62} 50%{filter:drop-shadow(0 0 10px rgba(247,201,72,.55)); opacity:1}}
+      @keyframes championGlow {0%,100%{box-shadow:0 18px 70px rgba(0,0,0,.35), 0 0 0 rgba(247,201,72,0); border-color:rgba(247,201,72,.45)} 50%{box-shadow:0 18px 70px rgba(0,0,0,.35), 0 0 26px rgba(247,201,72,.42); border-color:rgba(247,201,72,.88)}}
       .match-card,.wc-live-card,.wc-stat-card,.wc-summary-card,.wc-story,.wc-team-profile,.wc-player-card {animation:riseIn .36s ease both; transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;}
       .match-card:hover,.wc-live-card:hover,.wc-summary-card:hover,.wc-player-card:hover {transform:translateY(-2px); border-color:rgba(247,201,72,.46); box-shadow:0 18px 50px rgba(0,0,0,.30);}
       .wc-live-meta{display:flex;justify-content:space-between;align-items:center;gap:12px}.wc-live-clock{font-weight:950;color:#f7c948;border:1px solid rgba(247,201,72,.32);border-radius:999px;padding:5px 10px;background:rgba(247,201,72,.10)}
@@ -303,7 +305,7 @@ st.markdown(
       .wc-inline-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:-4px 0 12px;}
       .wc-timeline-strip{height:18px;margin:18px 8px 10px;position:relative;border-radius:999px;background:linear-gradient(90deg,rgba(34,197,94,.25),rgba(247,201,72,.25),rgba(56,189,248,.25))}.wc-timeline-dot{position:absolute;top:50%;width:13px;height:13px;transform:translate(-50%,-50%);border-radius:50%;background:#22c55e;border:2px solid #fff;box-shadow:0 0 18px rgba(34,197,94,.5)}.wc-timeline-dot.away{background:#38bdf8}.wc-match-events{display:grid;grid-template-columns:1fr 54px 1fr;gap:8px;align-items:center}.wc-event-left{text-align:right}.wc-event-right{text-align:left}.wc-event-time{text-align:center;color:#f7c948;font-weight:950}
       .wc-stat-row{display:grid;grid-template-columns:1fr 150px 1fr;gap:12px;align-items:center;margin:10px 0}.wc-stat-bar{height:9px;border-radius:999px;background:rgba(148,163,184,.18);overflow:hidden}.wc-stat-fill-home,.wc-stat-fill-away{height:100%;border-radius:999px}.wc-stat-fill-home{margin-left:auto;background:linear-gradient(90deg,#22c55e,#f7c948)}.wc-stat-fill-away{background:linear-gradient(90deg,#38bdf8,#818cf8)}
-      .wc-refresh-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(56,189,248,.28);border-radius:999px;padding:5px 10px;background:rgba(56,189,248,.10);font-weight:800;color:#dff6ff}.wc-bracket-board{position:relative}.wc-bracket-board::before{content:"";position:absolute;inset:84px 238px;background:linear-gradient(90deg,transparent 0 8%,rgba(247,201,72,.28) 8% 12%,transparent 12% 88%,rgba(247,201,72,.28) 88% 92%,transparent 92%),linear-gradient(0deg,transparent 0 47%,rgba(247,201,72,.38) 47% 53%,transparent 53%);pointer-events:none;animation:routePulse 2.4s ease-in-out infinite}.wc-bracket-card::before{content:"";position:absolute;top:50%;height:2px;width:18px;background:linear-gradient(90deg,rgba(247,201,72,.15),rgba(247,201,72,.7));animation:routePulse 2.4s ease-in-out infinite}.wc-bracket-side.left .wc-bracket-card::before{right:-18px}.wc-bracket-side.right .wc-bracket-card::before{left:-18px}.wc-route-legend{text-align:center;color:#a8b3c7;margin-top:10px;font-size:.86rem}.wc-team-profile{border:1px solid var(--wc-border);border-radius:24px;padding:18px;background:linear-gradient(135deg,rgba(15,31,53,.94),rgba(8,20,36,.94));}.wc-team-hero{display:flex;gap:14px;align-items:center}.wc-team-flag-xl{font-size:3rem}.wc-form-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.wc-form-badge{height:28px;min-width:28px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:950;background:rgba(148,163,184,.18)}.wc-form-badge.win{background:rgba(34,197,94,.22);color:#bbf7d0}.wc-form-badge.loss{background:rgba(239,68,68,.18);color:#fecaca}.wc-form-badge.draw{background:rgba(247,201,72,.18);color:#fde68a}.wc-player-grid{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}.wc-player-card{border:1px solid var(--wc-border);border-radius:18px;padding:14px;background:rgba(15,31,53,.82)}.wc-player-card-top{display:flex;gap:12px;align-items:center}.wc-player-card .wc-player-photo,.wc-player-card .wc-player-avatar{width:54px;height:54px;font-size:1rem}.wc-player-meta{color:#a8b3c7;font-size:.84rem;margin-top:4px}.wc-player-statline{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.wc-player-stat{border-radius:12px;background:rgba(148,163,184,.12);padding:8px;text-align:center}.wc-player-stat b{display:block;color:#fff;font-size:1.1rem}
+      .wc-refresh-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(56,189,248,.28);border-radius:999px;padding:5px 10px;background:rgba(56,189,248,.10);font-weight:800;color:#dff6ff}.wc-bracket-board{position:relative}.wc-bracket-board::before{content:"";position:absolute;inset:84px 238px;background:linear-gradient(90deg,transparent 0 8%,rgba(247,201,72,.72) 8% calc(8% + 2px),transparent calc(8% + 2px) 88%,rgba(247,201,72,.72) 88% calc(88% + 2px),transparent calc(88% + 2px)),linear-gradient(0deg,transparent 0 calc(50% - 1px),rgba(247,201,72,.70) calc(50% - 1px) calc(50% + 1px),transparent calc(50% + 1px));pointer-events:none}.wc-bracket-card::before{content:"";position:absolute;top:50%;height:2px;width:18px;background:rgba(247,201,72,.82)}.wc-bracket-side.left .wc-bracket-card::before{right:-18px}.wc-bracket-side.right .wc-bracket-card::before{left:-18px}.wc-route-legend{text-align:center;color:#a8b3c7;margin-top:10px;font-size:.86rem}.wc-team-profile{border:1px solid var(--wc-border);border-radius:24px;padding:18px;background:linear-gradient(135deg,rgba(15,31,53,.94),rgba(8,20,36,.94));}.wc-team-hero{display:flex;gap:14px;align-items:center}.wc-team-flag-xl{font-size:3rem}.wc-form-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.wc-form-badge{height:28px;min-width:28px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:950;background:rgba(148,163,184,.18)}.wc-form-badge.win{background:rgba(34,197,94,.22);color:#bbf7d0}.wc-form-badge.loss{background:rgba(239,68,68,.18);color:#fecaca}.wc-form-badge.draw{background:rgba(247,201,72,.18);color:#fde68a}.wc-player-grid{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}.wc-player-card{border:1px solid var(--wc-border);border-radius:18px;padding:14px;background:rgba(15,31,53,.82)}.wc-player-card-top{display:flex;gap:12px;align-items:center}.wc-player-card .wc-player-photo,.wc-player-card .wc-player-avatar{width:54px;height:54px;font-size:1rem}.wc-player-meta{color:#a8b3c7;font-size:.84rem;margin-top:4px}.wc-player-statline{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.wc-player-stat{border-radius:12px;background:rgba(148,163,184,.12);padding:8px;text-align:center}.wc-player-stat b{display:block;color:#fff;font-size:1.1rem}
       @media (max-width: 900px) {.wc-stat-row{grid-template-columns:1fr}.wc-centre-score{grid-template-columns:1fr}.wc-player-grid{grid-template-columns:1fr 1fr}.wc-bracket-board{grid-template-columns:1fr;min-width:760px}.wc-bracket-board::before{display:none}}
       @media (max-width: 640px) {.wc-player-grid{grid-template-columns:1fr}.wc-hero-inner{align-items:flex-start}.wc-trophy{display:none}}
 
@@ -715,10 +717,16 @@ def normalize_stadiums(raw: Any) -> pd.DataFrame:
 
 
 def normalize_matches(raw: Any) -> pd.DataFrame:
+    def first_present(item: Dict[str, Any], keys: Iterable[str]) -> Any:
+        for key in keys:
+            if key in item and item.get(key) is not None:
+                return item.get(key)
+        return None
+
     rows: List[Dict[str, Any]] = []
     for item in unwrap(raw, ["games", "matches", "fixtures", "data", "response", "game"]):
-        home_score = to_int(item.get("home_score") or item.get("homeScore") or item.get("home_goals"), None)
-        away_score = to_int(item.get("away_score") or item.get("awayScore") or item.get("away_goals"), None)
+        home_score = to_int(first_present(item, ["home_score", "homeScore", "home_goals"]), None)
+        away_score = to_int(first_present(item, ["away_score", "awayScore", "away_goals"]), None)
         status = normalize_status(item)
         if status == "Scheduled":
             # Avoid showing 0-0 for future fixtures unless API explicitly reports a score.
@@ -1623,46 +1631,102 @@ def render_bracket_wall(knockout: pd.DataFrame) -> None:
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
-    """Load public-domain OpenFootball JSON when available.
+    """Load the GitHub-hosted OpenFootball World Cup 2026 JSON feed."""
+    def team_name(value: Any) -> str:
+        if isinstance(value, dict):
+            return clean_text(value.get("name") or value.get("country") or value.get("code"), "TBD")
+        return clean_text(value, "TBD")
 
-    OpenFootball is excellent for open public-domain match results, but it usually
-    does not provide minute-by-minute live clock, assists, cards, or rich player
-    event data. The app therefore keeps the live API mode for live match minutes.
-    """
+    def team_code_from(value: Any) -> str:
+        if isinstance(value, dict):
+            return clean_text(value.get("code") or value.get("key"))
+        return ""
+
+    def score_value(match: Dict[str, Any], side: str) -> Any:
+        direct = match.get(f"score{side}")
+        if direct is not None:
+            return direct
+        score = match.get("score") or match.get("result") or {}
+        if isinstance(score, dict):
+            if side == "1":
+                for key in ["ft1", "score1", "team1", "home"]:
+                    if key in score and score.get(key) is not None:
+                        return score.get(key)
+            for key in ["ft2", "score2", "team2", "away"]:
+                if key in score and score.get(key) is not None:
+                    return score.get(key)
+        return None
+
     try:
-        raw = requests.get(OPENFOOTBALL_WORLD_CUP_URL, timeout=15).json()
+        resp = requests.get(
+            OPENFOOTBALL_WORLD_CUP_URL,
+            headers={"Accept": "application/json", "User-Agent": "worldcup-dashboard/1.0"},
+            timeout=20,
+        )
+        resp.raise_for_status()
+        raw = resp.json()
+        rounds = raw.get("rounds") if isinstance(raw, dict) else []
+        if not isinstance(rounds, list):
+            raise ValueError("OpenFootball JSON did not include a rounds array.")
+
         games = []
-        for rnd in raw.get("rounds", []):
+        team_groups: Dict[str, str] = {}
+        team_codes: Dict[str, str] = {}
+        stadium_rows: Dict[str, Dict[str, Any]] = {}
+        for rnd in rounds:
+            if not isinstance(rnd, dict):
+                continue
             round_name = clean_text(rnd.get("name"), "Group Stage")
-            for m in rnd.get("matches", []):
-                team1 = m.get("team1") or {}
-                team2 = m.get("team2") or {}
-                if not isinstance(team1, dict):
-                    team1 = {"name": team1}
-                if not isinstance(team2, dict):
-                    team2 = {"name": team2}
-                score1 = m.get("score1")
-                score2 = m.get("score2")
+            matches = rnd.get("matches") or []
+            if not isinstance(matches, list):
+                continue
+            for m in matches:
+                if not isinstance(m, dict):
+                    continue
+                team1_raw = m.get("team1") or m.get("home") or m.get("home_team") or {}
+                team2_raw = m.get("team2") or m.get("away") or m.get("away_team") or {}
+                home = team_name(team1_raw)
+                away = team_name(team2_raw)
+                home_code = team_code_from(team1_raw)
+                away_code = team_code_from(team2_raw)
+                if home != "TBD" and home_code:
+                    team_codes[home] = home_code
+                if away != "TBD" and away_code:
+                    team_codes[away] = away_code
+                group = clean_text(m.get("group") or (round_name.replace("Group ", "") if round_name.startswith("Group ") else ""))
+                if group in GROUPS:
+                    if home != "TBD":
+                        team_groups[home] = group
+                    if away != "TBD":
+                        team_groups[away] = group
                 venue = m.get("stadium") or m.get("venue") or {}
-                if not isinstance(venue, dict):
-                    venue = {"name": venue}
+                if isinstance(venue, dict):
+                    venue_name = clean_text(venue.get("name") or venue.get("stadium"))
+                    city = clean_text(venue.get("city"))
+                else:
+                    venue_name = clean_text(venue)
+                    city = ""
+                if venue_name:
+                    stadium_rows[venue_name] = {"stadium_id": venue_name, "stadium": venue_name, "city": city, "country": "", "capacity": None}
                 games.append({
-                    "id": clean_text(m.get("num") or f"of-{len(games)+1}"),
-                    "date": clean_text(m.get("date")) + (" " + clean_text(m.get("time")) if clean_text(m.get("time")) else ""),
-                    "home_team": clean_text(team1.get("name") or team1.get("code"), "TBD"),
-                    "away_team": clean_text(team2.get("name") or team2.get("code"), "TBD"),
-                    "home_score": score1,
-                    "away_score": score2,
+                    "id": clean_text(m.get("num") or m.get("id") or f"of-{len(games)+1}"),
+                    "date": clean_text(m.get("date") or m.get("datetime") or m.get("kickoff")) + (" " + clean_text(m.get("time")) if clean_text(m.get("time")) else ""),
+                    "home_team": home,
+                    "away_team": away,
+                    "home_score": score_value(m, "1"),
+                    "away_score": score_value(m, "2"),
+                    "group": group,
                     "stage": round_name,
-                    "status": "Finished" if score1 is not None and score2 is not None else "Scheduled",
-                    "stadium_id": clean_text(venue.get("name")),
+                    "status": "Finished" if score_value(m, "1") is not None and score_value(m, "2") is not None else "Scheduled",
+                    "stadium_id": venue_name,
+                    "raw": m,
                 })
         matches = normalize_matches(games)
-        team_names = sorted(set(matches.get("home_team", [])) | set(matches.get("away_team", []))) if not matches.empty else []
-        teams = pd.DataFrame([{"team": t, "code": "", "group": "", "flag": FALLBACK_FLAGS.get(t, "⚽")} for t in team_names])
-        stadiums = pd.DataFrame()
+        team_names = sorted({t for t in (set(matches.get("home_team", [])) | set(matches.get("away_team", []))) if clean_text(t) and clean_text(t) != "TBD"}) if not matches.empty else []
+        teams = pd.DataFrame([{"team": t, "code": team_codes.get(t, ""), "group": team_groups.get(t, ""), "flag": FALLBACK_FLAGS.get(t, "⚽")} for t in team_names])
+        stadiums = pd.DataFrame(stadium_rows.values())
         groups = calculate_standings_from_matches(matches, teams)
-        return matches, teams, groups, stadiums, "OpenFootball public-domain JSON"
+        return matches, teams, groups, stadiums, "OpenFootball GitHub JSON"
     except Exception as exc:
         matches, teams, groups, stadiums, source = load_fallback()
         st.warning("OpenFootball data could not be loaded, so the app is using the demo fallback snapshot. Details: " + str(exc))
@@ -2007,7 +2071,7 @@ def render_knockout_tab(matches_df: pd.DataFrame, standings_df: Optional[pd.Data
         return
     st.write("#### Road to the final")
     render_bracket_wall(knockout)
-    st.markdown('<div class="wc-route-legend">Animated gold routes and connector rails trace each side of the bracket toward the FIFA World Cup Final.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="wc-route-legend">Solid gold connector rails trace each stage from the Round of 32 toward the FIFA World Cup Final.</div>', unsafe_allow_html=True)
     st.write("#### Round-by-round details")
     tabs = st.tabs([STAGE_LABELS[s] for s in STAGE_ORDER if s != "group" and s in set(knockout["stage"])])
     for tab, stage_code in zip(tabs, [s for s in STAGE_ORDER if s != "group" and s in set(knockout["stage"])]):
