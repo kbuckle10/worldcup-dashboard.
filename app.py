@@ -225,6 +225,7 @@ st.markdown(
       .wc-basics-link, .wc-entity-link {color:inherit !important; font-weight:inherit; text-decoration:none;}
       .wc-basics-link {color:#67e8f9 !important; font-weight:900; border-bottom:1px solid rgba(103,232,249,.55);}
       .wc-entity-link:hover, .wc-basics-link:hover {color:#f7c948 !important; border-bottom:1px solid #f7c948;}
+      .wc-overview-grid .wc-entity-link:hover {border-bottom:0;}
       div.stButton > button[kind="secondary"] {border-radius:999px;}
       .wc-live-prob-row {display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; font-weight:900;}
       .wc-prob-side {display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:12px; background:rgba(148,163,184,.12); border:1px solid rgba(148,163,184,.18); color:#f8fafc;}
@@ -250,15 +251,21 @@ st.markdown(
       .wc-rank-row {display:grid; grid-template-columns:28px 1.1fr 2fr 42px; gap:10px; align-items:center; margin:9px 0;}
       .wc-overview-grid {display:grid; grid-template-columns:repeat(3, minmax(220px,1fr)); gap:12px; margin:14px 0; align-items:stretch;}
       .wc-summary-card {border:1px solid var(--wc-border); border-radius:16px; padding:14px; background:rgba(15,31,53,.76); min-height:142px; height:100%; box-sizing:border-box;}
-      .wc-summary-card h4 {margin:0 0 8px; color:#fff; font-size:.98rem;}
-      .wc-summary-card ul {margin:0; padding-left:1.1rem;}
-      .wc-summary-card li {margin:5px 0; color:var(--wc-muted); font-size:.88rem;}
+      .wc-summary-card h4 {margin:0 0 10px; color:#fff; font-size:.98rem;}
+      .wc-summary-list {display:flex; flex-direction:column; gap:8px;}
+      .wc-summary-row {display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; min-height:28px; color:var(--wc-muted); font-size:.88rem;}
+      .wc-summary-main {display:flex; align-items:center; gap:8px; min-width:0;}
+      .wc-summary-main .team-chip {vertical-align:middle;}
+      .wc-summary-name, .wc-summary-country {font-weight:900; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+      .wc-summary-name:hover, .wc-summary-country:hover, .wc-overview-grid .wc-entity-link:hover .team-name {color:var(--wc-green) !important;}
+      .wc-summary-meta {color:var(--wc-muted); white-space:nowrap;}
+      .wc-summary-score {justify-self:end; text-align:right; font-weight:950; color:#fff; white-space:nowrap;}
       .wc-rank-num {background:rgba(247,201,72,.18); color:#f7c948; border-radius:7px; text-align:center; font-weight:900; padding:3px;}
       .wc-bar {height:14px; border-radius:99px; background:rgba(148,163,184,.20); overflow:hidden;}
       .wc-bar-fill {height:100%; border-radius:99px; background:linear-gradient(90deg,#f43f5e,#22d3ee);}
 
       .flag-img {width:28px; height:20px; flex:0 0 28px; display:inline-block; object-fit:cover; border-radius:4px; box-shadow:0 0 0 1px rgba(255,255,255,.22); background:rgba(255,255,255,.08); vertical-align:middle; margin-right:0;}
-      .team-chip {display:inline-flex; align-items:center; gap:7px; min-width:0; max-width:100%; line-height:1.15;}
+      .team-chip {display:inline-flex; align-items:center; gap:7px; min-width:0; max-width:100%; line-height:1.15; vertical-align:middle;}
       .team-chip .team-name {font-weight:900; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
       .team-code {font-size:.68rem; color:#94a3b8; font-weight:900; letter-spacing:.06em; margin-left:3px;}
       .wc-player-photo {width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,.22); box-shadow:0 0 0 3px rgba(56,189,248,.08); vertical-align:middle; margin-right:10px;}
@@ -1020,51 +1027,64 @@ def team_goal_table(matches_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).groupby("team", as_index=False)["goals"].sum().sort_values(["goals", "team"], ascending=[False, True])
 
 
-def biggest_wins(matches_df: pd.DataFrame, limit: int = 3) -> pd.DataFrame:
+def biggest_wins(matches_df: pd.DataFrame, limit: int = 10) -> pd.DataFrame:
     finished = matches_df[matches_df["status"] == "Finished"].copy() if not matches_df.empty else pd.DataFrame()
     if finished.empty:
         return pd.DataFrame()
     finished = finished.dropna(subset=["home_score", "away_score"]).copy()
     if finished.empty:
         return pd.DataFrame()
+    finished["winner_score"] = finished[["home_score", "away_score"]].max(axis=1).astype(int)
     finished["margin"] = (finished["home_score"] - finished["away_score"]).abs().astype(int)
-    finished = finished[finished["margin"] > 0].sort_values(["margin", "total_goals", "date_time"], ascending=[False, False, True])
-    return finished.head(limit)
+    finished = finished[(finished["margin"] > 0) & (finished["winner_score"] >= 5)]
+    return finished.sort_values(["winner_score", "margin", "date_time"], ascending=[False, False, True]).head(limit)
+
+
+def overview_row(main_html: str, score_html: str = "", meta_html: str = "") -> str:
+    meta = f"<span class='wc-summary-meta'>{meta_html}</span>" if meta_html else ""
+    score = f"<span class='wc-summary-score'>{score_html}</span>" if score_html else ""
+    return f"<div class='wc-summary-row'><div class='wc-summary-main'>{main_html}{meta}</div>{score}</div>"
 
 
 def render_overview_summary_cards(matches_df: pd.DataFrame) -> None:
     players = extract_player_stats(matches_df)
+    top_scorers = players[players["G"] >= 4].head(10) if not players.empty else pd.DataFrame()
     team_goals = team_goal_table(matches_df).head(10)
-    high_scores = matches_df[(matches_df["status"] == "Finished") & (matches_df["total_goals"] > 3)].copy() if not matches_df.empty else pd.DataFrame()
-    if not high_scores.empty:
-        high_scores = high_scores.sort_values(["total_goals", "date_time"], ascending=[False, False], na_position="last").head(10)
+    big_wins = biggest_wins(matches_df)
     upcoming = matches_df[matches_df["status"] == "Scheduled"].sort_values("date_time", na_position="last").head(6) if not matches_df.empty else pd.DataFrame()
     latest = matches_df[matches_df["status"] == "Finished"].sort_values("date_time", ascending=False, na_position="last").head(6) if not matches_df.empty else pd.DataFrame()
     cards = [
-        ("🥇 Top 10 scorers", [
-            f"{player_link(r.Player, esc(r.Player))} • {team_chip(r.Country)} • {int(r.G)} goal{'s' if int(r.G) != 1 else ''}"
-            for r in players.head(10).itertuples()
-        ] if not players.empty else ["Scorer data is not available from the current feed yet."]),
-        ("🎆 Biggest scores (4+ goals)", [
-            f"{team_chip(r.home_team)} {scoreline_label(pd.Series(r._asdict()))} {team_chip(r.away_team)} • {int(r.total_goals)} goals"
-            for r in high_scores.itertuples()
-        ] if not high_scores.empty else ["Matches with more than 3 total goals will appear here."]),
+        ("🥇 Top scorers", [
+            overview_row(
+                f"<span class='wc-summary-name'>{esc(r.Player)}</span>{team_chip(r.Country)}",
+                f"{int(r.G)} goal{'s' if int(r.G) != 1 else ''}",
+            )
+            for r in top_scorers.itertuples()
+        ] if not top_scorers.empty else [overview_row("Scorers with at least four goals will appear here.")]),
+        ("🎆 Biggest wins", [
+            overview_row(
+                f"{team_chip(r.home_team)} <span class='wc-summary-meta'>vs</span> {team_chip(r.away_team)}",
+                scoreline_label(pd.Series(r._asdict())),
+                esc(r.stage_label),
+            )
+            for r in big_wins.itertuples()
+        ] if not big_wins.empty else [overview_row("Wins where the winning team scores at least five goals will appear here.")]),
         ("🔥 Top team goals", [
-            f"{team_chip(r.team)} • {int(r.goals)} goal{'s' if int(r.goals) != 1 else ''}"
+            overview_row(team_chip(r.team), f"{int(r.goals)} goal{'s' if int(r.goals) != 1 else ''}")
             for r in team_goals.itertuples()
-        ] if not team_goals.empty else ["Team goal totals will populate after completed matches."]),
+        ] if not team_goals.empty else [overview_row("Team goal totals will populate after completed matches.")]),
         ("⏭️ Upcoming matches", [
-            f"{team_chip(r.home_team)} vs {team_chip(r.away_team)} • {esc(r.kickoff)}"
+            overview_row(f"{team_chip(r.home_team)} <span class='wc-summary-meta'>vs</span> {team_chip(r.away_team)}", esc(r.kickoff))
             for r in upcoming.itertuples()
-        ] if not upcoming.empty else ["No upcoming matches are currently loaded."]),
+        ] if not upcoming.empty else [overview_row("No upcoming matches are currently loaded.")]),
         ("🕘 Latest results", [
-            f"{team_chip(r.home_team)} {scoreline_label(pd.Series(r._asdict()))} {team_chip(r.away_team)} • {esc(r.stage_label)}"
+            overview_row(f"{team_chip(r.home_team)} <span class='wc-summary-meta'>vs</span> {team_chip(r.away_team)}", scoreline_label(pd.Series(r._asdict())), esc(r.stage_label))
             for r in latest.itertuples()
-        ] if not latest.empty else ["Latest results will appear after completed matches."]),
+        ] if not latest.empty else [overview_row("Latest results will appear after completed matches.")]),
     ]
     html_cards = []
     for title, items in cards:
-        html_cards.append(f"<div class='wc-summary-card'><h4>{title}</h4><ul>{''.join(f'<li>{item}</li>' for item in items)}</ul></div>")
+        html_cards.append(f"<div class='wc-summary-card'><h4>{title}</h4><div class='wc-summary-list'>{''.join(items)}</div></div>")
     st.markdown("<div class='wc-overview-grid'>" + "".join(html_cards) + "</div>", unsafe_allow_html=True)
 
 
