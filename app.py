@@ -2,8 +2,8 @@
 World Cup 2026 Dashboard & Explorer
 Interactive Streamlit components edition.
 
-Default data source: GitHub-hosted OpenFootball public-domain JSON
-Optional live source: https://worldcup26.ir public World Cup 2026 API
+Default data source: https://worldcup26.ir public World Cup 2026 API
+Optional experimental source: GitHub-hosted OpenFootball JSON with ESPN/TheSportsDB enrichment
 Optional token support: set WORLDCUP26_TOKEN in Streamlit secrets if your API instance requires auth.
 """
 
@@ -383,6 +383,55 @@ def clean_text(value: Any, default: str = "") -> str:
     return value
 
 
+
+
+PLAYER_FIELD_KEYS = {"minute", "team", "type", "player", "assist", "event", "source"}
+KNOWN_INITIALS = {"JR", "SR", "Jr", "Sr"}
+
+
+def valid_player_name(value: Any, teams: Optional[Iterable[Any]] = None) -> bool:
+    name = clean_text(value)
+    if not name:
+        return False
+    lower = name.lower()
+    if lower in PLAYER_FIELD_KEYS or lower in {"none", "null", "nan", "tbd", "own", "own goal", "goal", "event"}:
+        return False
+    if any(ch in name for ch in ['{', '}', ':', '[', ']']):
+        return False
+    if len(name) < 3 and name not in KNOWN_INITIALS:
+        return False
+    team_names = set(FALLBACK_FLAGS) | set(TEAM_CODE_MAP) | set(TEAM_ISO2_MAP)
+    if teams:
+        team_names |= {clean_text(t) for t in teams if clean_text(t)}
+    team_keys = {team_match_key(t) for t in team_names if clean_text(t)}
+    if team_match_key(name) in team_keys:
+        return False
+    return True
+
+
+def valid_scorer_string(value: Any, teams: Optional[Iterable[Any]] = None) -> bool:
+    text = clean_text(value)
+    if not text:
+        return False
+    names = [clean_player_name(piece, teams=teams) for piece in re.split(r",|;|\|", text)]
+    valid_names = [name for name in names if name]
+    return bool(valid_names) and all(valid_player_name(name, teams=teams) for name in valid_names)
+
+
+def player_name_from_event(item: Dict[str, Any], teams: Optional[Iterable[Any]] = None) -> str:
+    for key in ["player", "player_name", "strPlayer", "athlete", "scorer", "goal_scorer", "name"]:
+        val = item.get(key)
+        if isinstance(val, dict):
+            val = val.get("displayName") or val.get("name")
+        candidate = clean_player_name(val, teams=teams)
+        if valid_player_name(candidate, teams=teams):
+            return candidate
+    for key in ["strTimelineDetail", "detail", "text", "description"]:
+        candidate = clean_player_name(item.get(key), teams=teams)
+        if valid_player_name(candidate, teams=teams):
+            return candidate
+    logger.info("Skipping event with unknown/untrusted player shape: %s", item)
+    return ""
 
 def build_flag_map(teams_df: pd.DataFrame) -> Dict[str, str]:
     flags = dict(FALLBACK_FLAGS)
@@ -1322,6 +1371,7 @@ def render_team_profile_card(team: str, tmatches: pd.DataFrame, group: str, code
 def extract_scorers(matches_df: pd.DataFrame) -> pd.DataFrame:
     records = []
     for _, m in matches_df.iterrows():
+        match_teams = [m.get("home_team"), m.get("away_team")]
         for side in ["home", "away"]:
             team = m.get(f"{side}_team")
             scorers = clean_text(m.get(f"{side}_scorers"))
@@ -1330,8 +1380,8 @@ def extract_scorers(matches_df: pd.DataFrame) -> pd.DataFrame:
             # Accept formats like "Messi 23', Alvarez 44'" or simple comma-separated names.
             pieces = re.split(r",|;|\|", scorers)
             for p in pieces:
-                name = re.sub(r"\([^)]*\)|\d+['’]?(\+\d+)?", "", p).strip(" -•")
-                if name and name.lower() not in {"null", "none", "own goal"}:
+                name = clean_player_name(p, teams=[team, *match_teams])
+                if name:
                     records.append({"player": name, "team": team, "goals": 1})
     if not records:
         return pd.DataFrame()
@@ -1347,7 +1397,7 @@ def scorer_events(row: pd.Series) -> List[Dict[str, Any]]:
         raw = clean_text(row.get(f"{side}_scorers"))
         if raw:
             for piece in re.split(r",|;|\|", raw):
-                player = clean_player_name(piece)
+                player = clean_player_name(piece, teams=[row.get("home_team"), row.get("away_team")])
                 minute_match = re.search(r"(\d+)(?:['’])?(?:\+(\d+))?", piece)
                 minute = 0
                 label = ""
@@ -1364,9 +1414,15 @@ def scorer_events(row: pd.Series) -> List[Dict[str, Any]]:
         if not re.search(r"goal|scor", typ, flags=re.I):
             continue
         team = canonical_team_name(item.get("team") or item.get("team_name") or item.get("strTeam") or item.get("strHomeTeam"))
-        player = clean_player_name(item.get("player") or item.get("player_name") or item.get("strPlayer") or item.get("strTimelineDetail") or item.get("text"))
+        player = player_name_from_event(item, teams=[row.get("home_team"), row.get("away_team")])
         minute = to_int(item.get("minute") or item.get("time") or item.get("intTime") or item.get("intTimeline"), 0) or 0
-        side = "away" if team_match_key(team) == away_key else "home" if team_match_key(team) == home_key else "home"
+        if team and team_match_key(team) == away_key:
+            side = "away"
+        elif team and team_match_key(team) == home_key:
+            side = "home"
+        else:
+            logger.info("Skipping goal event with unknown team shape: %s", item)
+            continue
         if player:
             events.append({"side": side, "team": team or clean_text(row.get(f"{side}_team")), "player": player, "minute": minute, "label": f"{minute}'" if minute else "Goal", "kind": "Goal"})
     return sorted(events, key=lambda e: e.get("minute", 0))
@@ -1966,9 +2022,7 @@ def fetch_public_json(url: str, params: Optional[Dict[str, Any]] = None) -> Any:
 
 def source_labels_text(statuses: Dict[str, str]) -> str:
     """Render the data-provider chain without promoting demo data as primary."""
-    labels = ["OpenFootball", "ESPN", "TheSportsDB"]
-    if statuses.get("worldcup26 fallback"):
-        labels.append("worldcup26 fallback")
+    labels = ["Live API", "ESPN", "TheSportsDB", "OpenFootball fallback"]
     rendered = []
     for label in labels:
         status = statuses.get(label, "")
@@ -1978,27 +2032,39 @@ def source_labels_text(statuses: Dict[str, str]) -> str:
 
 
 def load_default_data(api_base: str, token: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
-    """Load data in priority order: OpenFootball, ESPN, TheSportsDB, then worldcup26."""
-    statuses = {"OpenFootball": "", "ESPN": "", "TheSportsDB": "", "worldcup26 fallback": ""}
+    """Experimental enrichment mode: start with Live API, then overlay only safe ESPN/TheSportsDB fields."""
+    statuses = {"Live API": "", "ESPN": "", "TheSportsDB": "", "OpenFootball fallback": ""}
     try:
-        matches, teams, groups, stadiums, _source = load_openfootball_data(fallback_to_demo=False)
-        statuses["OpenFootball"] = "ok"
-    except Exception as of_exc:
-        statuses["OpenFootball"] = f"unavailable: {of_exc}"
+        matches, teams, groups, stadiums, _source = load_live_data(api_base, token, fallback_to_demo=False)
+        statuses["Live API"] = "ok"
+    except Exception as api_exc:
+        statuses["Live API"] = f"unavailable: {api_exc}"
         try:
-            matches, teams, groups, stadiums, _source = load_live_data(api_base, token, fallback_to_demo=False)
-            statuses["worldcup26 fallback"] = "fallback"
-        except Exception as api_exc:
+            matches, teams, groups, stadiums, _source = load_openfootball_data(fallback_to_demo=False)
+            statuses["OpenFootball fallback"] = "fallback"
+        except Exception as of_exc:
             matches, teams, groups, stadiums, _source = load_fallback()
-            statuses["worldcup26 fallback"] = f"demo fallback: {api_exc}"
+            statuses["OpenFootball fallback"] = f"demo fallback: {of_exc}"
 
     matches, espn_source = apply_espn_overlay(matches)
     statuses["ESPN"] = "ok" if "unavailable" not in espn_source.lower() else espn_source
     matches, teams, tdb_source = apply_thesportsdb_enrichment(matches, teams)
     statuses["TheSportsDB"] = "ok" if "unavailable" not in tdb_source.lower() else tdb_source
-    statuses.setdefault("worldcup26 fallback", "")
-    return matches, teams, groups, stadiums, source_labels_text(statuses)
+    return matches, teams, groups, stadiums, "Experimental enrichment • " + source_labels_text(statuses)
 
+
+
+def data_quality_label(source: str) -> str:
+    source_lower = clean_text(source).lower()
+    if "demo" in source_lower:
+        return "Demo fallback"
+    if "experimental" in source_lower or ("openfootball" in source_lower and ("espn" in source_lower or "thesportsdb" in source_lower)):
+        return "Experimental enrichment"
+    if "espn" in source_lower or "thesportsdb" in source_lower:
+        return "Enriched"
+    if "live api" in source_lower:
+        return "Clean Live API"
+    return "Enriched"
 
 def normalize_espn_status(competition: Dict[str, Any], status: Dict[str, Any]) -> str:
     state = clean_text(status.get("type", {}).get("state") or status.get("type", {}).get("name") or status.get("type", {}).get("description")).lower()
@@ -2024,12 +2090,16 @@ def espn_events_from_summary(summary: Dict[str, Any], home: str, away: str) -> L
     events: List[Dict[str, Any]] = []
     for item in summary.get("scoringPlays", []) or []:
         team_name = canonical_team_name((item.get("team") or {}).get("displayName") or item.get("team"))
-        events.append({"type": "Goal", "event": "Goal", "minute": clean_text(item.get("clock", {}).get("displayValue") or item.get("minute")), "team": team_name, "player": clean_text(item.get("athlete", {}).get("displayName") or item.get("text"), "Goal"), "source": "ESPN"})
+        player = player_name_from_event(item, teams=[home, away])
+        if player:
+            events.append({"type": "Goal", "event": "Goal", "minute": clean_text(item.get("clock", {}).get("displayValue") or item.get("minute")), "team": team_name, "player": player, "source": "ESPN"})
     for item in summary.get("keyEvents", []) or summary.get("events", []) or []:
         typ = clean_text(item.get("type", {}).get("text") or item.get("type") or item.get("playType") or item.get("text"))
         team_name = canonical_team_name((item.get("team") or {}).get("displayName") or item.get("team"))
-        player = clean_text((item.get("athlete") or {}).get("displayName") or item.get("player") or item.get("text"), "Event")
-        events.append({"type": typ, "event": typ, "minute": clean_text(item.get("clock", {}).get("displayValue") or item.get("minute")), "team": team_name, "player": player, "source": "ESPN"})
+        player = player_name_from_event(item, teams=[home, away])
+        if re.search(r"goal|scor", typ, flags=re.I) and not player:
+            continue
+        events.append({"type": typ, "event": typ, "minute": clean_text(item.get("clock", {}).get("displayValue") or item.get("minute")), "team": team_name, "player": player or "Event", "source": "ESPN"})
     return events
 
 
@@ -2126,8 +2196,12 @@ def apply_thesportsdb_enrichment(matches: pd.DataFrame, teams: pd.DataFrame) -> 
         raw.setdefault("sources", {})["enrichment"] = "TheSportsDB"
         raw["thesportsdb_event"] = ev
         for side, key in [("home", "strHomeGoalDetails"), ("away", "strAwayGoalDetails")]:
-            if clean_text(ev.get(key)):
-                df.at[idx, f"{side}_scorers"] = clean_text(ev.get(key)).replace(";", ", ")
+            incoming = clean_text(ev.get(key)).replace(";", ", ")
+            existing = clean_text(df.at[idx, f"{side}_scorers"])
+            if incoming and not existing and valid_scorer_string(incoming, teams=[df.at[idx, "home_team"], df.at[idx, "away_team"]]):
+                df.at[idx, f"{side}_scorers"] = incoming
+            elif incoming and existing:
+                logger.info("Keeping primary scorer data for %s; TheSportsDB scorer enrichment skipped", df.at[idx, "match_id"])
         if clean_text(ev.get("idEvent")):
             try:
                 timeline = fetch_public_json(f"{THESPORTSDB_API_BASE}/lookuptimeline.php", {"id": ev.get("idEvent")})
@@ -2156,14 +2230,13 @@ def build_normalized_secondary_frames(matches: pd.DataFrame, teams: pd.DataFrame
     return players_df, pd.DataFrame(event_rows), pd.DataFrame(stat_rows), pd.DataFrame(prob_rows)
 
 
-def clean_player_name(name: str) -> str:
+def clean_player_name(name: Any, teams: Optional[Iterable[Any]] = None) -> str:
     name = clean_text(name)
     name = re.sub(r"[{}\[\]\"`]+", "", name)
     name = re.sub(r"\b(goal|penalty|own goal|og|assist|card)\b", "", name, flags=re.I)
     name = re.sub(r"\d+['’]?(\+\d+)?", "", name)
     name = re.sub(r"\s+", " ", name).strip(" -•,:;")
-    bad = {"", "none", "null", "nan", "tbd", "own", "own goal"}
-    return "" if name.lower() in bad or len(name) < 2 else name
+    return name if valid_player_name(name, teams=teams) else ""
 
 
 def extract_player_stats(matches_df: pd.DataFrame) -> pd.DataFrame:
@@ -2178,7 +2251,7 @@ def extract_player_stats(matches_df: pd.DataFrame) -> pd.DataFrame:
             for raw in pieces:
                 is_pen = bool(re.search(r"\bpen\b|penalty|\(p\)", raw, flags=re.I))
                 is_og = bool(re.search(r"own goal|\bog\b", raw, flags=re.I))
-                name = clean_player_name(raw)
+                name = clean_player_name(raw, teams=[team, m.get("home_team"), m.get("away_team")])
                 if not name or is_og:
                     continue
                 records.append({
@@ -2397,8 +2470,10 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     avg_goals = total_goals / len(finished) if len(finished) else 0
     current_stage, _current_stage_detail = get_current_stage_metric(matches_df)
 
-    cache_note = "60 seconds" if source == "Live API" else "1 hour"
-    st.caption(f"Data source: {source} • Cache: {cache_note}")
+    cache_note = "60 seconds" if "Live API" in source else "1 hour"
+    quality = data_quality_label(source)
+    st.caption(f"Data source: {source} • Cache: {cache_note} • Data quality: {quality}")
+    st.markdown(f"<span class='tag'>Data quality: {esc(quality)}</span>", unsafe_allow_html=True)
 
     st.markdown("### Tournament Dashboard")
     st.markdown(f"<div class='explain'><b>Overview shows:</b> current tournament status, live or next match, completed-match progress, goal pace, and headline summary cards. {explain_current_stage(matches_df)} New to football? Start with the <a class='wc-basics-link' href='?tab=Football%20101' target='_self'>Football 101</a> tab for quick rules and tournament basics.</div><div class='wc-overview-spacer'></div>", unsafe_allow_html=True)
@@ -2628,19 +2703,19 @@ def main() -> None:
     st.sidebar.title("⚽ Controls")
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
-    source_mode = st.sidebar.radio("Data mode", ["OpenFootball + ESPN + TheSportsDB", "OpenFootball", "Live API", "Demo fallback"], help="Default uses OpenFootball fixtures with ESPN live overlay and TheSportsDB enrichment. Live API keeps worldcup26.ir as a fallback source.")
+    source_mode = st.sidebar.radio("Data mode", ["Live API", "Experimental: OpenFootball + ESPN + TheSportsDB", "OpenFootball", "Demo fallback"], help="Default uses the Live API as the primary source. Experimental enrichment starts with Live API and only adds safe ESPN/TheSportsDB fields without replacing trusted scorer/player names.")
     if st.sidebar.button("Refresh now", help="Fetch fresh data with a Streamlit rerun."):
         st.cache_data.clear()
         st.rerun()
 
-    if source_mode == "OpenFootball + ESPN + TheSportsDB":
+    if source_mode == "Experimental: OpenFootball + ESPN + TheSportsDB":
         matches, teams, groups, stadiums, source = load_default_data(api_base, token)
     elif source_mode == "OpenFootball":
         matches, teams, groups, stadiums, source = load_openfootball_data()
         source = "✓ OpenFootball"
     elif source_mode == "Live API":
         matches, teams, groups, stadiums, source = load_live_data(api_base, token)
-        source = f"{source} (worldcup26.ir fallback)"
+        source = "Live API" if source == "Live API" else source
     else:
         matches, teams, groups, stadiums, source = load_fallback()
 
