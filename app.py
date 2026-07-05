@@ -35,6 +35,9 @@ ESPN_SUMMARY_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.wo
 THESPORTSDB_API_BASE = "https://www.thesportsdb.com/api/v1/json/3"
 THESPORTSDB_LEAGUE_ID = "4429"
 THESPORTSDB_SEASON = "2026"
+API_FOOTBALL_BASE = "https://v3.football.api-sports.io"
+API_FOOTBALL_WORLD_CUP_LEAGUE = "1"
+API_FOOTBALL_SEASON = "2026"
 
 TROPHY_SVG = (
     "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 320' role='img' aria-label='FIFA World Cup trophy'>"
@@ -385,7 +388,7 @@ def clean_text(value: Any, default: str = "") -> str:
 
 
 
-PLAYER_FIELD_KEYS = {"minute", "team", "type", "player", "assist", "event", "source"}
+PLAYER_FIELD_KEYS = {"minute", "team", "type", "player", "assist", "event", "source", "goal"}
 KNOWN_INITIALS = {"JR", "SR", "Jr", "Sr"}
 
 
@@ -397,6 +400,8 @@ def valid_player_name(value: Any, teams: Optional[Iterable[Any]] = None) -> bool
     if lower in PLAYER_FIELD_KEYS or lower in {"none", "null", "nan", "tbd", "own", "own goal", "goal", "event"}:
         return False
     if any(ch in name for ch in ['{', '}', ':', '[', ']']):
+        return False
+    if re.fullmatch(r"[\W_\d]+", name):
         return False
     if len(name) < 3 and name not in KNOWN_INITIALS:
         return False
@@ -1257,7 +1262,7 @@ def component_payload(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standing
         home = clean_text(r.get("home_team", "TBD"), "TBD"); away = clean_text(r.get("away_team", "TBD"), "TBD")
         hp, ap = matchup_probabilities(home, away, r)
         goals = scorer_events(r)
-        payload_matches.append({"id": clean_text(r.get("match_id")) or str(len(payload_matches)), "home": home, "away": away, "homeFlag": team_flag(home), "awayFlag": team_flag(away), "score": scoreline_label(r), "status": clean_text(r.get("status")), "stage": clean_text(r.get("stage_label")), "stageCode": clean_text(r.get("stage")), "kickoff": clean_text(r.get("kickoff")), "venue": clean_text(r.get("venue")), "kickoffMs": int(r.get("date_time").timestamp()*1000) if isinstance(r.get("date_time"), datetime) else None, "minute": live_minute(r), "prob": [hp, ap], "scorers": [f"{e.get('label')} {e.get('player')} ({e.get('team')})" for e in goals], "assists": [clean_text(x.get("assist") or x.get("assist_name")) for x in event_list_from_raw(r, ["events", "goals", "assists"]) if clean_text(x.get("assist") or x.get("assist_name"))], "cards": cards_from_raw(r), "subs": substitutions_from_raw(r), "stats": [{"label": lab, "home": hv, "away": av} for lab, hv, av in match_stat_rows(r)]})
+        payload_matches.append({"id": clean_text(r.get("match_id")) or str(len(payload_matches)), "home": home, "away": away, "homeFlag": team_flag(home), "awayFlag": team_flag(away), "score": scoreline_label(r), "status": clean_text(r.get("status")), "stage": clean_text(r.get("stage_label")), "stageCode": clean_text(r.get("stage")), "kickoff": clean_text(r.get("kickoff")), "venue": clean_text(r.get("venue")), "kickoffMs": int(r.get("date_time").timestamp()*1000) if isinstance(r.get("date_time"), datetime) else None, "minute": live_minute(r), "prob": [hp, ap], "scorers": [f"{e.get('label')} {e.get('player')} ({e.get('team')})" for e in goals], "assists": [name for x in event_list_from_raw(r, ["events", "goals", "assists"]) if (name := clean_player_name(x.get("assist") or x.get("assist_name"), teams=[r.get("home_team"), r.get("away_team")]))], "cards": cards_from_raw(r), "subs": substitutions_from_raw(r), "stats": [{"label": lab, "home": hv, "away": av} for lab, hv, av in match_stat_rows(r)]})
     payload_standings = []
     if not standings_df.empty:
         sdf = standings_df.copy()
@@ -1406,23 +1411,9 @@ def extract_scorers(matches_df: pd.DataFrame) -> pd.DataFrame:
 
 def scorer_events(row: pd.Series) -> List[Dict[str, Any]]:
     events: List[Dict[str, Any]] = []
-    for side in ["home", "away"]:
-        team = clean_text(row.get(f"{side}_team"))
-        raw = clean_text(row.get(f"{side}_scorers"))
-        if raw:
-            for piece in re.split(r",|;|\|", raw):
-                player = clean_player_name(piece, teams=[row.get("home_team"), row.get("away_team")])
-                minute_match = re.search(r"(\d+)(?:['’])?(?:\+(\d+))?", piece)
-                minute = 0
-                label = ""
-                if minute_match:
-                    minute = int(minute_match.group(1)) + int(minute_match.group(2) or 0)
-                    label = minute_match.group(0)
-                    if not label.endswith("'"):
-                        label += "'"
-                if player:
-                    events.append({"side": side, "team": team, "player": player, "minute": minute, "label": label or "Goal", "kind": "Goal"})
     home_key = team_match_key(row.get("home_team")); away_key = team_match_key(row.get("away_team"))
+
+    # Prefer structured live/provider event feeds over fallback scorer-string parsing.
     for item in event_list_from_raw(row, ["events", "timeline", "goals"]):
         typ = clean_text(item.get("type") or item.get("event") or item.get("strTimeline") or item.get("strEvent"))
         if not re.search(r"goal|scor", typ, flags=re.I):
@@ -1439,8 +1430,27 @@ def scorer_events(row: pd.Series) -> List[Dict[str, Any]]:
             continue
         if player:
             events.append({"side": side, "team": team or clean_text(row.get(f"{side}_team")), "player": player, "minute": minute, "label": f"{minute}'" if minute else "Goal", "kind": "Goal"})
-    return sorted(events, key=lambda e: e.get("minute", 0))
 
+    if events:
+        return sorted(events, key=lambda e: e.get("minute", 0))
+
+    for side in ["home", "away"]:
+        team = clean_text(row.get(f"{side}_team"))
+        raw = clean_text(row.get(f"{side}_scorers"))
+        if raw:
+            for piece in re.split(r",|;|\|", raw):
+                player = clean_player_name(piece, teams=[row.get("home_team"), row.get("away_team")])
+                minute_match = re.search(r"(\d+)(?:['’])?(?:\+(\d+))?", piece)
+                minute = 0
+                label = ""
+                if minute_match:
+                    minute = int(minute_match.group(1)) + int(minute_match.group(2) or 0)
+                    label = minute_match.group(0)
+                    if not label.endswith("'"):
+                        label += "'"
+                if player:
+                    events.append({"side": side, "team": team, "player": player, "minute": minute, "label": label or "Goal", "kind": "Goal"})
+    return sorted(events, key=lambda e: e.get("minute", 0))
 
 def event_timeline_html(row: pd.Series) -> str:
     events = scorer_events(row)
@@ -1598,7 +1608,7 @@ def render_live_detail_expander(row: pd.Series, expanded: bool = False) -> None:
         goals = scorer_events(row)
         cards = cards_from_raw(row)
         subs = substitutions_from_raw(row)
-        assists = [clean_text(x.get("assist") or x.get("assist_name")) for x in event_list_from_raw(row, ["events", "goals", "assists"]) if clean_text(x.get("assist") or x.get("assist_name"))]
+        assists = [name for x in event_list_from_raw(row, ["events", "goals", "assists"]) if (name := clean_player_name(x.get("assist") or x.get("assist_name"), teams=[row.get("home_team"), row.get("away_team")]))]
         lineups = lineups_from_raw(row)
         c1, c2 = st.columns(2)
         with c1:
@@ -2053,7 +2063,7 @@ def fetch_public_json(url: str, params: Optional[Dict[str, Any]] = None) -> Any:
 
 def source_labels_text(statuses: Dict[str, str]) -> str:
     """Render the data-provider chain without promoting demo data as primary."""
-    labels = ["Live API", "ESPN", "TheSportsDB", "OpenFootball fallback"]
+    labels = ["Live API", "ESPN", "TheSportsDB", "API-Football", "OpenFootball fallback"]
     rendered = []
     for label in labels:
         status = statuses.get(label, "")
@@ -2064,7 +2074,7 @@ def source_labels_text(statuses: Dict[str, str]) -> str:
 
 def load_default_data(api_base: str, token: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
     """Experimental enrichment mode: start with Live API, then overlay only safe ESPN/TheSportsDB fields."""
-    statuses = {"Live API": "", "ESPN": "", "TheSportsDB": "", "OpenFootball fallback": ""}
+    statuses = {"Live API": "", "ESPN": "", "TheSportsDB": "", "API-Football": "", "OpenFootball fallback": ""}
     try:
         matches, teams, groups, stadiums, _source = load_live_data(api_base, token, fallback_to_demo=False)
         statuses["Live API"] = "ok"
@@ -2079,6 +2089,8 @@ def load_default_data(api_base: str, token: str) -> Tuple[pd.DataFrame, pd.DataF
 
     matches, espn_source = apply_espn_overlay(matches)
     statuses["ESPN"] = "ok" if "unavailable" not in espn_source.lower() else espn_source
+    matches, api_football_source = apply_api_football_overlay(matches)
+    statuses["API-Football"] = "ok" if "unavailable" not in api_football_source.lower() and "not configured" not in api_football_source.lower() else api_football_source
     matches, teams, tdb_source = apply_thesportsdb_enrichment(matches, teams)
     statuses["TheSportsDB"] = "ok" if "unavailable" not in tdb_source.lower() else tdb_source
     return matches, teams, groups, stadiums, "Experimental enrichment • " + source_labels_text(statuses)
@@ -2130,7 +2142,8 @@ def espn_events_from_summary(summary: Dict[str, Any], home: str, away: str) -> L
         player = player_name_from_event(item, teams=[home, away])
         if re.search(r"goal|scor", typ, flags=re.I) and not player:
             continue
-        events.append({"type": typ, "event": typ, "minute": clean_text(item.get("clock", {}).get("displayValue") or item.get("minute")), "team": team_name, "player": player or "Event", "source": "ESPN"})
+        if player:
+            events.append({"type": typ, "event": typ, "minute": clean_text(item.get("clock", {}).get("displayValue") or item.get("minute")), "team": team_name, "player": player, "source": "ESPN"})
     return events
 
 
@@ -2203,6 +2216,115 @@ def apply_espn_overlay(matches: pd.DataFrame) -> Tuple[pd.DataFrame, str]:
     df["score"] = df.apply(lambda r: "TBD" if pd.isna(r.get("home_score")) or pd.isna(r.get("away_score")) else f"{int(r['home_score'])}-{int(r['away_score'])}", axis=1)
     df["winner"] = df.apply(match_winner, axis=1)
     return df, f"ESPN scoreboard/summary ({event_count} matched)"
+
+
+def fetch_api_football_json(path: str, key: str, params: Optional[Dict[str, Any]] = None) -> Any:
+    resp = requests.get(
+        f"{API_FOOTBALL_BASE.rstrip('/')}/{path.lstrip('/')}",
+        params=params,
+        headers={"Accept": "application/json", "x-apisports-key": key},
+        timeout=20,
+    )
+    resp.raise_for_status()
+    payload = resp.json()
+    errors = payload.get("errors") if isinstance(payload, dict) else None
+    if errors:
+        raise RuntimeError(f"API-Football error: {errors}")
+    return payload
+
+
+def api_football_status(short_status: Any, elapsed: Any) -> str:
+    status = clean_text(short_status).upper()
+    if status in {"FT", "AET", "PEN"}:
+        return "Finished"
+    if status in {"1H", "2H", "HT", "ET", "BT", "P", "LIVE"} or to_int(elapsed, None):
+        return "Live"
+    return "Scheduled"
+
+
+def apply_api_football_overlay(matches: pd.DataFrame) -> Tuple[pd.DataFrame, str]:
+    """Overlay API-Football when configured, using it for live score/status/events/stats."""
+    key = secret("API_FOOTBALL_KEY") or secret("APIFOOTBALL_KEY")
+    if not key:
+        return matches, "API-Football not configured"
+    if matches.empty:
+        return matches, "API-Football unavailable"
+    try:
+        payload = fetch_api_football_json(
+            "/fixtures",
+            key,
+            {"league": API_FOOTBALL_WORLD_CUP_LEAGUE, "season": API_FOOTBALL_SEASON},
+        )
+    except Exception as exc:
+        return matches, f"API-Football unavailable ({exc})"
+    fixtures = payload.get("response", []) if isinstance(payload, dict) else []
+    df = matches.copy()
+    matched = 0
+    for fixture in fixtures:
+        teams = fixture.get("teams") or {}
+        home = canonical_team_name((teams.get("home") or {}).get("name"))
+        away = canonical_team_name((teams.get("away") or {}).get("name"))
+        if not home or not away:
+            continue
+        mask = ((df["home_team"].map(team_match_key) == team_match_key(home)) & (df["away_team"].map(team_match_key) == team_match_key(away))) | ((df["home_team"].map(team_match_key) == team_match_key(away)) & (df["away_team"].map(team_match_key) == team_match_key(home)))
+        if not mask.any():
+            continue
+        idx = df[mask].index[0]
+        goals = fixture.get("goals") or {}
+        status = (fixture.get("fixture") or {}).get("status") or {}
+        api_home_first = team_match_key(df.at[idx, "home_team"]) == team_match_key(home)
+        if goals.get("home") is not None and goals.get("away") is not None:
+            df.at[idx, "home_score"] = goals.get("home") if api_home_first else goals.get("away")
+            df.at[idx, "away_score"] = goals.get("away") if api_home_first else goals.get("home")
+        df.at[idx, "status"] = api_football_status(status.get("short"), status.get("elapsed"))
+        df.at[idx, "elapsed"] = clean_text(status.get("elapsed") or status.get("long") or status.get("short"))
+        raw = df.at[idx, "raw"] if isinstance(df.at[idx, "raw"], dict) else {}
+        raw.setdefault("sources", {})["live_overlay"] = "API-Football"
+        raw["api_football_fixture"] = fixture
+        fixture_id = clean_text((fixture.get("fixture") or {}).get("id"))
+        try:
+            if fixture_id:
+                events_payload = fetch_api_football_json("/fixtures/events", key, {"fixture": fixture_id})
+                fixture["events"] = events_payload.get("response", []) if isinstance(events_payload, dict) else []
+        except Exception as exc:
+            raw["api_football_events_error"] = str(exc)
+        try:
+            if fixture_id:
+                stats_payload = fetch_api_football_json("/fixtures/statistics", key, {"fixture": fixture_id})
+                fixture["statistics"] = stats_payload.get("response", []) if isinstance(stats_payload, dict) else []
+        except Exception as exc:
+            raw["api_football_statistics_error"] = str(exc)
+        event_rows = []
+        for ev in fixture.get("events", []) or []:
+            team_name = canonical_team_name((ev.get("team") or {}).get("name"))
+            player = player_name_from_event({"player": ev.get("player"), "assist": ev.get("assist")}, teams=[home, away])
+            assist = player_name_from_event({"player": ev.get("assist")}, teams=[home, away])
+            event_rows.append({
+                "type": clean_text(ev.get("type") or ev.get("detail")),
+                "event": clean_text(ev.get("detail") or ev.get("type")),
+                "minute": clean_text((ev.get("time") or {}).get("elapsed")),
+                "team": team_name,
+                "player": player,
+                "assist": assist,
+                "source": "API-Football",
+            })
+        if event_rows:
+            raw.setdefault("events", []).extend([e for e in event_rows if e.get("player") or e.get("assist")])
+        stats = {}
+        for team_stats in fixture.get("statistics", []) or []:
+            side_name = canonical_team_name((team_stats.get("team") or {}).get("name"))
+            side = "home" if team_match_key(side_name) == team_match_key(df.at[idx, "home_team"]) else "away"
+            for stat in team_stats.get("statistics", []) or []:
+                key_name = re.sub(r"[^a-z0-9]", "_", clean_text(stat.get("type")).lower()).strip("_")
+                if key_name:
+                    stats.setdefault(key_name, {})[side] = to_int(str(stat.get("value")).replace("%", ""), 0)
+        if stats:
+            raw["stats"] = {**raw.get("stats", {}), **stats}
+        df.at[idx, "raw"] = raw
+        matched += 1
+    df["score"] = df.apply(lambda r: "TBD" if pd.isna(r.get("home_score")) or pd.isna(r.get("away_score")) else f"{int(r['home_score'])}-{int(r['away_score'])}", axis=1)
+    df["winner"] = df.apply(match_winner, axis=1)
+    return df, f"API-Football fixtures ({matched} matched)"
 
 
 def apply_thesportsdb_enrichment(matches: pd.DataFrame, teams: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, str]:
@@ -2734,12 +2856,12 @@ def main() -> None:
     st.sidebar.title("⚽ Controls")
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
-    source_mode = st.sidebar.radio("Data mode", ["Live API", "Experimental: OpenFootball + ESPN + TheSportsDB", "OpenFootball", "Demo fallback"], help="Default uses the Live API as the primary source. Experimental enrichment starts with Live API and only adds safe ESPN/TheSportsDB fields without replacing trusted scorer/player names.")
+    source_mode = st.sidebar.radio("Data mode", ["Experimental: OpenFootball + ESPN + TheSportsDB + API-Football", "Live API", "OpenFootball", "Demo fallback"], help="Experimental enrichment combines Live API/OpenFootball with ESPN, TheSportsDB, and API-Football when configured; provider overlays prioritize live score, status, goals, assists, scorers, then statistics while preserving trusted player names.")
     if st.sidebar.button("Refresh now", help="Fetch fresh data with a Streamlit rerun."):
         st.cache_data.clear()
         st.rerun()
 
-    if source_mode == "Experimental: OpenFootball + ESPN + TheSportsDB":
+    if source_mode == "Experimental: OpenFootball + ESPN + TheSportsDB + API-Football":
         matches, teams, groups, stadiums, source = load_default_data(api_base, token)
     elif source_mode == "OpenFootball":
         matches, teams, groups, stadiums, source = load_openfootball_data()
