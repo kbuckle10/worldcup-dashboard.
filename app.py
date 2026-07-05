@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import html
 import json
+import logging
 import math
 import re
 from urllib.parse import quote
@@ -25,6 +26,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 APP_DIR = Path(__file__).parent
+logger = logging.getLogger(__name__)
 DATA_DIR = APP_DIR / "data"
 DEFAULT_API_BASE = "https://worldcup26.ir"
 OPENFOOTBALL_WORLD_CUP_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json"
@@ -1809,7 +1811,15 @@ def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, 
         if direct is not None:
             return direct
         score = match.get("score") or match.get("result") or {}
+        idx = 0 if side == "1" else 1
         if isinstance(score, dict):
+            ft = score.get("ft") or score.get("fulltime") or score.get("full_time")
+            if isinstance(ft, list) and len(ft) > idx:
+                return ft[idx]
+            if isinstance(ft, dict):
+                for key in (["team1", "home", "score1", "ft1"] if side == "1" else ["team2", "away", "score2", "ft2"]):
+                    if key in ft and ft.get(key) is not None:
+                        return ft.get(key)
             if side == "1":
                 for key in ["ft1", "score1", "team1", "home"]:
                     if key in score and score.get(key) is not None:
@@ -1817,7 +1827,30 @@ def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, 
             for key in ["ft2", "score2", "team2", "away"]:
                 if key in score and score.get(key) is not None:
                     return score.get(key)
+        if isinstance(score, list) and len(score) > idx:
+            return score[idx]
         return None
+
+    def detect_schema(raw: Any) -> Tuple[str, List[Dict[str, Any]]]:
+        if isinstance(raw, dict) and isinstance(raw.get("rounds"), list):
+            return "old rounds schema", raw["rounds"]
+        if isinstance(raw, dict) and isinstance(raw.get("matches"), list):
+            return "new matches schema", [{"name": "OpenFootball matches", "matches": raw["matches"]}]
+        if isinstance(raw, list):
+            return "new matches schema", [{"name": "OpenFootball matches", "matches": raw}]
+        raise ValueError("OpenFootball JSON did not include a supported rounds or matches collection.")
+
+    def stage_from_match(match: Dict[str, Any], round_name: str) -> Tuple[str, str]:
+        raw_stage = clean_text(match.get("stage") or match.get("phase") or match.get("round") or round_name, "Group Stage")
+        group = clean_text(match.get("group"))
+        if group:
+            return "Group Stage", group.replace("Group ", "").strip()
+        lowered = raw_stage.lower()
+        if raw_stage.startswith("Group "):
+            return raw_stage, raw_stage.replace("Group ", "").strip()
+        if "matchday" in lowered:
+            return "Group Stage", ""
+        return raw_stage, ""
 
     try:
         resp = requests.get(
@@ -1827,9 +1860,12 @@ def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, 
         )
         resp.raise_for_status()
         raw = resp.json()
-        rounds = raw.get("rounds") if isinstance(raw, dict) else []
-        if not isinstance(rounds, list):
-            raise ValueError("OpenFootball JSON did not include a rounds array.")
+        schema_name, rounds = detect_schema(raw)
+        logger.info("Detected OpenFootball %s", schema_name)
+        try:
+            st.session_state["openfootball_schema"] = schema_name
+        except Exception:
+            pass
 
         games = []
         team_groups: Dict[str, str] = {}
@@ -1838,7 +1874,7 @@ def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, 
         for rnd in rounds:
             if not isinstance(rnd, dict):
                 continue
-            round_name = clean_text(rnd.get("name"), "Group Stage")
+            round_name = clean_text(rnd.get("name") or rnd.get("round"), "Group Stage")
             matches = rnd.get("matches") or []
             if not isinstance(matches, list):
                 continue
@@ -1855,13 +1891,13 @@ def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, 
                     team_codes[home] = home_code
                 if away != "TBD" and away_code:
                     team_codes[away] = away_code
-                group = clean_text(m.get("group") or (round_name.replace("Group ", "") if round_name.startswith("Group ") else ""))
+                round_stage, group = stage_from_match(m, round_name)
                 if group in GROUPS:
                     if home != "TBD":
                         team_groups[home] = group
                     if away != "TBD":
                         team_groups[away] = group
-                venue = m.get("stadium") or m.get("venue") or {}
+                venue = m.get("stadium") or m.get("venue") or m.get("ground") or {}
                 if isinstance(venue, dict):
                     venue_name = clean_text(venue.get("name") or venue.get("stadium"))
                     city = clean_text(venue.get("city"))
@@ -1877,8 +1913,10 @@ def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, 
                     "away_team": away,
                     "home_score": score_value(m, "1"),
                     "away_score": score_value(m, "2"),
+                    "home_scorers": m.get("goals1", ""),
+                    "away_scorers": m.get("goals2", ""),
                     "group": group,
-                    "stage": round_name,
+                    "stage": round_stage,
                     "status": "Finished" if score_value(m, "1") is not None and score_value(m, "2") is not None else "Scheduled",
                     "stadium_id": venue_name,
                     "raw": m,
@@ -1888,7 +1926,7 @@ def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, 
         teams = pd.DataFrame([{"team": t, "code": team_codes.get(t, ""), "group": team_groups.get(t, ""), "flag": FALLBACK_FLAGS.get(t, "⚽")} for t in team_names])
         stadiums = pd.DataFrame(stadium_rows.values())
         groups = calculate_standings_from_matches(matches, teams)
-        return matches, teams, groups, stadiums, "OpenFootball GitHub JSON"
+        return matches, teams, groups, stadiums, f"OpenFootball GitHub JSON ({schema_name})"
     except Exception as exc:
         matches, teams, groups, stadiums, source = load_fallback()
         st.warning("OpenFootball data could not be loaded, so the app is using the demo fallback snapshot. Details: " + str(exc))
@@ -2528,7 +2566,7 @@ def render_deploy_notes(api_base: str, source: str) -> None:
     st.code(
         """# Local test
 pip install -r requirements.txt
-streamlit run app_new.py
+streamlit run app.py
 
 # Streamlit Cloud deployment
 # 1) Push these files to GitHub
@@ -2583,9 +2621,10 @@ def main() -> None:
     matches_df = matches
     teams_df = teams
     standings_df = standings
+    knockout_df = matches_df[matches_df["stage"] != "group"].copy() if not matches_df.empty else pd.DataFrame()
     players_df, events_df, match_stats_df, probabilities_df = build_normalized_secondary_frames(matches_df, teams_df, standings_df)
     st.session_state["normalized_dataframes"] = {
-        "matches_df": matches_df, "teams_df": teams_df, "standings_df": standings_df,
+        "matches_df": matches_df, "teams_df": teams_df, "standings_df": standings_df, "knockout_df": knockout_df,
         "players_df": players_df, "events_df": events_df,
         "match_stats_df": match_stats_df, "probabilities_df": probabilities_df,
     }
