@@ -1260,6 +1260,47 @@ def clean_sheet_table(matches_df: pd.DataFrame, limit: int = 8) -> pd.DataFrame:
         .head(limit))
 
 
+def current_stage_label_for_filter(matches_df: pd.DataFrame, today: Optional[date] = None) -> str:
+    """Infer the tournament stage the match filter should open on.
+
+    Prefer a live stage, then the stage whose fixture dates include today, then the
+    next scheduled stage. This keeps the Upcoming & Live tab focused on the
+    tournament's current stage even when a data source has stale Scheduled/Finished
+    flags.
+    """
+    if matches_df.empty or "stage_label" not in matches_df.columns:
+        return "All"
+
+    today = today or date.today()
+    dated = matches_df[matches_df["date_time"].apply(lambda value: isinstance(value, datetime))].copy()
+    if dated.empty:
+        return "All"
+
+    dated["match_date"] = dated["date_time"].dt.date
+    live = dated[(dated["status"] == "Live") & (dated["match_date"] == today)].sort_values(["stage_rank", "date_time"], na_position="last")
+    if not live.empty:
+        return clean_text(live.iloc[0].get("stage_label"), "All")
+
+    stage_windows = (
+        dated.groupby(["stage_rank", "stage_label"], dropna=True)["match_date"]
+        .agg(["min", "max"])
+        .reset_index()
+        .sort_values("stage_rank")
+    )
+    active = stage_windows[(stage_windows["min"] <= today) & (stage_windows["max"] >= today)]
+    if not active.empty:
+        return clean_text(active.iloc[0].get("stage_label"), "All")
+
+    upcoming = dated[dated["match_date"] > today].sort_values(["date_time", "stage_rank"], na_position="last")
+    if not upcoming.empty:
+        return clean_text(upcoming.iloc[0].get("stage_label"), "All")
+
+    latest = dated.sort_values(["date_time", "stage_rank"], ascending=[False, False], na_position="last")
+    if not latest.empty:
+        return clean_text(latest.iloc[0].get("stage_label"), "All")
+
+    return "All"
+
 def render_overview_summary_cards(matches_df: pd.DataFrame) -> None:
     players = extract_player_stats(matches_df)
     top_scorers = players[players["G"] > 0].head(8) if not players.empty else pd.DataFrame()
@@ -2789,7 +2830,7 @@ def render_matches_tab(matches_df: pd.DataFrame, standings_df: Optional[pd.DataF
         team = st.selectbox("Team", ["All"] + teams)
     with c2:
         ordered_stages = sorted(stages, key=lambda x: list(STAGE_LABELS.values()).index(x) if x in STAGE_LABELS.values() else 99)
-        current_stage_label, _ = get_current_stage_metric(matches_df)
+        current_stage_label = current_stage_label_for_filter(matches_df)
         stage_options = ["All"] + ordered_stages
         default_stage_index = stage_options.index(current_stage_label) if current_stage_label in stage_options else 0
         stage = st.selectbox("Stage", stage_options, index=default_stage_index)
