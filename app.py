@@ -70,7 +70,7 @@ TEAM_FLAG_MAP: Dict[str, str] = {}
 FALLBACK_FLAGS = {
     "Argentina": "🇦🇷", "Australia": "🇦🇺", "Austria": "🇦🇹", "Belgium": "🇧🇪",
     "Bosnia and Herzegovina": "🇧🇦", "Brazil": "🇧🇷", "Canada": "🇨🇦", "Cape Verde": "🇨🇻",
-    "Cabo Verde": "🇨🇻", "Colombia": "🇨🇴", "Croatia": "🇭🇷", "Czechia": "🇨🇿",
+    "Cabo Verde": "🇨🇻", "Colombia": "🇨🇴", "Croatia": "🇭🇷", "Czechia": "🇨🇿", "Czech Republic": "🇨🇿",
     "DR Congo": "🇨🇩", "Congo DR": "🇨🇩", "Democratic Republic of the Congo": "🇨🇩",
     "Ecuador": "🇪🇨", "Egypt": "🇪🇬", "England": "🏴", "France": "🇫🇷", "Germany": "🇩🇪",
     "Ghana": "🇬🇭", "Haiti": "🇭🇹", "Iran": "🇮🇷", "IR Iran": "🇮🇷", "Iraq": "🇮🇶",
@@ -87,7 +87,7 @@ FALLBACK_FLAGS = {
 TEAM_CODE_MAP = {
     "Argentina":"ARG", "Australia":"AUS", "Austria":"AUT", "Belgium":"BEL", "Bosnia and Herzegovina":"BIH",
     "Brazil":"BRA", "Canada":"CAN", "Cape Verde":"CPV", "Cabo Verde":"CPV", "Colombia":"COL", "Croatia":"CRO",
-    "Czechia":"CZE", "DR Congo":"COD", "Congo DR":"COD", "Democratic Republic of the Congo":"COD", "Ecuador":"ECU",
+    "Czechia":"CZE", "Czech Republic":"CZE", "DR Congo":"COD", "Congo DR":"COD", "Democratic Republic of the Congo":"COD", "Ecuador":"ECU",
     "Egypt":"EGY", "England":"ENG", "France":"FRA", "Germany":"GER", "Ghana":"GHA", "Haiti":"HAI", "Iran":"IRN",
     "IR Iran":"IRN", "Iraq":"IRQ", "Ivory Coast":"CIV", "Côte d’Ivoire":"CIV", "Japan":"JPN", "Jordan":"JOR",
     "Mexico":"MEX", "Morocco":"MAR", "Netherlands":"NED", "New Zealand":"NZL", "Norway":"NOR", "Panama":"PAN",
@@ -99,7 +99,7 @@ TEAM_CODE_MAP = {
 
 TEAM_ISO2_MAP = {
     "Argentina":"ar", "Australia":"au", "Austria":"at", "Belgium":"be", "Bosnia and Herzegovina":"ba", "Brazil":"br",
-    "Canada":"ca", "Cape Verde":"cv", "Cabo Verde":"cv", "Colombia":"co", "Croatia":"hr", "Czechia":"cz", "DR Congo":"cd",
+    "Canada":"ca", "Cape Verde":"cv", "Cabo Verde":"cv", "Colombia":"co", "Croatia":"hr", "Czechia":"cz", "Czech Republic":"cz", "DR Congo":"cd",
     "Congo DR":"cd", "Democratic Republic of the Congo":"cd", "Ecuador":"ec", "Egypt":"eg", "England":"gb-eng",
     "France":"fr", "Germany":"de", "Ghana":"gh", "Haiti":"ht", "Iran":"ir", "IR Iran":"ir", "Iraq":"iq", "Ivory Coast":"ci",
     "Côte d’Ivoire":"ci", "Japan":"jp", "Jordan":"jo", "Mexico":"mx", "Morocco":"ma", "Netherlands":"nl", "New Zealand":"nz",
@@ -298,7 +298,8 @@ st.markdown(
       .wc-summary-name, .wc-summary-country {font-weight:900; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
       .wc-summary-name:hover, .wc-summary-country:hover, .wc-overview-grid .wc-entity-link:hover .team-name {color:var(--wc-green) !important;}
       .wc-summary-meta {color:var(--wc-muted); white-space:nowrap; font-size:.78rem;}
-      .wc-summary-stage {color:#cbd5e1; font-size:.72rem; white-space:normal; line-height:1.1; font-weight:900;}
+      .wc-summary-stage {color:#cbd5e1; font-size:.72rem; white-space:nowrap; line-height:1.1; font-weight:900;}
+      .wc-summary-winner .team-name, .wc-summary-winner.wc-summary-country {color:var(--wc-green) !important;}
       .wc-summary-score {justify-self:end; text-align:right; font-weight:950; color:#fff; white-space:nowrap;}
       .wc-summary-goal {font-size:1.15rem; color:#fde68a;}
       .wc-rank-num {background:rgba(247,201,72,.18); color:#f7c948; border-radius:7px; text-align:center; font-weight:900; padding:3px;}
@@ -452,6 +453,11 @@ st.markdown(
       .wc-bracket-shell.compact .wc-bracket-card {min-height:52px !important; padding:6px !important;}
       .wc-bracket-shell.compact .wc-cup-final {min-height:230px !important;}
       .wc-bracket-stage-flow {text-align:center;color:var(--muted);font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin:6px 0 12px;}
+      .wc-team-card-grid {grid-template-columns:repeat(auto-fill,minmax(180px,1fr)) !important;}
+      .wc-team-card {min-height:62px !important; padding:7px 8px !important;}
+      .wc-team-card-flag .flag-img,.wc-team-card-flag .wc-flag {width:34px !important;height:23px !important;font-size:1rem !important;}
+      .wc-team-card-group {margin-left:42px !important;}
+      .wc-team-card-bottom {margin-top:5px !important;}
 
     </style>
     """,
@@ -561,8 +567,8 @@ def flag_img(team: Any) -> str:
     iso = team_iso2(name)
     emoji = TEAM_FLAG_MAP.get(name) or FALLBACK_FLAGS.get(name) or "⚽"
     if iso:
-        return f'<img class="flag-img" src="https://flagcdn.com/w40/{iso}.png" alt="{esc(name)} flag" loading="lazy">'
-    return f'<span class="wc-flag">{emoji}</span>'
+        return f'<img class="flag-img" src="https://flagcdn.com/w40/{iso}.png" alt="{esc(name)} flag" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{{className:\'wc-flag\',textContent:\'⚽\'}}))">'
+    return f'<span class="wc-flag">⚽</span>'
 
 
 
@@ -1264,8 +1270,11 @@ def render_overview_summary_cards(matches_df: pd.DataFrame) -> None:
     latest = matches_df[matches_df["status"] == "Finished"].sort_values("date_time", ascending=False, na_position="last").head(7) if not matches_df.empty else pd.DataFrame()
 
     def match_row(r: Any, value_html: str) -> str:
+        winner = clean_text(getattr(r, "winner", ""))
+        home_cls = " wc-summary-winner" if winner == clean_text(r.home_team) else ""
+        away_cls = " wc-summary-winner" if winner == clean_text(r.away_team) else ""
         return overview_row(
-            f"<span class='wc-summary-team'>{team_chip(r.home_team)}</span><span class='wc-summary-vs'>vs</span><span class='wc-summary-team'>{team_chip(r.away_team)}</span>",
+            f"<span class='wc-summary-team{home_cls}'>{team_chip(r.home_team)}</span><span class='wc-summary-vs'>vs</span><span class='wc-summary-team{away_cls}'>{team_chip(r.away_team)}</span>",
             value_html,
             esc(r.stage_label),
         )
@@ -1293,7 +1302,7 @@ def render_overview_summary_cards(matches_df: pd.DataFrame) -> None:
         ("🥅 Most Clean Sheets", [
             overview_row(
                 f"<span class='wc-summary-name'>{esc(r.keeper)}</span> {team_chip(r.team)}",
-                f"{int(r.clean_sheets)} CS",
+                f"{int(r.clean_sheets)}",
                 f"#{i}",
             )
             for i, r in enumerate(clean_sheets.itertuples(), start=1)
