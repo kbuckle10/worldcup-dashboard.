@@ -430,6 +430,26 @@ st.markdown(
       .wc-team-status.still-in, .badge.adv {background:rgba(22,199,132,.14) !important; color:var(--accent) !important; border-color:rgba(22,199,132,.3) !important;}
       .wc-team-status.eliminated {background:rgba(239,91,107,.12) !important; color:var(--loss) !important; border-color:rgba(239,91,107,.28) !important;}
       div[data-testid="stDataFrame"] {border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);}
+      /* App-wide compact rendering: smaller text and tighter cards/tiles. */
+      html, body, [data-testid="stAppViewContainer"], .stMarkdown, .stDataFrame, .stMetric, button, input, textarea, select {font-size:14px !important;}
+      p, li, label, div, span {font-size:0.92rem;}
+      h1 {font-size:1.55rem !important;} h2 {font-size:1.35rem !important;} h3 {font-size:1.12rem !important;} h4 {font-size:.98rem !important;}
+      .block-container {padding-top:.2rem !important; padding-bottom:1rem !important;}
+      .wc-stat-card, .match-card, .wc-live-card, .wc-summary-card, .wc-team-profile, .wc-player-card, .wc-basics-card, .wc-panel {padding:10px 12px !important; border-radius:12px !important;}
+      .wc-stat-card {min-height:82px !important;}
+      .wc-stat-value {font-size:1.35rem !important;}
+      .match-card {margin-bottom:8px !important;}
+      .wc-summary-card {min-height:250px !important;}
+      .wc-team-card-grid {grid-template-columns:repeat(auto-fill,minmax(180px,1fr)) !important; gap:9px !important;}
+      .wc-team-card {min-height:86px !important; padding:10px !important;}
+      .wc-team-card-flag .flag-img,.wc-team-card-flag .wc-flag {width:38px !important;height:25px !important;font-size:1.35rem !important;}
+      .wc-team-card-group {margin-left:46px !important;}
+      .wc-team-card-bottom {margin-top:10px !important;}
+      .wc-player-grid {grid-template-columns:repeat(auto-fill,minmax(185px,1fr)) !important; gap:9px !important;}
+      .wc-bracket-shell.compact {padding:10px !important;}
+      .wc-bracket-shell.compact .wc-bracket-card {min-height:52px !important; padding:6px !important;}
+      .wc-bracket-shell.compact .wc-cup-final {min-height:230px !important;}
+      .wc-bracket-stage-flow {text-align:center;color:var(--muted);font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin:6px 0 12px;}
 
     </style>
     """,
@@ -1888,8 +1908,8 @@ def render_live_score_card(row: pd.Series, key_prefix: str = "live", standings_d
 def bracket_card_html(row: Optional[pd.Series] = None, placeholder: str = "TBD") -> str:
     if row is None:
         return f'''<div class="wc-bracket-card">
-            <div class="wc-bracket-team"><span>• {esc(placeholder)}</span><span class="wc-bracket-score">?</span></div>
-            <div class="wc-bracket-team"><span>• TBD</span><span class="wc-bracket-score">?</span></div>
+            <div class="wc-bracket-team"><span>{flag_img(placeholder)} {esc(placeholder)}</span><span class="wc-bracket-score">?</span></div>
+            <div class="wc-bracket-team"><span>{flag_img("TBD")} TBD</span><span class="wc-bracket-score">?</span></div>
             <div class="subtle" style="font-size:.76rem;margin-top:6px;">Path to be decided</div>
           </div>'''
     home = clean_text(row.get("home_team", "TBD"), "TBD")
@@ -1901,8 +1921,8 @@ def bracket_card_html(row: Optional[pd.Series] = None, placeholder: str = "TBD")
     away_cls = " wc-bracket-winner" if winner == away else ""
     return f'''<div class="wc-bracket-card">
         <div style="margin-bottom:5px;">{status_badge(row.get('status', 'Scheduled'))}</div>
-        <div class="wc-bracket-team{home_cls}"><span>{team_chip(home)}</span><span class="wc-bracket-score">{hs}</span></div>
-        <div class="wc-bracket-team{away_cls}"><span>{team_chip(away)}</span><span class="wc-bracket-score">{aw}</span></div>
+        <div class="wc-bracket-team{home_cls}"><span>{team_chip(home, show_code=False)}</span><span class="wc-bracket-score">{hs}</span></div>
+        <div class="wc-bracket-team{away_cls}"><span>{team_chip(away, show_code=False)}</span><span class="wc-bracket-score">{aw}</span></div>
         <div class="subtle" style="font-size:.76rem;margin-top:6px;">{esc(row.get('kickoff','TBD'))}</div>
       </div>'''
 
@@ -1922,83 +1942,47 @@ def render_bracket_wall(knockout: pd.DataFrame) -> None:
         st.info("Knockout data is not loaded yet.")
         return
 
-    stages = [stage for stage in ["r32", "r16", "qf", "sf", "final"] if not knockout[knockout["stage"] == stage].empty]
-    third = knockout[knockout["stage"] == "third"].sort_values("date_time", na_position="last")
-    if not stages:
+    stage_order = [stage for stage in ["r32", "r16", "qf", "sf"] if not knockout[knockout["stage"] == stage].empty]
+    final_rows = knockout[knockout["stage"] == "final"].sort_values("date_time", na_position="last")
+    third_rows = knockout[knockout["stage"] == "third"].sort_values("date_time", na_position="last")
+    if not stage_order and final_rows.empty:
         st.info("Knockout data is not loaded yet.")
         return
 
-    col_w, col_gap, row_h = 150, 42, 110
-    header, pad_x, pad_top, pad_bottom = 26, 12, 8, 140 if not third.empty else 30
-    stage_rows: Dict[str, List[pd.Series]] = {
-        stage: [row for _, row in knockout[knockout["stage"] == stage].sort_values("date_time", na_position="last").iterrows()]
-        for stage in stages
-    }
-    max_rows = max(1, max(len(rows) for rows in stage_rows.values()))
-    total_w = pad_x * 2 + len(stages) * col_w + max(0, len(stages) - 1) * col_gap
-    total_h = header + pad_top + max_rows * row_h + pad_bottom
+    def split_cards(cards: List[str]) -> Tuple[List[str], List[str]]:
+        midpoint = math.ceil(len(cards) / 2)
+        return cards[:midpoint], cards[midpoint:]
 
-    def y_for(stage: str, idx: int) -> float:
-        rows = max(1, len(stage_rows.get(stage, [])))
-        available = max_rows * row_h
-        return header + pad_top + ((idx + 0.5) * available / rows) - 34
+    left_cols: List[str] = []
+    right_cols: List[str] = []
+    expected_counts = {"r32": 8, "r16": 4, "qf": 2, "sf": 1}
+    for stage in stage_order:
+        left, right = split_cards(_stage_cards(knockout, stage))
+        count = max(1, expected_counts.get(stage, math.ceil(len(left) or 1)))
+        css_cls = {"r32": "", "r16": "r16", "qf": "qf", "sf": "sf"}.get(stage, "")
+        title = f"<div class='wc-bracket-round-title'>{esc(STAGE_LABELS.get(stage, stage))}</div>"
+        left_cols.append(f"<div>{title}{_stack(left, count, css_cls)}</div>")
+        right_cols.insert(0, f"<div>{title}{_stack(right, count, css_cls)}</div>")
 
-    def x_for(stage: str) -> int:
-        return pad_x + stages.index(stage) * (col_w + col_gap)
-
-    def team_row(team: str, score: str, win: bool, placeholder: bool = False) -> str:
-        flag = "•" if placeholder else flag_img(team)
-        cls = "row" + (" win" if win else "") + (" placeholder" if placeholder else "")
-        return f"<div class='{cls}'><span class='flag'>{flag}</span><span class='nm'>{esc(team)}</span><span class='sc'>{score}</span></div>"
-
-    def tie_html(row: pd.Series) -> str:
-        home = clean_text(row.get("home_team"), "TBD")
-        away = clean_text(row.get("away_team"), "TBD")
-        home_ph = home.upper() == "TBD" or bool(re.search(r"winner|runner|loser|^W\d+|^L\d+", home, re.I))
-        away_ph = away.upper() == "TBD" or bool(re.search(r"winner|runner|loser|^W\d+|^L\d+", away, re.I))
-        played = row.get("status") == "Finished"
-        live = row.get("status") == "Live"
-        hs = "" if pd.isna(row.get("home_score")) else str(int(row.get("home_score")))
-        aw = "" if pd.isna(row.get("away_score")) else str(int(row.get("away_score")))
-        winner = clean_text(row.get("winner"))
-        meta_bits = []
-        if live:
-            meta_bits.append("🔴 Live")
-        elif played:
-            meta_bits.append("FT")
-        kickoff = clean_text(row.get("kickoff"))
-        if kickoff and not live:
-            meta_bits.append(kickoff)
-        meta = f"<div class='meta'>{esc(' · '.join(meta_bits))}</div>" if meta_bits else ""
-        state_cls = "done" if played else "live" if live else ""
-        return f"<div class='tie {state_cls}'>{team_row(home, hs, winner == home, home_ph)}{team_row(away, aw, winner == away, away_ph)}{meta}</div>"
-
-    paths = []
-    for i in range(len(stages) - 1):
-        left_stage, right_stage = stages[i], stages[i + 1]
-        left_rows, right_rows = stage_rows[left_stage], stage_rows[right_stage]
-        for j, _row in enumerate(left_rows):
-            target_idx = min(len(right_rows) - 1, j // 2) if right_rows else 0
-            x1 = x_for(left_stage) + col_w
-            y1 = y_for(left_stage, j) + 34
-            x2 = x_for(right_stage)
-            y2 = y_for(right_stage, target_idx) + 34
-            mid = (x1 + x2) / 2
-            cls = "adv" if clean_text(_row.get("winner")) else "pending"
-            paths.append(f"<path class='{cls}' d='M{x1} {y1} H{mid} V{y2} H{x2}'/>")
-
-    html = [f"<div class='wc-js-bracket-shell'><div class='wc-js-bracket' style='width:{total_w}px;height:{total_h}px;'>"]
-    html.append(f"<svg class='kconns' width='{total_w}' height='{total_h}' viewBox='0 0 {total_w} {total_h}'>{''.join(paths)}</svg>")
-    for stage in stages:
-        html.append(f"<div class='kround-title' style='left:{x_for(stage)}px;top:0;width:{col_w}px'>{esc(STAGE_LABELS.get(stage, stage))}</div>")
-        for idx, row in enumerate(stage_rows[stage]):
-            html.append(f"<div class='kmatch' style='left:{x_for(stage)}px;top:{y_for(stage, idx):.1f}px;width:{col_w}px'>{tie_html(row)}</div>")
-    if not third.empty:
-        tx, ty = x_for(stages[-2] if len(stages) > 1 else stages[0]), total_h - 110
-        html.append(f"<div class='kround-title' style='left:{tx}px;top:{ty-20}px;width:{col_w}px'>3rd-place play-off</div>")
-        html.append(f"<div class='kmatch' style='left:{tx}px;top:{ty}px;width:{col_w}px'>{tie_html(third.iloc[0])}</div>")
-    html.append("</div></div>")
-    st.markdown("".join(html), unsafe_allow_html=True)
+    final_card = bracket_card_html(final_rows.iloc[0]) if not final_rows.empty else bracket_card_html(None, "Finalist")
+    third_card = bracket_card_html(third_rows.iloc[0]) if not third_rows.empty else bracket_card_html(None, "Bronze finalist")
+    html = f"""
+      <div class="wc-bracket-shell compact">
+        <div class="wc-bracket-stage-flow">Flags advance round by round toward the World Champion</div>
+        <div class="wc-bracket-board">
+          <div class="wc-bracket-side left">{''.join(left_cols)}</div>
+          <div class="wc-cup-final">
+            <div class="wc-world-champ">World Champion</div>
+            <div style="width:100%;margin:12px 0;">{final_card}</div>
+            <div class="wc-cup-icon">🏆</div>
+            <div class="wc-bracket-round-title" style="margin-top:14px;">Bronze Final</div>
+            <div style="width:78%;">{third_card}</div>
+          </div>
+          <div class="wc-bracket-side right">{''.join(right_cols)}</div>
+        </div>
+      </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -2944,8 +2928,9 @@ def render_teams_tab(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standings
         if not gdf.empty:
             gdf = gdf.sort_values(["Pts", "GD", "GF"], ascending=[False, False, False], na_position="last")
             gdf["Rank"] = range(1, len(gdf) + 1)
-            gdf["Team"] = gdf["team"].map(lambda t: f"{team_flag(t)} {t} {team_code(t)}")
-            st.dataframe(gdf[["Rank", "Team", "Pts", "GD", "GF", "GA"]], use_container_width=True, hide_index=True)
+            gdf["Flag"] = gdf["team"].map(team_flag)
+            gdf["Team"] = gdf["team"].map(clean_text)
+            st.dataframe(gdf[["Rank", "Flag", "Team", "Pts", "GD", "GF", "GA"]], use_container_width=True, hide_index=True)
     render_team_route(favorite, matches_df)
 
 def render_insights_tab(matches_df: pd.DataFrame) -> None:
