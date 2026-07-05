@@ -922,7 +922,7 @@ def calculate_standings_from_matches(matches_df: pd.DataFrame, teams_df: pd.Data
 
 
 @st.cache_data(ttl=60, show_spinner=False)
-def load_live_data(api_base: str, token: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
+def load_live_data(api_base: str, token: str, fallback_to_demo: bool = True) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
     errors = []
     try:
         matches_raw = fetch_api("/get/games", api_base, token)
@@ -936,8 +936,9 @@ def load_live_data(api_base: str, token: str) -> Tuple[pd.DataFrame, pd.DataFram
         return matches, teams, groups, stadiums, "Live API"
     except Exception as exc:
         errors.append(str(exc))
+        if not fallback_to_demo:
+            raise RuntimeError("; ".join(errors)) from exc
         matches, teams, groups, stadiums, source = load_fallback()
-        st.warning("Live API could not be loaded, so the app is using the demo fallback snapshot. Details: " + "; ".join(errors))
         return matches, teams, groups, stadiums, source
 
 
@@ -1794,7 +1795,7 @@ def render_bracket_wall(knockout: pd.DataFrame) -> None:
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
+def load_openfootball_data(fallback_to_demo: bool = True) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
     """Load the GitHub-hosted OpenFootball World Cup 2026 JSON feed."""
     def team_name(value: Any) -> str:
         if isinstance(value, dict):
@@ -1928,8 +1929,9 @@ def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, 
         groups = calculate_standings_from_matches(matches, teams)
         return matches, teams, groups, stadiums, f"OpenFootball GitHub JSON ({schema_name})"
     except Exception as exc:
+        if not fallback_to_demo:
+            raise RuntimeError(str(exc)) from exc
         matches, teams, groups, stadiums, source = load_fallback()
-        st.warning("OpenFootball data could not be loaded, so the app is using the demo fallback snapshot. Details: " + str(exc))
         return matches, teams, groups, stadiums, source
 
 
@@ -1962,8 +1964,40 @@ def fetch_public_json(url: str, params: Optional[Dict[str, Any]] = None) -> Any:
     return resp.json()
 
 
-def source_labels_text(source: str) -> str:
-    return f"{source} • Base data: OpenFootball • Live overlay: ESPN • Enrichment: TheSportsDB"
+def source_labels_text(statuses: Dict[str, str]) -> str:
+    """Render the data-provider chain without promoting demo data as primary."""
+    labels = ["OpenFootball", "ESPN", "TheSportsDB"]
+    if statuses.get("worldcup26 fallback"):
+        labels.append("worldcup26 fallback")
+    rendered = []
+    for label in labels:
+        status = statuses.get(label, "")
+        icon = "✓" if status == "ok" else "↳" if status == "fallback" else "⚠"
+        rendered.append(f"{icon} {label}")
+    return " • ".join(rendered)
+
+
+def load_default_data(api_base: str, token: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
+    """Load data in priority order: OpenFootball, ESPN, TheSportsDB, then worldcup26."""
+    statuses = {"OpenFootball": "", "ESPN": "", "TheSportsDB": "", "worldcup26 fallback": ""}
+    try:
+        matches, teams, groups, stadiums, _source = load_openfootball_data(fallback_to_demo=False)
+        statuses["OpenFootball"] = "ok"
+    except Exception as of_exc:
+        statuses["OpenFootball"] = f"unavailable: {of_exc}"
+        try:
+            matches, teams, groups, stadiums, _source = load_live_data(api_base, token, fallback_to_demo=False)
+            statuses["worldcup26 fallback"] = "fallback"
+        except Exception as api_exc:
+            matches, teams, groups, stadiums, _source = load_fallback()
+            statuses["worldcup26 fallback"] = f"demo fallback: {api_exc}"
+
+    matches, espn_source = apply_espn_overlay(matches)
+    statuses["ESPN"] = "ok" if "unavailable" not in espn_source.lower() else espn_source
+    matches, teams, tdb_source = apply_thesportsdb_enrichment(matches, teams)
+    statuses["TheSportsDB"] = "ok" if "unavailable" not in tdb_source.lower() else tdb_source
+    statuses.setdefault("worldcup26 fallback", "")
+    return matches, teams, groups, stadiums, source_labels_text(statuses)
 
 
 def normalize_espn_status(competition: Dict[str, Any], status: Dict[str, Any]) -> str:
@@ -2600,13 +2634,10 @@ def main() -> None:
         st.rerun()
 
     if source_mode == "OpenFootball + ESPN + TheSportsDB":
-        matches, teams, groups, stadiums, source = load_openfootball_data()
-        matches, espn_source = apply_espn_overlay(matches)
-        matches, teams, tdb_source = apply_thesportsdb_enrichment(matches, teams)
-        source = source_labels_text(f"Base data: OpenFootball | Live overlay: {espn_source} | Enrichment: {tdb_source}")
+        matches, teams, groups, stadiums, source = load_default_data(api_base, token)
     elif source_mode == "OpenFootball":
         matches, teams, groups, stadiums, source = load_openfootball_data()
-        source = "Base data: OpenFootball"
+        source = "✓ OpenFootball"
     elif source_mode == "Live API":
         matches, teams, groups, stadiums, source = load_live_data(api_base, token)
         source = f"{source} (worldcup26.ir fallback)"
