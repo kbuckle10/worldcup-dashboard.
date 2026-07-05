@@ -394,21 +394,38 @@ st.markdown(
       @media (max-width: 1100px) {.wc-overview-grid{grid-template-columns:1fr 1fr}}
       @media (max-width: 900px) {.wc-story-grid,.wc-basics-grid{grid-template-columns:1fr 1fr}.wc-live-teams{grid-template-columns:1fr}.wc-bracket-grid{grid-template-columns:repeat(3,minmax(210px,1fr));}}
       @media (max-width: 640px) {.wc-story-grid,.wc-overview-grid,.wc-basics-grid{grid-template-columns:1fr}}
-      .wc-bracket-shell.compact {padding:14px;}
-      .wc-bracket-shell.compact .wc-bracket-board {min-width:1080px; grid-template-columns:1fr 220px 1fr; gap:14px;}
-      .wc-bracket-shell.compact .wc-bracket-side {grid-template-columns:repeat(4, minmax(132px, 1fr)); gap:10px;}
-      .wc-bracket-shell.compact .wc-bracket-card {min-height:62px; padding:7px; border-radius:12px; font-size:.72rem;}
-      .wc-bracket-shell.compact .wc-bracket-team {font-size:.68rem; margin:2px 0;}
-      .wc-bracket-shell.compact .wc-bracket-score {font-size:.78rem;}
-      .wc-bracket-shell.compact .wc-bracket-round-title {font-size:.62rem; margin-bottom:6px;}
-      .wc-bracket-shell.compact .wc-bracket-stack {gap:7px;}
-      .wc-bracket-shell.compact .wc-bracket-stack.r16 {gap:23px;}
-      .wc-bracket-shell.compact .wc-bracket-stack.qf {gap:58px;}
-      .wc-bracket-shell.compact .wc-bracket-stack.sf {gap:138px;}
-      .wc-bracket-shell.compact .wc-cup-final {padding:12px; min-height:280px;}
-      .wc-bracket-shell.compact .wc-cup-icon {font-size:2.1rem;}
+      .wc-bracket-shell.compact {
+        position:relative; overflow-x:auto; padding:20px 20px 16px; border:1px solid rgba(148,163,184,.28); border-radius:24px;
+        background:radial-gradient(circle at 50% 33%, rgba(247,201,72,.10), transparent 19rem), radial-gradient(circle at 8% 10%, rgba(56,189,248,.10), transparent 22rem), linear-gradient(180deg,#060b13 0%,#07111e 55%,#050914 100%);
+        box-shadow:inset 0 0 0 1px rgba(255,255,255,.03),0 24px 70px rgba(0,0,0,.35);
+      }
+      .wc-bracket-poster-title {text-align:center;color:#fff;font-size:clamp(1.55rem,3vw,2.7rem);line-height:.95;font-weight:1000;letter-spacing:-.04em;text-transform:uppercase;text-shadow:0 3px 0 rgba(255,255,255,.12),0 16px 36px rgba(0,0,0,.55);margin:0 0 22px;}
+      .wc-bracket-shell.compact .wc-bracket-board {min-width:1180px; grid-template-columns:1fr 220px 1fr; gap:24px; align-items:center;}
+      .wc-bracket-shell.compact .wc-bracket-side {display:grid; grid-template-columns:repeat(4, minmax(118px, 1fr)); gap:14px; align-items:center;}
+      .wc-bracket-shell.compact .wc-bracket-round-title {color:#f7c948;font-size:.70rem;text-transform:uppercase;letter-spacing:.08em;font-weight:1000;margin-bottom:14px;text-align:center;text-shadow:0 0 14px rgba(247,201,72,.18);}
+      .wc-bracket-shell.compact .wc-bracket-stack {gap:9px;}
+      .wc-bracket-shell.compact .wc-bracket-stack.r16 {gap:42px;}
+      .wc-bracket-shell.compact .wc-bracket-stack.qf {gap:112px;}
+      .wc-bracket-shell.compact .wc-bracket-stack.sf {gap:248px;}
+      .wc-bracket-shell.compact .wc-bracket-card {min-height:58px;padding:8px 9px;border-radius:11px;font-size:.72rem;background:linear-gradient(180deg,rgba(30,39,51,.92),rgba(12,19,29,.94));border:1px solid rgba(203,213,225,.34);box-shadow:inset 0 0 22px rgba(255,255,255,.03),0 12px 30px rgba(0,0,0,.30);}
+      .wc-bracket-shell.compact .wc-bracket-card:hover {border-color:rgba(247,201,72,.65);box-shadow:0 0 0 1px rgba(247,201,72,.20),0 16px 34px rgba(0,0,0,.38);}
+      .wc-bracket-shell.compact .wc-bracket-card .tag {display:none;}
+      .wc-bracket-shell.compact .wc-bracket-card .subtle {display:none;}
+      .wc-bracket-shell.compact .wc-bracket-team {position:relative;font-size:.76rem;line-height:1.1;margin:0;padding:4px 0;font-weight:1000;text-transform:uppercase;}
+      .wc-bracket-shell.compact .wc-bracket-team + .wc-bracket-team {border-top:1px solid rgba(148,163,184,.22);}
+      .wc-bracket-shell.compact .wc-bracket-winner {border-left:0;padding-left:0;color:#fff;text-shadow:0 0 10px rgba(34,197,94,.24);}
+      .wc-bracket-shell.compact .wc-bracket-winner::before {content:"";width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 12px rgba(34,197,94,.8);position:absolute;left:-5px;top:50%;transform:translateY(-50%);}
+      .wc-bracket-shell.compact .wc-bracket-score {font-size:.78rem;color:#fff;}
       .wc-bracket-shell.compact .team-code {display:none;}
-      .wc-bracket-shell.compact .wc-flag {width:19px;height:14px;font-size:.8rem;}
+      .wc-bracket-shell.compact .flag-img,.wc-bracket-shell.compact .wc-flag {width:24px;height:17px;font-size:.9rem;border-radius:3px;margin-right:3px;}
+      .wc-bracket-shell.compact .wc-cup-final {min-height:430px;padding:14px;border-radius:20px;border:1px solid rgba(247,201,72,.80);background:radial-gradient(circle at 50% 58%,rgba(247,201,72,.38),transparent 8rem),linear-gradient(180deg,rgba(58,43,18,.72),rgba(11,13,18,.88));box-shadow:0 0 0 1px rgba(247,201,72,.25),0 0 38px rgba(247,201,72,.22),inset 0 0 45px rgba(247,201,72,.10);}
+      .wc-bracket-shell.compact .wc-world-champ {color:#f7c948;font-weight:1000;text-transform:uppercase;letter-spacing:.04em;}
+      .wc-bracket-shell.compact .wc-cup-icon {font-size:6.3rem;filter:drop-shadow(0 18px 24px rgba(247,201,72,.35));line-height:1;margin:8px 0;}
+      .wc-bracket-shell.compact .wc-third-place {width:82%;margin:18px auto 0;border:1px solid rgba(251,146,60,.80);border-radius:16px;padding:10px;background:rgba(67,37,23,.55);box-shadow:0 0 24px rgba(251,146,60,.16);}
+      .wc-bracket-shell.compact .wc-bracket-legend {min-width:1180px;margin-top:20px;border:1px solid rgba(148,163,184,.22);border-radius:12px;padding:12px;display:flex;justify-content:center;gap:44px;background:rgba(15,23,42,.58);font-size:.82rem;font-weight:900;}
+      .wc-bracket-legend span::before {content:"";display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:8px;vertical-align:-2px;}
+      .wc-bracket-legend .win::before {background:#22c55e}.wc-bracket-legend .et::before {background:#f7c948}.wc-bracket-legend .pens::before {background:#cbd5e1}
+      @media (max-width: 900px) {.wc-bracket-shell.compact .wc-bracket-board,.wc-bracket-shell.compact .wc-bracket-legend{min-width:1040px}.wc-bracket-shell.compact .wc-bracket-side{gap:10px}.wc-bracket-shell.compact .wc-bracket-board{gap:16px;grid-template-columns:1fr 190px 1fr}.wc-bracket-shell.compact .wc-cup-final{min-height:390px}}
       .wc-route-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(247,201,72,.32);background:rgba(247,201,72,.10);border-radius:999px;padding:4px 9px;margin:3px;color:#fde68a;font-size:.75rem;font-weight:900}
 
 
@@ -474,6 +491,14 @@ st.markdown(
       .wc-bracket-shell.compact {padding:10px !important;}
       .wc-bracket-shell.compact .wc-bracket-card {min-height:52px !important; padding:6px !important;}
       .wc-bracket-shell.compact .wc-cup-final {min-height:230px !important;}
+      .wc-bracket-shell.compact {padding:20px 20px 16px !important; border-radius:24px !important;}
+      .wc-bracket-shell.compact .wc-bracket-card {min-height:58px !important; padding:8px 9px !important; border-radius:11px !important;}
+      .wc-bracket-shell.compact .wc-cup-final {min-height:430px !important;}
+      .wc-bracket-shell.compact .wc-bracket-board {min-width:1180px !important; grid-template-columns:1fr 220px 1fr !important; gap:24px !important;}
+      .wc-bracket-shell.compact .wc-bracket-side {grid-template-columns:repeat(4, minmax(118px, 1fr)) !important; gap:14px !important;}
+      .wc-bracket-shell.compact .wc-bracket-stack.r16 {gap:42px !important;}
+      .wc-bracket-shell.compact .wc-bracket-stack.qf {gap:112px !important;}
+      .wc-bracket-shell.compact .wc-bracket-stack.sf {gap:248px !important;}
       .wc-bracket-stage-flow {text-align:center;color:var(--muted);font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin:6px 0 12px;}
       .wc-team-card-grid {grid-template-columns:repeat(auto-fill,minmax(180px,1fr)) !important;}
       .wc-team-card {min-height:62px !important; padding:7px 8px !important;}
@@ -2098,18 +2123,21 @@ def render_bracket_wall(knockout: pd.DataFrame) -> None:
     third_card = bracket_card_html(third_rows.iloc[0]) if not third_rows.empty else bracket_card_html(None, "Bronze finalist")
     html = f"""
       <div class="wc-bracket-shell compact">
-        <div class="wc-bracket-stage-flow">Flags advance round by round toward the World Champion</div>
+        <div class="wc-bracket-poster-title">FIFA World Cup 2026™</div>
         <div class="wc-bracket-board">
           <div class="wc-bracket-side left">{''.join(left_cols)}</div>
           <div class="wc-cup-final">
             <div class="wc-world-champ">World Champion</div>
             <div style="width:100%;margin:12px 0;">{final_card}</div>
             <div class="wc-cup-icon">🏆</div>
-            <div class="wc-bracket-round-title" style="margin-top:14px;">Bronze Final</div>
-            <div style="width:78%;">{third_card}</div>
+            <div class="wc-third-place">
+              <div class="wc-bracket-round-title" style="margin:0 0 8px;">Third Place</div>
+              {third_card}
+            </div>
           </div>
           <div class="wc-bracket-side right">{''.join(right_cols)}</div>
         </div>
+        <div class="wc-bracket-legend"><span class="win">Winner</span><span class="et">Extra Time</span><span class="pens">Penalties</span></div>
       </div>
     """
     st.markdown(html, unsafe_allow_html=True)
