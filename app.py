@@ -364,6 +364,10 @@ st.markdown(
       .wc-bracket-shell.compact .team-code {display:none;}
       .wc-bracket-shell.compact .wc-flag {width:19px;height:14px;font-size:.8rem;}
       .wc-route-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(247,201,72,.32);background:rgba(247,201,72,.10);border-radius:999px;padding:4px 9px;margin:3px;color:#fde68a;font-size:.75rem;font-weight:900}
+
+      .wc-section-kicker{color:#a8b3c7;font-weight:900;text-transform:uppercase;letter-spacing:.10em;font-size:.78rem;margin:10px 0;}
+      .wc-team-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 14px;}.wc-team-filter-pill{border:1px solid rgba(148,163,184,.46);border-radius:999px;padding:6px 12px;background:rgba(15,31,53,.78);color:#cbd5e1;font-weight:900;font-size:.83rem;text-decoration:none;}.wc-team-filter-pill.active{border-color:#2dd4bf;background:rgba(45,212,191,.16);color:#fff;box-shadow:0 0 18px rgba(45,212,191,.16);}
+      .wc-team-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:8px;}.wc-team-card{display:block;text-decoration:none;border:1px solid rgba(71,100,145,.95);border-radius:12px;padding:14px;background:radial-gradient(circle at 88% 86%,rgba(56,189,248,.13),transparent 4rem),linear-gradient(135deg,rgba(25,39,62,.96),rgba(15,27,45,.96));min-height:116px;color:#f8fafc;box-shadow:0 14px 32px rgba(0,0,0,.22);transition:transform .18s ease,border-color .18s ease;}.wc-team-card:hover{transform:translateY(-2px);border-color:rgba(45,212,191,.70);}.wc-team-card-top{display:flex;align-items:center;gap:8px;min-width:0;}.wc-team-card-flag .flag-img,.wc-team-card-flag .wc-flag{width:48px;height:32px;font-size:1.7rem;border-radius:4px;}.wc-team-card-name{font-weight:950;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.wc-team-card-group{margin-left:56px;color:#a8b3c7;font-size:.78rem;font-weight:800;}.wc-team-card-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;}.wc-team-status{border:1px solid rgba(34,197,94,.42);background:rgba(34,197,94,.13);color:#bbf7d0;border-radius:999px;padding:4px 9px;font-size:.70rem;font-weight:950;}.wc-team-status.eliminated{border-color:rgba(244,63,94,.55);background:rgba(244,63,94,.16);color:#fecdd3;}.wc-team-form{display:flex;gap:4px;}.wc-mini-form{width:20px;height:20px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:950;background:#94a3b8;color:#06111f}.wc-mini-form.win{background:#22c55e}.wc-mini-form.loss{background:#fb7185}.wc-mini-form.draw{background:#cbd5e1;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -2734,16 +2738,79 @@ def render_knockout_tab(matches_df: pd.DataFrame, standings_df: Optional[pd.Data
                     render_match_card(row, standings_df=standings_df)
 
 
+def team_tournament_status(team: str, matches_df: pd.DataFrame) -> Tuple[str, str]:
+    """Return ('still-in'|'eliminated', friendly status) for team cards."""
+    name = clean_text(team)
+    if not name or matches_df.empty:
+        return "still-in", "Still in it"
+    tmatches = filter_matches(matches_df, team=name).copy()
+    if tmatches.empty:
+        return "still-in", "Still in it"
+    finished_ko = tmatches[(tmatches.get("stage", "") != "group") & (tmatches.get("status", "") == "Finished")].copy()
+    if not finished_ko.empty:
+        latest = finished_ko.sort_values("date_time", ascending=False, na_position="last").iloc[0]
+        if clean_text(latest.get("winner")) != name:
+            return "eliminated", f"Out — {clean_text(latest.get('stage_label'), 'Knockout')}"
+    if not tmatches[tmatches.get("status", "") != "Finished"].empty:
+        return "still-in", "Still in it"
+    finished = tmatches[tmatches.get("status", "") == "Finished"]
+    if not finished.empty and clean_text(finished.sort_values("date_time", ascending=False, na_position="last").iloc[0].get("stage")) == "group":
+        return "eliminated", "Out — group stage"
+    return "still-in", "Still in it"
+
+
+def team_card_html(team: str, matches_df: pd.DataFrame, teams_df: pd.DataFrame, standings_df: pd.DataFrame) -> str:
+    row = teams_df[teams_df["team"] == team].iloc[0] if not teams_df.empty and not teams_df[teams_df["team"] == team].empty else None
+    group = clean_text(row.get("group") if row is not None else "")
+    code = clean_text(row.get("code") if row is not None else "") or team_code(team)
+    status_key, status_label = team_tournament_status(team, matches_df)
+    recent = filter_matches(matches_df, team=team)
+    form = []
+    for _, m in recent[recent["status"] == "Finished"].sort_values("date_time", ascending=False, na_position="last").head(3).iterrows():
+        winner = clean_text(m.get("winner"))
+        form.append(("W", "win") if winner == team else (("D", "draw") if winner in {"", "Draw / penalties"} else ("L", "loss")))
+    if not form:
+        form = [("—", "draw")]
+    form_html = "".join(f'<span class="wc-mini-form {cls}">{label}</span>' for label, cls in form)
+    group_html = f"Group {esc(group)}" if group else "Group TBD"
+    href = app_link("Teams", team=team)
+    return f'''<a class="wc-team-card" data-status="{status_key}" href="{href}" target="_self">
+      <div class="wc-team-card-top"><span class="wc-team-card-flag">{flag_img(team)}</span><span class="wc-team-card-name">{esc(team)}</span><span class="team-code">{esc(code)}</span></div>
+      <div class="wc-team-card-group">{group_html}</div>
+      <div class="wc-team-card-bottom"><span class="wc-team-status {status_key}">{esc(status_label)}</span><span class="wc-team-form">{form_html}</span></div>
+    </a>'''
+
+
 def render_teams_tab(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standings_df: pd.DataFrame) -> None:
-    st.header("Teams explorer")
+    st.markdown('<div class="wc-section-title">Teams</div>', unsafe_allow_html=True)
+    st.markdown("Click any team for a full profile: every match, goals for & against, current form, scorers, and how far they got.")
     all_teams = sorted(set(teams_df["team"].dropna()) if not teams_df.empty else (set(matches_df["home_team"]) | set(matches_df["away_team"])))
     if not all_teams:
         st.info("No teams loaded.")
         return
     requested_team = clean_text(st.query_params.get("team", ""))
-    team_index = all_teams.index(requested_team) if requested_team in all_teams else 0
-    favorite = st.selectbox("Choose a team", all_teams, index=team_index)
-
+    requested_filter = clean_text(st.query_params.get("team_filter", "All"), "All")
+    filter_options = ["All", "Still in it", "Eliminated"]
+    if requested_filter not in filter_options:
+        requested_filter = "All"
+    filter_links = []
+    for option in filter_options:
+        cls = "wc-team-filter-pill active" if option == requested_filter else "wc-team-filter-pill"
+        filter_links.append(f'<a class="{cls}" href="{app_link("Teams", team_filter=option)}" target="_self">{esc(option)}</a>')
+    st.markdown('<div class="wc-team-filter-row">' + ''.join(filter_links) + '</div>', unsafe_allow_html=True)
+    visible_teams = []
+    for team in all_teams:
+        status_key, _ = team_tournament_status(team, matches_df)
+        if requested_filter == "Still in it" and status_key != "still-in":
+            continue
+        if requested_filter == "Eliminated" and status_key != "eliminated":
+            continue
+        visible_teams.append(team)
+    cards = [team_card_html(team, matches_df, teams_df, standings_df) for team in visible_teams]
+    st.markdown(f'<div class="wc-team-card-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
+    favorite = requested_team if requested_team in all_teams else (visible_teams[0] if visible_teams else all_teams[0])
+    st.markdown("---")
+    st.write(f"#### {favorite} profile")
     team_rows = teams_df[teams_df["team"] == favorite] if not teams_df.empty else pd.DataFrame()
     group = clean_text(team_rows.iloc[0].get("group") if not team_rows.empty else "")
     code = clean_text(team_rows.iloc[0].get("code") if not team_rows.empty else "")
@@ -2753,8 +2820,7 @@ def render_teams_tab(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standings
         render_team_popup(favorite, matches_df, standings_df)
     finished = tmatches[tmatches["status"] == "Finished"]
     wins = int((finished["winner"] == favorite).sum()) if not finished.empty else 0
-    goals_for = 0
-    goals_against = 0
+    goals_for = goals_against = 0
     for _, r in finished.iterrows():
         if r["home_team"] == favorite:
             goals_for += int(r["home_score"]) if not pd.isna(r["home_score"]) else 0
@@ -2763,20 +2829,16 @@ def render_teams_tab(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standings
             goals_for += int(r["away_score"]) if not pd.isna(r["away_score"]) else 0
             goals_against += int(r["home_score"]) if not pd.isna(r["home_score"]) else 0
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Matches", len(tmatches))
-    c2.metric("Wins", wins)
-    c3.metric("Goals for", goals_for)
-    c4.metric("Goal diff", goals_for - goals_against)
-
+    c1.metric("Matches", len(tmatches)); c2.metric("Wins", wins); c3.metric("Goals for", goals_for); c4.metric("Goal diff", goals_for - goals_against)
     if group and not standings_df.empty:
         st.write(f"#### Group {group} table")
         gdf = standings_df[standings_df["group"].astype(str).str.upper() == group.upper()].copy()
         if not gdf.empty:
             gdf = gdf.sort_values(["Pts", "GD", "GF"], ascending=[False, False, False], na_position="last")
             gdf["Rank"] = range(1, len(gdf) + 1)
-            st.dataframe(gdf[["Rank", "team", "Pts", "GD", "GF", "GA"]].rename(columns={"team": "Team"}), use_container_width=True, hide_index=True)
+            gdf["Team"] = gdf["team"].map(lambda t: f"{team_flag(t)} {t} {team_code(t)}")
+            st.dataframe(gdf[["Rank", "Team", "Pts", "GD", "GF", "GA"]], use_container_width=True, hide_index=True)
     render_team_route(favorite, matches_df)
-
 
 def render_insights_tab(matches_df: pd.DataFrame) -> None:
     render_insights_tab_v2(matches_df)
