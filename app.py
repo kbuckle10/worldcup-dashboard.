@@ -583,8 +583,10 @@ def timeline_percent(row: pd.Series) -> int:
     return max(4, min(100, int(int(m.group()) / 90 * 100)))
 
 
+FIFA_2026_EMBLEM_URL = "https://commons.wikimedia.org/wiki/Special:Redirect/file/2026_FIFA_World_Cup_emblem.svg"
+
 def trophy_image_html(class_name: str = "wc-trophy-img") -> str:
-    return f'<img class="{class_name}" src="data:image/svg+xml;utf8,{quote(TROPHY_SVG)}" alt="FIFA World Cup trophy" loading="lazy">'
+    return f'<img class="{class_name}" src="{FIFA_2026_EMBLEM_URL}" alt="FIFA World Cup 2026 emblem" loading="lazy">'
 
 
 def render_hero(matches_df: pd.DataFrame, source: str = "") -> None:
@@ -1850,45 +1852,74 @@ def render_bracket_wall(knockout: pd.DataFrame) -> None:
     if knockout.empty:
         st.info("Knockout data is not loaded yet.")
         return
-    r32 = _stage_cards(knockout, "r32")
-    r16 = _stage_cards(knockout, "r16")
-    qf = _stage_cards(knockout, "qf")
-    sf = _stage_cards(knockout, "sf")
-    final_cards = _stage_cards(knockout, "final")
-    third_cards = _stage_cards(knockout, "third")
-    left = {"r32": r32[:8], "r16": r16[:4], "qf": qf[:2], "sf": sf[:1]}
-    right = {"r32": r32[8:16], "r16": r16[4:8], "qf": qf[2:4], "sf": sf[1:2]}
-    final_html = final_cards[0] if final_cards else bracket_card_html(None, "Final")
-    third_html = third_cards[0] if third_cards else bracket_card_html(None, "Bronze final")
-    route_chips = "".join([
-        "<span class='wc-route-chip'>R32 → R16</span>",
-        "<span class='wc-route-chip'>R16 → QF</span>",
-        "<span class='wc-route-chip'>QF → SF</span>",
-        "<span class='wc-route-chip'>SF → Final</span>",
-    ])
-    html_out = f'''<div class="wc-bracket-shell compact">
-      <div class="wc-bracket-board">
-        <div class="wc-bracket-side left">
-          <div><div class="wc-bracket-round-title">Round of 32</div>{_stack(left['r32'],8)}</div>
-          <div><div class="wc-bracket-round-title">Round of 16</div>{_stack(left['r16'],4,'r16')}</div>
-          <div><div class="wc-bracket-round-title">Quarterfinals</div>{_stack(left['qf'],2,'qf')}</div>
-          <div><div class="wc-bracket-round-title">Semifinal</div>{_stack(left['sf'],1,'sf')}</div>
-        </div>
-        <div><div class="wc-cup-final">
-            <div class="wc-cup-icon">{trophy_image_html("wc-cup-trophy-img")}</div><div class="wc-world-champ">World Champion</div>
-            <div style="width:100%; margin-top:10px;">{final_html}</div>
-            <div class="subtle" style="margin:8px 0 4px;">Third-place match</div><div style="width:100%;">{third_html}</div>
-        </div></div>
-        <div class="wc-bracket-side right">
-          <div><div class="wc-bracket-round-title">Semifinal</div>{_stack(right['sf'],1,'sf')}</div>
-          <div><div class="wc-bracket-round-title">Quarterfinals</div>{_stack(right['qf'],2,'qf')}</div>
-          <div><div class="wc-bracket-round-title">Round of 16</div>{_stack(right['r16'],4,'r16')}</div>
-          <div><div class="wc-bracket-round-title">Round of 32</div>{_stack(right['r32'],8)}</div>
-        </div>
-      </div>
-      <div class="wc-route-legend">{route_chips}<br>Each lane is ordered by source match date/slot so winners transition left-to-center or right-to-center toward the Final.</div>
-    </div>'''
-    st.markdown(html_out, unsafe_allow_html=True)
+
+    def match_payload(row: pd.Series) -> Dict[str, Any]:
+        home = clean_text(row.get("home_team", "TBD"), "TBD")
+        away = clean_text(row.get("away_team", "TBD"), "TBD")
+        hp, ap = matchup_probabilities(home, away, row)
+        return {
+            "id": clean_text(row.get("match_id")) or f"{clean_text(row.get('stage'))}-{len(clean_text(row.get('kickoff')))}-{home}-{away}",
+            "stage": clean_text(row.get("stage")),
+            "stageLabel": clean_text(row.get("stage_label")) or STAGE_LABELS.get(clean_text(row.get("stage")), "Knockout"),
+            "home": home,
+            "away": away,
+            "homeFlag": team_flag(home),
+            "awayFlag": team_flag(away),
+            "homeCode": team_code(home),
+            "awayCode": team_code(away),
+            "homeScore": "-" if pd.isna(row.get("home_score")) else str(int(row.get("home_score"))),
+            "awayScore": "-" if pd.isna(row.get("away_score")) else str(int(row.get("away_score"))),
+            "winner": clean_text(row.get("winner")),
+            "status": clean_text(row.get("status"), "Scheduled"),
+            "kickoff": clean_text(row.get("kickoff"), "TBD"),
+            "venue": clean_text(row.get("venue")),
+            "score": scoreline_label(row),
+            "prob": [hp, ap],
+            "scorers": [f"{e.get('label')} {e.get('player')} ({e.get('team')})" for e in scorer_events(row)],
+            "cards": cards_from_raw(row),
+            "subs": substitutions_from_raw(row),
+            "stats": [{"label": lab, "home": hv, "away": av} for lab, hv, av in match_stat_rows(row)],
+        }
+
+    matches = [match_payload(row) for _, row in knockout.sort_values("date_time", na_position="last").iterrows()]
+    data = _json_for_components({"matches": matches, "emblem": FIFA_2026_EMBLEM_URL})
+    html_out = f"""
+<div id="road-final"></div>
+<style>
+:root{{--gold:#f7c948;--green:#22c55e;--muted:#a8b3c7;--line:rgba(148,163,184,.24)}}
+*{{box-sizing:border-box}} body{{margin:0;background:transparent;color:#f8fafc;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif}}
+.shell{{overflow-x:auto;border:1px solid var(--line);border-radius:24px;background:radial-gradient(circle at 50% 10%,rgba(247,201,72,.12),transparent 24rem),linear-gradient(180deg,rgba(8,14,25,.96),rgba(2,6,23,.98));padding:20px}}
+.board{{min-width:980px;display:grid;grid-template-columns:1fr 230px 1fr;gap:16px;align-items:center}}
+.side{{display:grid;grid-template-columns:repeat(3,minmax(138px,1fr));gap:10px;align-items:center}} .right{{direction:ltr}}
+.round{{color:var(--gold);text-transform:uppercase;letter-spacing:.14em;font-size:.66rem;font-weight:950;text-align:center;margin-bottom:8px}}
+.stack{{display:flex;flex-direction:column;gap:9px;justify-content:center}} .qf{{gap:56px}} .sf{{gap:132px}}
+.card{{position:relative;min-height:68px;border:1px solid var(--line);border-radius:13px;background:linear-gradient(180deg,rgba(15,31,53,.94),rgba(8,20,36,.94));padding:8px;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s}}
+.card:hover{{transform:translateY(-2px);border-color:rgba(247,201,72,.66);box-shadow:0 14px 30px rgba(0,0,0,.32)}}
+.card:before{{content:"";position:absolute;top:50%;height:2px;width:13px;background:rgba(247,201,72,.82)}} .left .card:before{{right:-13px}} .right .card:before{{left:-13px}}
+.team{{display:flex;justify-content:space-between;gap:7px;align-items:center;margin:3px 0;font-size:.72rem;font-weight:850}} .name{{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}} .score{{font-weight:950;color:#fff}}
+.winner{{border-left:3px solid var(--green);padding-left:5px;background:linear-gradient(90deg,rgba(34,197,94,.22),transparent);animation:winPulse 1.8s ease-in-out infinite}}
+@keyframes winPulse{{0%,100%{{box-shadow:inset 0 0 0 rgba(34,197,94,0)}}50%{{box-shadow:inset 0 0 18px rgba(34,197,94,.28)}}}}
+.status{{display:inline-flex;border:1px solid rgba(148,163,184,.25);border-radius:999px;padding:2px 7px;font-size:.62rem;font-weight:900;color:#dbeafe;background:rgba(148,163,184,.10)}} .meta{{color:var(--muted);font-size:.64rem;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.centre{{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:330px;border:1px solid rgba(247,201,72,.45);border-radius:28px;background:radial-gradient(circle at 50% 38%,rgba(247,201,72,.20),transparent 8rem),rgba(15,23,42,.72);box-shadow:0 18px 70px rgba(0,0,0,.35);text-align:center;padding:14px;animation:championGlow 2.4s infinite}}
+@keyframes championGlow{{50%{{box-shadow:0 18px 70px rgba(0,0,0,.35),0 0 28px rgba(247,201,72,.42);border-color:rgba(247,201,72,.88)}}}}
+.emblem{{width:120px;height:150px;object-fit:contain;filter:drop-shadow(0 14px 30px rgba(247,201,72,.38))}} .kicker{{color:var(--gold);font-weight:950;letter-spacing:.16em;text-transform:uppercase;font-size:.68rem;margin-top:8px}} .title{{font-size:1.15rem;font-weight:950;color:#fff;letter-spacing:.06em;text-transform:uppercase}}
+.final-card{{width:100%;margin-top:12px}} .hint,.legend{{color:var(--muted);text-align:center;font-size:.82rem;margin-top:10px}}
+.modal{{position:fixed;inset:0;background:rgba(2,6,23,.78);display:none;align-items:center;justify-content:center;z-index:20;padding:18px}} .modal.open{{display:flex}} .panel{{max-width:850px;width:100%;max-height:88vh;overflow:auto;border:1px solid rgba(247,201,72,.45);border-radius:24px;background:#081424;padding:20px;box-shadow:0 28px 90px rgba(0,0,0,.5)}} .close{{float:right;border:0;border-radius:999px;padding:8px 12px;font-weight:900;cursor:pointer}} .stats{{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}} .stat{{border-radius:12px;background:rgba(148,163,184,.12);padding:10px;text-align:center}} .bar{{height:8px;background:rgba(148,163,184,.18);border-radius:99px;overflow:hidden}} .fill{{height:100%;background:linear-gradient(90deg,#22c55e,#f7c948)}}
+@media(max-width:760px){{.board{{grid-template-columns:1fr;min-width:720px}}.stats{{grid-template-columns:repeat(2,1fr)}}}}
+</style>
+<script>
+const DATA={data}; const root=document.getElementById('road-final');
+const esc=s=>(s??'').toString().replace(/[&<>\"']/g,m=>({{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}}[m]));
+const byStage=s=>DATA.matches.filter(m=>m.stage===s);
+function card(m){{if(!m)return `<div class='card'><div class='team'><span class='name'>• TBD</span><span class='score'>?</span></div><div class='team'><span class='name'>• TBD</span><span class='score'>?</span></div><div class='meta'>Path to be decided</div></div>`; const hw=m.winner&&m.winner===m.home?' winner':''; const aw=m.winner&&m.winner===m.away?' winner':''; return `<div class='card' data-id='${{esc(m.id)}}'><span class='status'>${{esc(m.status)}}</span><div class='team${{hw}}'><span class='name'>${{esc(m.homeFlag)}} ${{esc(m.home)}} <small>${{esc(m.homeCode)}}</small></span><span class='score'>${{esc(m.homeScore)}}</span></div><div class='team${{aw}}'><span class='name'>${{esc(m.awayFlag)}} ${{esc(m.away)}} <small>${{esc(m.awayCode)}}</small></span><span class='score'>${{esc(m.awayScore)}}</span></div><div class='meta'>${{esc(m.kickoff)}}${{m.venue?' • '+esc(m.venue):''}}</div></div>`}}
+function stack(stage,n,cls='',offset=0){{const arr=byStage(stage).slice(offset); return `<div class='stack ${{cls}}'>${{Array.from({{length:n}},(_,i)=>card(arr[i])).join('')}}</div>`}}
+function centre(m){{return `<button class='close' onclick='closeModal()'>Close</button><h2>Match Centre</h2><p class='status'>${{esc(m.stageLabel)}} • ${{esc(m.status)}}</p><h3>${{esc(m.homeFlag)}} ${{esc(m.home)}} ${{esc(m.score)}} ${{esc(m.away)}} ${{esc(m.awayFlag)}}</h3><p class='meta'>${{esc(m.kickoff)}}${{m.venue?' • '+esc(m.venue):''}}</p><div class='stats'><div class='stat'><b>${{m.prob[0]}}%</b><br>${{esc(m.home)}} win</div><div class='stat'><b>${{m.prob[1]}}%</b><br>${{esc(m.away)}} win</div><div class='stat'><b>${{esc(m.winner||'TBD')}}</b><br>Winner</div><div class='stat'><b>${{esc(m.score)}}</b><br>Score</div></div><h4>Timeline / scorers</h4>${{(m.scorers||[]).map(x=>`<p>⚽ ${{esc(x)}}</p>`).join('')||'<p class="meta">No scorer timeline available.</p>'}}<h4>Cards</h4><p>${{(m.cards||[]).map(c=>`${{esc(c.minute)}} ${{esc(c.player)}} (${{esc(c.team)}}) ${{esc(c.card)}}`).join('<br>')||'Not available'}}</p><h4>Substitutions</h4><p>${{(m.subs||[]).map(s=>`${{esc(s.minute)}} ${{esc(s.in)}} for ${{esc(s.out)}} (${{esc(s.team)}})`).join('<br>')||'Not available'}}</p><h4>Match stats</h4>${{(m.stats||[]).map(s=>`<div><div class='meta'>${{esc(s.label)}}: <b>${{s.home}}</b> - <b>${{s.away}}</b></div><div class='bar'><div class='fill' style='width:${{Math.round(100*s.home/Math.max(1,s.home+s.away))}}%'></div></div></div>`).join('')}}`;}}
+function closeModal(){{document.querySelector('.modal').classList.remove('open')}}
+function render(){{const f=byStage('final')[0]; root.innerHTML=`<div class='modal'><div class='panel'></div></div><div class='shell'><div class='board'><div class='side left'><div><div class='round'>Quarterfinals</div>${{stack('qf',2,'qf',0)}}</div><div><div class='round'>Semifinals</div>${{stack('sf',1,'sf',0)}}</div><div></div></div><div class='centre'><img class='emblem' src='${{esc(DATA.emblem)}}' alt='FIFA World Cup 2026 emblem'><div class='kicker'>Road to the Final</div><div class='title'>FIFA World Cup</div><div class='final-card'>${{card(f)}}</div><div class='hint'>Click any match to open Match Centre</div></div><div class='side right'><div></div><div><div class='round'>Semifinals</div>${{stack('sf',1,'sf',1)}}</div><div><div class='round'>Quarterfinals</div>${{stack('qf',2,'qf',2)}}</div></div></div><div class='legend'>Quarterfinals → Semifinals → Final. Green animated rows mark advancing winners.</div></div>`; document.querySelectorAll('.card[data-id]').forEach(el=>el.onclick=()=>{{const m=DATA.matches.find(x=>x.id===el.dataset.id); if(!m)return; document.querySelector('.panel').innerHTML=centre(m); document.querySelector('.modal').classList.add('open');}});}}
+render();
+</script>
+"""
+    components.html(html_out, height=620, scrolling=True)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
