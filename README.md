@@ -12,7 +12,7 @@ A Streamlit web app for World Cup fans and non-football fans:
 
 ## Data source
 
-Default data mode: GitHub-hosted OpenFootball public-domain JSON.
+Default data mode: experimental live enrichment that combines the Live API or OpenFootball schedule baseline with ESPN scoreboard/summary, TheSportsDB, and API-Football when configured.
 
 Optional live API base: `https://worldcup26.ir`
 
@@ -24,6 +24,17 @@ When Live API mode is selected, the app uses these endpoints:
 - `/get/stadiums`
 
 A demo fallback snapshot is included so the app still opens if the GitHub feed or live API is unavailable.
+
+Live data quality priority:
+
+1. Live score
+2. Match status
+3. Goals
+4. Assists
+5. Scorers
+6. Statistics
+
+Player names are validated so field labels such as `minute`, `player`, `assist`, `goal`, `type`, and `event` are not displayed as players. Structured live API player names are preferred over fallback text parsing.
 
 ## Run locally
 
@@ -48,6 +59,7 @@ Only needed if your API instance requires authorization.
 ```toml
 WORLDCUP26_BASE_URL = "https://worldcup26.ir"
 WORLDCUP26_TOKEN = ""
+API_FOOTBALL_KEY = "" # optional API-Football / API-Sports key
 ```
 
 On Streamlit Cloud, add these under **App settings → Secrets**.
