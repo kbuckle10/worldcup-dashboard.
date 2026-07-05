@@ -527,12 +527,12 @@ def inject_live_clock_script() -> None:
               if (!start) return;
               const total = Math.max(0, Math.floor((Date.now() - start) / 1000));
               const mins = Math.floor(total / 60);
-              const secs = total % 60;
-              el.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+              el.textContent = `${Math.max(1, mins)}'`;
             });
           }
           tickClocks();
           setInterval(tickClocks, 1000);
+          setTimeout(() => window.parent.location.reload(), 30000);
         </script>
         """,
         height=0,
@@ -730,7 +730,7 @@ def response_or_none(resp: requests.Response) -> Any:
     return resp.json()
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=30, show_spinner=False)
 def fetch_api(path: str, api_base: str, token: str = "") -> Any:
     headers = {"Accept": "application/json"}
     if token:
@@ -970,7 +970,7 @@ def calculate_standings_from_matches(matches_df: pd.DataFrame, teams_df: pd.Data
     return table
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=30, show_spinner=False)
 def load_live_data(api_base: str, token: str, fallback_to_demo: bool = True) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
     errors = []
     try:
@@ -1293,14 +1293,14 @@ table{{width:100%;border-collapse:collapse;overflow:hidden}} th,td{{padding:10px
 <script>
 const DATA={data}; const MODE={json.dumps(mode)}; const root=document.getElementById('wc-app');
 const esc=s=>(s??'').toString().replace(/[&<>\"']/g,m=>({{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}}[m]));
-function mmss(m){{ if(m.status!=='Live') return esc(m.minute||m.kickoff); const base=m.kickoffMs?Math.max(0,Math.floor((Date.now()-m.kickoffMs)/1000)):0; const sec=base%60, min=Math.floor(base/60); return `${{String(min).padStart(2,'0')}}:${{String(sec).padStart(2,'0')}}`; }}
+function mmss(m){{ if(m.status!=='Live') return esc(m.minute||m.kickoff); if(!m.kickoffMs) return esc(m.minute||'LIVE'); const min=Math.floor(Math.max(0,Date.now()-m.kickoffMs)/60000); return `${{Math.max(1,min)}}'`; }}
 function closeModal(){{document.querySelector('.modal').classList.remove('open')}}
 function teamModal(name){{const t=DATA.teams.find(x=>x.team===name); if(!t)return; document.querySelector('.modal-card').innerHTML=`<button class='close' onclick='closeModal()'>Close</button><h2>${{esc(t.flag)}} ${{esc(t.team)}} <span class='code'>${{esc(t.code)}}</span></h2><p class='muted'>${{esc(t.standing)}} • Group ${{esc(t.group||'—')}}</p><div class='stats'><div class='stat'><b>${{esc(t.record)}}</b><br>W-D-L</div><div class='stat'><b>${{esc(t.goals)}}</b><br>Goals</div><div class='stat'><b>${{esc(t.gd)}}</b><br>GD</div><div class='stat'><b>${{esc(t.ranking)}}</b><br>Ranking</div></div><h3>Profile</h3><p>Coach: <b>${{esc(t.coach)}}</b> • Captain: <b>${{esc(t.captain)}}</b> • Top player: <b>${{esc(t.topPlayer)}}</b></p><p>${{esc(t.style)}}</p><p>Form: ${{(t.form||[]).map(x=>`<span class='tag'>${{esc(x)}}</span>`).join('')}}</p><h3>Next match</h3><p>${{esc(t.next)}}</p><h3>Matches</h3><ul>${{(t.route||[]).map(x=>`<li>${{esc(x)}}</li>`).join('')||'<li>No matches loaded</li>'}}</ul>`; document.querySelector('.modal').classList.add('open');}}
 function centre(m){{return `<h3>Match Centre</h3><div class='stats'><div class='stat'><b>${{m.prob[0]}}%</b><br>${{esc(m.home)}} win</div><div class='stat'><b>${{m.prob[1]}}%</b><br>${{esc(m.away)}} win</div><div class='stat'><b class='clock' data-clock='${{esc(m.id)}}'>${{mmss(m)}}</b><br>Clock</div><div class='stat'><b>${{esc(m.score)}}</b><br>Score</div></div><h4>Timeline / scorers</h4>${{m.scorers.map(x=>`<div class='event'><span></span><b>⚽</b><span>${{esc(x)}}</span></div>`).join('')||'<p class="muted">No scorer timeline available.</p>'}}<h4>Assists</h4><p>${{m.assists.map(esc).join(', ')||'Not available'}}</p><h4>Cards</h4><p>${{m.cards.map(c=>`${{esc(c.minute)}} ${{esc(c.player)}} (${{esc(c.team)}}) ${{esc(c.card)}}`).join('<br>')||'Not available'}}</p><h4>Substitutions</h4><p>${{m.subs.map(s=>`${{esc(s.minute)}} ${{esc(s.in)}} for ${{esc(s.out)}} (${{esc(s.team)}})`).join('<br>')||'Not available'}}</p><h4>Match stats</h4>${{m.stats.map(s=>`<div><div class='muted'>${{esc(s.label)}}: <b>${{s.home}}</b> - <b>${{s.away}}</b></div><div class='bar'><div class='fill' style='width:${{Math.round(100*s.home/Math.max(1,s.home+s.away))}}%'></div></div></div>`).join('')}}`;}}
 function matchCard(m){{return `<div class='card match' data-id='${{esc(m.id)}}'><div><span class='tag ${{m.status==='Live'?'live':''}}'>${{m.status==='Live'?'<span class="dot"></span>':''}}${{esc(m.status)}}</span><span class='tag'>${{esc(m.stage)}}</span><span class='tag clock' data-clock='${{esc(m.id)}}'>${{mmss(m)}}</span></div><div class='matchline'><div class='team'>${{esc(m.homeFlag)}} ${{esc(m.home)}}</div><div class='score'>${{esc(m.score)}}</div><div class='team' style='text-align:right'>${{esc(m.away)}} ${{esc(m.awayFlag)}}</div></div><div class='muted' style='text-align:center'>${{esc(m.kickoff)}}${{m.venue?' • '+esc(m.venue):''}}</div><div class='centre' id='centre-${{esc(m.id)}}'>${{centre(m)}}</div></div>`}}
 function teamCard(t){{return `<div class='card team-card' data-team='${{esc(t.team)}}'><div class='team-top'><div><div class='flag'>${{esc(t.flag)}}</div><div class='team-name'>${{esc(t.team)}}</div></div><span class='code'>${{esc(t.code)}}</span></div><div class='muted'>${{esc(t.standing)}}${{t.group?' • Group '+esc(t.group):''}}</div><div class='team-meta'><span class='tag'>Coach ${{esc(t.coach)}}</span><span class='tag'>${{esc(t.record)}} W-D-L</span><span class='tag'>GD ${{esc(t.gd)}}</span></div></div>`}}
-function render(){{let html='<div class="modal"><div class="modal-card"></div></div>'; if(MODE==='teams') html+=`<h2 class='section-title'>Teams</h2><p class='copy'>Click any team for a full profile: every match, goals for & against, current form, scorers, and how far they got.</p><div class='grid'>${{DATA.teams.map(teamCard).join('')}}</div>`; else if(MODE==='standings') html+=`<p class='copy'>All 12 groups. Every row includes the flag, team name and 3-character FIFA code — click a team to open the same profile.</p>`+[...new Set(DATA.standings.map(x=>x.group))].map(g=>`<div class='panel'><h3>Group ${{esc(g)}}</h3><table><thead><tr><th>#</th><th>Team</th><th>Code</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead><tbody>${{DATA.standings.filter(x=>x.group===g).map(r=>`<tr data-team='${{esc(r.team)}}'><td>${{r.rank}}</td><td><span class='standing-team'><span class='standing-flag'>${{esc(r.flag)}}</span><span>${{esc(r.team)}}</span></span></td><td><span class='code'>${{esc(r.code)}}</span></td><td>${{r.P}}</td><td>${{r.W}}</td><td>${{r.D}}</td><td>${{r.L}}</td><td>${{r.GD}}</td><td><b>${{r.Pts}}</b></td></tr>`).join('')}}</tbody></table></div><br>`).join(''); else html+=`<div class='grid'>${{DATA.matches.filter(m=>MODE==='knockout'?m.stageCode!=='group':true).map(matchCard).join('')}}</div>`; root.innerHTML=html; document.querySelectorAll('[data-team]').forEach(e=>e.onclick=()=>teamModal(e.dataset.team)); document.querySelectorAll('.match').forEach(e=>e.onclick=()=>e.querySelector('.centre').classList.toggle('open'));}}
-render(); setInterval(()=>{{DATA.matches.forEach(m=>document.querySelectorAll(`[data-clock="${{CSS.escape(m.id)}}"]`).forEach(e=>e.textContent=mmss(m)));}},1000); setTimeout(()=>window.parent.location.reload(),45000);
+function render(){{let html='<div class="modal"><div class="modal-card"></div></div>'; if(MODE==='teams') html+=`<h2 class='section-title'>Teams</h2><p class='copy'>Click any team for a full profile: every match, goals for & against, current form, scorers, and how far they got.</p><div class='grid'>${{DATA.teams.map(teamCard).join('')}}</div>`; else if(MODE==='standings') html+=`<p class='copy'>All 12 groups. Every row includes the flag, team name and 3-character FIFA code — click a team to open the same profile.</p>`+[...new Set(DATA.standings.map(x=>x.group))].map(g=>`<div class='panel'><h3>Group ${{esc(g)}}</h3><table><thead><tr><th>#</th><th>Team</th><th>Code</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead><tbody>${{DATA.standings.filter(x=>x.group===g).map(r=>`<tr data-team='${{esc(r.team)}}'><td>${{r.rank}}</td><td><span class='standing-team'><span class='standing-flag'>${{esc(r.flag)}}</span><span>${{esc(r.team)}}</span></span></td><td><span class='code'>${{esc(r.code)}}</span></td><td>${{r.P}}</td><td>${{r.W}}</td><td>${{r.D}}</td><td>${{r.L}}</td><td>${{r.GD}}</td><td><b>${{r.Pts}}</b></td></tr>`).join('')}}</tbody></table></div><br>`).join(''); else html+=`<div class='muted' style='text-align:right;margin-bottom:8px'>Last refreshed: <span id='last-refreshed'></span> • auto refreshes every 30s</div><div class='grid'>${{DATA.matches.filter(m=>MODE==='knockout'?m.stageCode!=='group':true).map(matchCard).join('')}}</div>`; root.innerHTML=html; const refreshed=document.getElementById('last-refreshed'); if(refreshed) refreshed.textContent=new Date().toLocaleTimeString([],{{hour:'numeric',minute:'2-digit',second:'2-digit'}}); document.querySelectorAll('[data-team]').forEach(e=>e.onclick=()=>teamModal(e.dataset.team)); document.querySelectorAll('.match').forEach(e=>e.onclick=()=>e.querySelector('.centre').classList.toggle('open'));}}
+render(); setInterval(()=>{{DATA.matches.forEach(m=>document.querySelectorAll(`[data-clock="${{CSS.escape(m.id)}}"]`).forEach(e=>e.textContent=mmss(m)));}},1000); setTimeout(()=>window.parent.location.reload(),30000);
 </script>"""
 
 def render_interactive_component(payload: Dict[str, Any], mode: str, height: int = 760) -> None:
@@ -1461,26 +1461,33 @@ def event_timeline_html(row: pd.Series) -> str:
 
 def match_stat_rows(row: pd.Series) -> List[Tuple[str, int, int]]:
     raw = row.get("raw") if isinstance(row.get("raw"), dict) else {}
-    stats: List[Tuple[str, int, int]] = []
+    wanted = [
+        ("possession", "Possession"),
+        ("shots", "Shots"),
+        ("shots_on_target", "Shots on target"),
+        ("corners", "Corners"),
+        ("fouls", "Fouls"),
+        ("offside", "Offside"),
+        ("yellow_cards", "Yellow cards"),
+        ("red_cards", "Red cards"),
+    ]
+    found: Dict[str, Tuple[int, int]] = {}
     for key in ["statistics", "stats", "match_stats"]:
         val = raw.get(key)
         if isinstance(val, dict):
-            for label in ["possession", "shots", "shots_on_target", "corners", "fouls", "yellow_cards"]:
-                item = val.get(label)
+            normalized = {re.sub(r"[^a-z0-9]", "_", clean_text(k).lower()).strip("_"): v for k, v in val.items()}
+            for stat_key, label in wanted:
+                item = normalized.get(stat_key) or normalized.get(stat_key.rstrip("s"))
                 if isinstance(item, dict):
                     h = to_int(item.get("home") or item.get("home_team"), None)
                     a = to_int(item.get("away") or item.get("away_team"), None)
                     if h is not None and a is not None:
-                        stats.append((label.replace("_", " ").title(), h, a))
+                        found[label] = (h, a)
     hscore = 0 if pd.isna(row.get("home_score")) else int(row.get("home_score"))
     ascore = 0 if pd.isna(row.get("away_score")) else int(row.get("away_score"))
-    stats.insert(0, ("Goals scored", hscore, ascore))
-    home_first = len([e for e in scorer_events(row) if e["side"] == "home" and e.get("minute", 91) <= 45])
-    away_first = len([e for e in scorer_events(row) if e["side"] == "away" and e.get("minute", 91) <= 45])
-    if home_first or away_first:
-        stats.append(("First-half goals", home_first, away_first))
-        stats.append(("Second-half goals", max(0, hscore-home_first), max(0, ascore-away_first)))
-    return stats[:8]
+    stats: List[Tuple[str, int, int]] = [("Goals", hscore, ascore)]
+    stats.extend((label, *found.get(label, (0, 0))) for _, label in wanted)
+    return stats
 
 
 def render_stat_comparison(label: str, home_value: int, away_value: int) -> None:
@@ -1585,9 +1592,13 @@ def render_live_detail_expander(row: pd.Series, expanded: bool = False) -> None:
     minute = live_minute(row) or ("FT" if row.get("status") == "Finished" else clean_text(row.get("kickoff", "TBD")))
     with st.expander(f"Match details: {home} vs {away} • {minute}", expanded=expanded):
         st.markdown(f"**Running time:** {minute} &nbsp;&nbsp; **Score:** {scoreline_label(row)} &nbsp;&nbsp; **Stage:** {clean_text(row.get('stage_label'))}")
+        home_prob, away_prob = matchup_probabilities(home, away, row)
+        st.markdown(probability_row_html(home, away, home_prob, away_prob), unsafe_allow_html=True)
+        st.markdown(event_timeline_html(row), unsafe_allow_html=True)
         goals = scorer_events(row)
         cards = cards_from_raw(row)
         subs = substitutions_from_raw(row)
+        assists = [clean_text(x.get("assist") or x.get("assist_name")) for x in event_list_from_raw(row, ["events", "goals", "assists"]) if clean_text(x.get("assist") or x.get("assist_name"))]
         lineups = lineups_from_raw(row)
         c1, c2 = st.columns(2)
         with c1:
@@ -1597,6 +1608,12 @@ def render_live_detail_expander(row: pd.Series, expanded: bool = False) -> None:
                     st.write(f"⚽ {ev.get('label')} — {ev.get('player')} ({ev.get('team')})")
             else:
                 st.caption("No scorer details are available from the current feed yet.")
+            st.write("##### Assists")
+            if assists:
+                for name in assists:
+                    st.write(f"🅰️ {name}")
+            else:
+                st.caption("No assist feed is available yet.")
             st.write("##### Cards")
             if cards:
                 for ev in cards:
@@ -2022,7 +2039,7 @@ def team_match_key(value: Any) -> str:
     return re.sub(r"[^a-z0-9]", "", canonical_team_name(value).lower())
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=30, show_spinner=False)
 def fetch_public_json(url: str, params: Optional[Dict[str, Any]] = None) -> Any:
     resp = requests.get(
         url,
@@ -2484,7 +2501,7 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     avg_goals = total_goals / len(finished) if len(finished) else 0
     current_stage, _current_stage_detail = get_current_stage_metric(matches_df)
 
-    cache_note = "60 seconds" if "Live API" in source else "1 hour"
+    cache_note = "30 seconds" if "Live API" in source else "1 hour"
     quality = data_quality_label(source)
     st.caption(f"Data source: {source} • Cache: {cache_note} • Data quality: {quality}")
     st.markdown(f"<span class='tag'>Data quality: {esc(quality)}</span>", unsafe_allow_html=True)
