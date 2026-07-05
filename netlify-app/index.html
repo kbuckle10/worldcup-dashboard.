@@ -1412,6 +1412,34 @@
     }
   }
 
+
+  /* Premium refresh additions */
+  .ico-svg{width:1.05em;height:1.05em;display:inline-block;vertical-align:-.16em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .tab-ico{margin-right:7px;color:var(--accent2)}
+  .card h3 .ico-svg,.learn summary .ico-svg{margin-right:8px;color:var(--gold);filter:drop-shadow(0 0 8px rgba(247,201,72,.22))}
+  .hero{position:relative;overflow:hidden;margin:22px 0 22px;padding:24px;border:1px solid rgba(111,144,204,.55);border-radius:24px;background:radial-gradient(430px 220px at 70% 22%,rgba(247,201,72,.16),transparent 60%),linear-gradient(135deg,rgba(14,25,42,.92),rgba(8,13,20,.78));box-shadow:0 24px 70px rgba(0,0,0,.42)}
+  .hero::before{content:"";position:absolute;inset:-1px;background:linear-gradient(120deg,rgba(24,208,139,.18),transparent 35%,rgba(247,201,72,.16));pointer-events:none}
+  .hero-in{position:relative;display:grid;grid-template-columns:1.45fr .75fr;gap:22px;align-items:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border:1px solid rgba(74,168,255,.42);border-radius:999px;background:rgba(74,168,255,.09);color:#bfe2ff;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+  .hero h2{margin:13px 0 8px;font-family:Kanit,system-ui,sans-serif;font-size:clamp(30px,5vw,58px);line-height:.9;text-transform:uppercase;letter-spacing:.015em}
+  .hero h2 span{background:linear-gradient(100deg,#fff,#67e8f9 46%,#ffdf72 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero-copy{max-width:680px;color:#bac7dc;margin:0;font-size:15.5px}
+  .hero-pills{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+  .hero-pill,.host-badge{display:inline-flex;align-items:center;gap:7px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.055);padding:7px 11px;font-size:12px;font-weight:800;color:#dfe8f6}
+  .hero-pill.live{border-color:rgba(255,91,134,.42);color:#ffc0cf;background:rgba(255,91,134,.12)}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:#ff375f;box-shadow:0 0 0 4px rgba(255,55,95,.14),0 0 18px rgba(255,55,95,.5);animation:pulse 1.1s infinite}
+  .trophy-wrap{position:relative;display:grid;place-items:center;min-height:190px}
+  .trophy-glow{position:absolute;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,rgba(247,201,72,.38),rgba(247,201,72,.08) 43%,transparent 68%);filter:blur(2px);animation:trophyPulse 3s ease-in-out infinite}
+  .trophy-svg{position:relative;width:150px;height:150px;color:#ffd86a;filter:drop-shadow(0 0 26px rgba(247,201,72,.5)) drop-shadow(0 18px 30px rgba(0,0,0,.5))}
+  .host-row{position:relative;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .host-badge{padding:8px 12px;background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.035))}
+  @keyframes trophyPulse{50%{transform:scale(1.07);opacity:.78}}
+  .qual-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em}
+  .qual-badge.in{color:#74f7bf;background:rgba(24,208,139,.14);border:1px solid rgba(24,208,139,.36)}
+  .qual-badge.out{color:#ff9aaa;background:rgba(255,99,119,.13);border:1px solid rgba(255,99,119,.34)}
+  .bracket.tree .kchamp .tie{border-color:rgba(247,201,72,.78);box-shadow:0 0 0 1px rgba(247,201,72,.22),0 0 34px rgba(247,201,72,.15),0 18px 44px rgba(0,0,0,.42)}
+  @media(max-width:720px){.hero{padding:18px;border-radius:19px}.hero-in{grid-template-columns:1fr}.trophy-wrap{min-height:140px}.trophy-svg{width:112px;height:112px}.trophy-glow{width:142px;height:142px}nav.tabs button{display:inline-flex;align-items:center}.tab-ico{margin-right:5px}}
+
   /* Inline clickable team name (prose) */
   .tlink{cursor:pointer;border-bottom:1px dotted transparent;transition:color .14s,border-color .14s}
   .tlink:hover{color:var(--accent);border-bottom-color:currentColor}
@@ -1507,23 +1535,43 @@
       <span class="dot" id="statusDot"></span>
       <span id="statusText">Loading…</span>
     </div>
-    <button class="btn" id="refreshBtn" title="Fetch the latest results now">↻ Refresh</button>
+    <button class="btn" id="refreshBtn" title="Fetch the latest results now"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg> Refresh</button>
   </div>
   <nav class="tabs" id="tabs">
-    <button data-view="overview" class="active">Overview</button>
-    <button data-view="upcoming">Upcoming<span class="tx"> &amp; Live</span></button>
-    <button data-view="bracket"><span class="tx">Knockout </span>Bracket</button>
-    <button data-view="stats">Stats<span class="tx"> &amp; Insights</span></button>
-    <button data-view="groups">Groups<span class="tx"> &amp; Standings</span></button>
-    <button data-view="teams">Teams</button>
-    <button data-view="players">Players</button>
-    <button data-view="learn">Learn<span class="tx"> the Basics</span></button>
+    <button data-view="overview" class="active"><svg class="ico-svg tab-ico" viewBox="0 0 24 24"><path d="M3 13h8V3H3z"/><path d="M13 21h8V11h-8z"/><path d="M13 9h8V3h-8z"/><path d="M3 21h8v-6H3z"/></svg>Overview</button>
+    <button data-view="upcoming"><svg class="ico-svg tab-ico" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg>Upcoming<span class="tx"> &amp; Live</span></button>
+    <button data-view="bracket"><svg class="ico-svg tab-ico" viewBox="0 0 24 24"><path d="M7 5h6v4H7zM7 15h6v4H7zM17 10h4v4h-4zM13 7h2a2 2 0 0 1 2 2v3M13 17h2a2 2 0 0 0 2-2v-3"/></svg><span class="tx">Knockout </span>Bracket</button>
+    <button data-view="stats"><svg class="ico-svg tab-ico" viewBox="0 0 24 24"><path d="M4 19V5M10 19V9M16 19V3M22 19H2"/></svg>Stats<span class="tx"> &amp; Insights</span></button>
+    <button data-view="groups"><svg class="ico-svg tab-ico" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Groups<span class="tx"> &amp; Standings</span></button>
+    <button data-view="teams"><svg class="ico-svg tab-ico" viewBox="0 0 24 24"><path d="M12 2l7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/></svg>Teams</button>
+    <button data-view="players"><svg class="ico-svg tab-ico" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg>Players</button>
+    <button data-view="learn"><svg class="ico-svg tab-ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg>Learn<span class="tx"> the Basics</span></button>
   </nav>
 </header>
 
 <div class="wrap">
   <!-- OVERVIEW -->
   <section class="view active" id="view-overview">
+    <div class="hero" aria-label="World Cup 2026 premium tournament hero">
+      <div class="hero-in">
+        <div>
+          <span class="eyebrow"><span class="live-dot"></span> Live tournament center</span>
+          <h2><span>FIFA World Cup 2026</span></h2>
+          <p class="hero-copy">A premium command center for fixtures, standings, knockout paths, players, and live match context — styled for quick SofaScore and Flashscore-style scanning.</p>
+          <div class="hero-pills">
+            <span class="hero-pill live"><span class="live-dot"></span> Live feed ready</span>
+            <span class="hero-pill">Tournament progress updates automatically</span>
+          </div>
+        </div>
+        <div>
+          <div class="trophy-wrap">
+            <div class="trophy-glow"></div>
+            <svg class="trophy-svg" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="cupg" x1="0" x2="1"><stop stop-color="#fff2a8"/><stop offset=".55" stop-color="#f7c948"/><stop offset="1" stop-color="#b87918"/></linearGradient></defs><path fill="url(#cupg)" d="M38 18h44v18c0 19-10 31-22 35-12-4-22-16-22-35V18z"/><path fill="none" stroke="url(#cupg)" stroke-width="8" d="M38 28H22c0 17 8 26 21 27M82 28h16c0 17-8 26-21 27"/><path fill="url(#cupg)" d="M54 70h12v18h18v10H36V88h18z"/><circle cx="60" cy="38" r="11" fill="rgba(8,13,20,.35)"/></svg>
+          </div>
+          <div class="host-row"><span class="host-badge">CAN · Canada</span><span class="host-badge">MEX · Mexico</span><span class="host-badge">USA · United States</span></div>
+        </div>
+      </div>
+    </div>
     <h2 class="section">Tournament at a glance</h2>
     <p class="lead">A live snapshot of the 2026 FIFA World Cup. Numbers update automatically as new results come in. New to football? Start with the <a href="#" data-goto="learn">Learn the Basics</a> tab.</p>
     <div id="ovLive"></div>
@@ -1531,22 +1579,22 @@
 
     <div class="grid cols-2" style="margin-top:18px">
       <div class="card">
-        <h3>🎬 Latest Results</h3>
+        <h3><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 4l2 4M14 4l2 4M4 10h16"/></svg>Latest Results</h3>
         <div id="ovLatest"></div>
       </div>
       <div class="card">
-        <h3>📅 What's Next</h3>
+        <h3><svg class="ico-svg" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg>What's Next</h3>
         <div id="ovUpcoming"></div>
       </div>
     </div>
 
     <div class="grid cols-2" style="margin-top:18px">
       <div class="card">
-        <h3>🔥 Biggest Wins</h3>
+        <h3><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 22c4 0 7-3 7-7 0-3-2-5-4-7 0 3-2 4-3 5 0-4-2-7-5-9 1 5-2 6-2 11 0 4 3 7 7 7z"/></svg>Biggest Wins</h3>
         <div id="ovBlowouts"></div>
       </div>
       <div class="card">
-        <h3>🥇 Top Scorers</h3>
+        <h3><svg class="ico-svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M8.5 14.5L6 22l6-3 6 3-2.5-7.5"/></svg>Top Scorers</h3>
         <div id="ovScorers"></div>
       </div>
     </div>
@@ -1635,14 +1683,14 @@
     <h2 class="section">Learn the Basics</h2>
     <p class="lead">A plain-language guide to how the World Cup works. No prior football knowledge needed.</p>
 
-    <details class="learn" open><summary>⚽ How scoring & match results work <span class="chev">›</span></summary>
+    <details class="learn" open><summary><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6l4 3-1.5 5h-5L8 9z"/></svg>How scoring & match results work <span class="chev">›</span></summary>
       <div class="body">
         <p>A football match is 90 minutes (plus a little "stoppage time"). Whoever scores more <b>goals</b> wins. A score like <b>2–1</b> means the first team scored 2, the second scored 1.</p>
         <p>In the group stage a match can end in a <b>draw</b> (tie), e.g. 1–1. In the knockout stage there must be a winner (see below).</p>
       </div>
     </details>
 
-    <details class="learn"><summary>🏆 Points: how groups are decided <span class="chev">›</span></summary>
+    <details class="learn"><summary><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/></svg>Points: how groups are decided <span class="chev">›</span></summary>
       <div class="body">
         <p>In the group stage each team plays the other 3 teams in its group once. Results earn <b>points</b>:</p>
         <p>• <b>Win = 3 points</b> &nbsp;•&nbsp; <b>Draw = 1 point</b> &nbsp;•&nbsp; <b>Loss = 0 points</b></p>
@@ -1650,7 +1698,7 @@
       </div>
     </details>
 
-    <details class="learn"><summary>⚖️ Tiebreakers: when teams are level on points <span class="chev">›</span></summary>
+    <details class="learn"><summary><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M10 19V9M16 19V3M22 19H2"/></svg>Tiebreakers: when teams are level on points <span class="chev">›</span></summary>
       <div class="body">
         <p>If two teams finish on the same points, FIFA separates them in this order:</p>
         <p>1. <b>Goal difference</b> (goals scored minus goals conceded across all 3 games — abbreviated <b>GD</b>).<br>
@@ -1661,7 +1709,7 @@
       </div>
     </details>
 
-    <details class="learn"><summary>🎟️ The 2026 format: 48 teams & the "best 3rd place" rule <span class="chev">›</span></summary>
+    <details class="learn"><summary><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg>The 2026 format: 48 teams & the "best 3rd place" rule <span class="chev">›</span></summary>
       <div class="body">
         <p>2026 is the first 48-team World Cup. Teams are split into <b>12 groups of 4</b> (A–L).</p>
         <p>The <b>top 2 of every group</b> advance — that's 24 teams. To make a clean 32-team knockout round, the <b>8 best 3rd-placed teams</b> (compared across all 12 groups by points, then goal difference, then goals) also go through.</p>
@@ -1669,7 +1717,7 @@
       </div>
     </details>
 
-    <details class="learn"><summary>🥅 Knockout rounds: extra time & penalties <span class="chev">›</span></summary>
+    <details class="learn"><summary><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h6v4H7zM7 15h6v4H7zM17 10h4v4h-4z"/></svg>Knockout rounds: extra time & penalties <span class="chev">›</span></summary>
       <div class="body">
         <p>From the Round of 32 onward, a draw isn't allowed — someone must advance. If scores are level after 90 minutes:</p>
         <p>1. <b>Extra time</b> — two extra 15-minute halves (30 min total). Shown as <b>aet</b> ("after extra time").<br>
@@ -1678,7 +1726,7 @@
       </div>
     </details>
 
-    <details class="learn"><summary>📖 Quick glossary <span class="chev">›</span></summary>
+    <details class="learn"><summary><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg>Quick glossary <span class="chev">›</span></summary>
       <div class="body">
         <p><b>GF / GA</b> — Goals For / Goals Against (scored / conceded).<br>
         <b>GD</b> — Goal Difference (GF minus GA).<br>
@@ -1805,6 +1853,24 @@ const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
+function icon(name, cls="ico-svg"){
+  const paths={
+    overview:'<path d="M3 13h8V3H3z"/><path d="M13 21h8V11h-8z"/><path d="M13 9h8V3h-8z"/><path d="M3 21h8v-6H3z"/>',
+    calendar:'<path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/>',
+    bracket:'<path d="M7 5h6v4H7zM7 15h6v4H7zM17 10h4v4h-4zM13 7h2a2 2 0 0 1 2 2v3M13 17h2a2 2 0 0 0 2-2v-3"/>',
+    stats:'<path d="M4 19V5M10 19V9M16 19V3M22 19H2"/>',
+    groups:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    teams:'<path d="M12 2l7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-5"/>',
+    players:'<circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>',
+    learn:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>',
+    trophy:'<path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/>',
+    fire:'<path d="M12 22c4 0 7-3 7-7 0-3-2-5-4-7 0 3-2 4-3 5 0-4-2-7-5-9 1 5-2 6-2 11 0 4 3 7 7 7z"/>',
+    ball:'<circle cx="12" cy="12" r="10"/><path d="M12 6l4 3-1.5 5h-5L8 9zM9.5 14l-3 2M14.5 14l3 2M8 9L5 8M16 9l3-1M12 6V3"/>'
+  };
+  return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${paths[name]||paths.overview}</svg>`;
+}
+
+
 function isPlayed(m){ return m.score && Array.isArray(m.score.ft) && m.score.ft.length===2 && m.score.ft[0]!=null; }
 function groupKey(m){ return m.group ? m.group.replace(/^Group\s*/,"") : null; }
 
@@ -1913,7 +1979,7 @@ function teamStatus(team, groups, thirds){
     else { advanced=true; if(/Final/i.test(m.round)&&!/third/i.test(m.round)) champion=true; }
   }
   if(furthest){
-    if(champion){ label="🏆 Champion"; cls="gold"; }
+    if(champion){ label=icon("trophy")+"Champion"; cls="gold"; }
     else if(eliminatedRound){ label="Out — "+eliminatedRound; cls="out"; }
     else { label="Into "+nextRoundName(furthest); cls=cls==="out"?"adv":cls; advanced=true; }
   }
@@ -2056,7 +2122,7 @@ function stakesHtml(m){
   let dest;
   if(nm){ const other=(nm.team1==="W"+m.num)?nm.team2:nm.team1;
     dest=`advance to the <b>${esc(nm.round)}</b> to face <b>${esc(slotLabel(other))}</b>`; }
-  else if(/final/i.test(m.round)&&!/third/i.test(m.round)) dest=`lift the trophy as <b>World Champions</b> 🏆`;
+  else if(/final/i.test(m.round)&&!/third/i.test(m.round)) dest=`lift the trophy as <b>World Champions</b>`;
   else if(/third/i.test(m.round)) dest=`secure <b>3rd place</b> at the World Cup`;
   else dest=`move on to the next round`;
   const lose=/third/i.test(m.round)?"finish <b>4th</b>"
@@ -2355,15 +2421,15 @@ function renderUpcoming(groups){
   const lw=$("#liveWrap"); lw.innerHTML="";
   if(live.length){
     const stillLive=live.some(m=>matchState(m)==="live");
-    const label=stillLive?"🔴 Live now":"⏳ Result pending";
+    const label=stillLive?`<span class="live-dot"></span> Live now`:`${icon("calendar")} Result pending`;
     lw.appendChild(el("div","date-head",`<span class="day-today">${label}</span><span class="cnt">${live.length} match${live.length>1?"es":""}</span>`));
     const box=el("div"); box.innerHTML=live.map(m=>matchCard(m,groups)).join(""); lw.appendChild(box);
-    lw.appendChild(el("div","info",`Heads-up: this free data feed publishes the <b>final result</b> after each match rather than minute-by-minute scores, so a finished game can sit here as "Result pending" for a while until the source confirms it. Hit <b>↻ Refresh</b> for the latest.`));
+    lw.appendChild(el("div","info",`Heads-up: this free data feed publishes the <b>final result</b> after each match rather than minute-by-minute scores, so a finished game can sit here as "Result pending" for a while until the source confirms it. Hit <b><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg> Refresh</b> for the latest.`));
   } else {
     const next=upcoming[0];
     lw.appendChild(el("div","tbd-note",
       next?`No matches are in play right now. Next kickoff: <b style="color:var(--txt)">${esc(isPlaceholder(next.team1)?slotLabel(next.team1):next.team1)} v ${esc(isPlaceholder(next.team2)?slotLabel(next.team2):next.team2)}</b> — ${esc(fmtDate(next.date))}, ${timeUntil(parseKickoff(next))}.`
-      :`The tournament is complete — no upcoming matches. 🏆`));
+      :`The tournament is complete — no upcoming matches.`));
   }
 
   // round filter
@@ -2416,7 +2482,7 @@ function renderOverview(groups,thirds){
     .sort((a,b)=>(parseKickoff(a)?.getTime()||0)-(parseKickoff(b)?.getTime()||0));
   const ovLive=$("#ovLive");
   if(liveNow.length){
-    ovLive.innerHTML=`<div class="date-head"><span class="day-today">🔴 Live now</span><span class="cnt">${liveNow.length} match${liveNow.length>1?"es":""}</span></div>`
+    ovLive.innerHTML=`<div class="date-head"><span class="day-today"><span class="live-dot"></span> Live now</span><span class="cnt">${liveNow.length} match${liveNow.length>1?"es":""}</span></div>`
       + liveNow.map(m=>matchCard(m,groups)).join("");
     ovLive.style.marginBottom="18px";
   } else {
@@ -2426,7 +2492,7 @@ function renderOverview(groups,thirds){
       .sort((a,b)=>{const ka=parseKickoff(a),kb=parseKickoff(b);
         if(ka&&kb) return ka-kb; return (a.date||"").localeCompare(b.date||"")||(a.num||0)-(b.num||0);})[0];
     if(next){
-      ovLive.innerHTML=`<div class="date-head"><span class="day-today">⏭️ Next match</span></div>`+matchCard(next,groups);
+      ovLive.innerHTML=`<div class="date-head"><span class="day-today">${icon("calendar")} Next match</span></div>`+matchCard(next,groups);
       ovLive.style.marginBottom="18px";
     } else {
       ovLive.innerHTML=""; ovLive.style.marginBottom="";
@@ -2438,7 +2504,7 @@ function renderOverview(groups,thirds){
   const stage=currentStage();
   const stats=[
     {ico:"📊",big:played.length+" / "+total,lbl:"Matches played"},
-    {ico:"⚽",big:goals,lbl:"Goals scored"},
+    {ico:icon("ball"),big:goals,lbl:"Goals scored"},
     {ico:"📈",big:(played.length?(goals/played.length).toFixed(2):"0"),lbl:"Goals per match"},
     {ico:"📍",big:stage,lbl:"Current stage"},
   ];
@@ -2476,7 +2542,7 @@ function renderOverview(groups,thirds){
     if(ka&&kb) return ka-kb;
     return (a.date||"").localeCompare(b.date||"")||(a.num||0)-(b.num||0);
   }).slice(0,7);
-  $("#ovUpcoming").innerHTML= up.length? "" : `<div class="empty" style="padding:20px">No upcoming matches — tournament complete! 🏆</div>`;
+  $("#ovUpcoming").innerHTML= up.length? "" : `<div class="empty" style="padding:20px">No upcoming matches — tournament complete!</div>`;
   up.forEach(m=>$("#ovUpcoming").appendChild(upcomingRow(m)));
 }
 function miniMatch(m){
@@ -2627,7 +2693,7 @@ function renderBracket(){
   });
   if(hasChamp){ const r=result(finalM), champ=r.winner===1?finalM.team1:finalM.team2;
     html+=`<div class="kchamp" style="left:${xOf(finalM.round)+COLW+COLGAP}px;top:${topOf(finalM)}px;width:${champW}px">
-      <div class="tie"><div class="meta" style="text-align:center">🏆 Champion</div><div class="row win"><span class="flag">${flag(champ)}</span><span class="nm" data-team="${esc(champ)}">${tnm(champ)}</span><span class="sc"></span></div></div></div>`;
+      <div class="tie"><div class="meta" style="text-align:center"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/></svg>Champion</div><div class="row win"><span class="flag">${flag(champ)}</span><span class="nm" data-team="${esc(champ)}">${tnm(champ)}</span><span class="sc"></span></div></div></div>`;
   }
   // third-place play-off, parked below the main tree
   const third=ko.find(m=>/third/i.test(m.round||""));
@@ -3407,10 +3473,10 @@ function renderPlayers(){
   const boot=[...players].sort((a,b)=>b.goals-a.goals||b.open-a.open)[0];
   // summary cards
   const cards=[
-    {ico:"⚽",big:totG,lbl:"Goals so far"},
-    {ico:"🅰️",big:enr?totA:"…",lbl:enr?"Assists":"Assists (loading)"},
+    {ico:icon("ball"),big:totG,lbl:"Goals so far"},
+    {ico:icon("players"),big:enr?totA:"…",lbl:enr?"Assists":"Assists (loading)"},
     {ico:"👥",big:players.filter(p=>p.goals>0).length,lbl:"Different scorers"},
-    {ico:"🥇",big:boot?boot.goals:0,lbl:boot?("Golden Boot · "+boot.name):"Golden Boot"},
+    {ico:icon("trophy"),big:boot?boot.goals:0,lbl:boot?("Golden Boot · "+boot.name):"Golden Boot"},
   ];
   $("#playerStatCards").innerHTML=cards.map(c=>`<div class="card"><div class="stat"><span class="ico">${c.ico}</span><span class="big">${c.big}</span><span class="lbl">${esc(c.lbl)}</span></div></div>`).join("");
   // country dropdown (rebuild only when the set changes)
@@ -3583,30 +3649,30 @@ function scatterChart(teams){
       <span class="smk-code">${esc(code)}</span>${flag(t.team,13)}
       <div class="smk-pop">
         <div class="smk-h">${flag(t.team,16)} <b>${esc(t.team)}</b> <span class="t3">${esc(code)}</span></div>
-        <div class="smk-s"><span>⚔️ Scores</span><b>${t.x.toFixed(1)} <small>/ game</small></b></div>
-        <div class="smk-s"><span>🛡️ Concedes</span><b>${t.y.toFixed(1)} <small>/ game</small></b></div>
+        <div class="smk-s"><span>${icon("fire")} Scores</span><b>${t.x.toFixed(1)} <small>/ game</small></b></div>
+        <div class="smk-s"><span>${icon("teams")} Concedes</span><b>${t.y.toFixed(1)} <small>/ game</small></b></div>
       </div></div>`;
   }).join("");
   return `<div class="scatter-wrap">${g}<div class="smk-layer">${markers}</div></div>`;
 }
 function buildInsights(ts,players,power,groups){
   const ins=[]; const enr=enrichmentActive();
-  if(power[0]) ins.push({cls:"win",ic:"👑",t:"Top of the power rankings",x:`<b>${tlink(power[0].team)}</b> lead our composite index at <b>${power[0].score}/100</b> — a blend of points, goal difference, form and knockout progress.`});
+  if(power[0]) ins.push({cls:"win",ic:icon("trophy"),t:"Top of the power rankings",x:`<b>${tlink(power[0].team)}</b> lead our composite index at <b>${power[0].score}/100</b> — a blend of points, goal difference, form and knockout progress.`});
   const boot=[...players].sort((a,b)=>b.goals-a.goals||b.open-a.open)[0];
-  if(boot) ins.push({cls:"gold",ic:"🥇",t:"Golden Boot race",x:`<b>${pname(boot.name,boot.team)}</b> leads with <b>${boot.goals} goals</b>${boot.pens?` (${boot.pens} pen)`:""} for ${tlink(boot.team)}.`});
+  if(boot) ins.push({cls:"gold",ic:icon("trophy"),t:"Golden Boot race",x:`<b>${pname(boot.name,boot.team)}</b> leads with <b>${boot.goals} goals</b>${boot.pens?` (${boot.pens} pen)`:""} for ${tlink(boot.team)}.`});
   const ats=Object.values(groups).flatMap(g=>Object.values(g.teams)).map(r=>({team:r.team,s:statline(r.team,groups)})).filter(t=>t.s.played>=2);
   const atk=[...ats].sort((a,b)=>b.s.gfpg-a.s.gfpg)[0];
-  if(atk) ins.push({cls:"win",ic:"🔥",t:"Hottest attack",x:`<b>${tlink(atk.team)}</b> are scoring <b>${atk.s.gfpg.toFixed(1)}</b> a game — ${atk.s.gf} in ${atk.s.played}.`});
+  if(atk) ins.push({cls:"win",ic:icon("fire"),t:"Hottest attack",x:`<b>${tlink(atk.team)}</b> are scoring <b>${atk.s.gfpg.toFixed(1)}</b> a game — ${atk.s.gf} in ${atk.s.played}.`});
   const def=[...ats].sort((a,b)=>a.s.gapg-b.s.gapg)[0];
-  if(def) ins.push({cls:"win",ic:"🛡️",t:"Meanest defense",x:`<b>${tlink(def.team)}</b> concede just <b>${def.s.gapg.toFixed(1)}</b> a game, with <b>${def.s.cs}</b> clean sheet${def.s.cs===1?"":"s"}.`});
+  if(def) ins.push({cls:"win",ic:icon("teams"),t:"Meanest defense",x:`<b>${tlink(def.team)}</b> concede just <b>${def.s.gapg.toFixed(1)}</b> a game, with <b>${def.s.cs}</b> clean sheet${def.s.cs===1?"":"s"}.`});
   const played=STATE.matches.filter(isPlayed);
   const big=played.map(m=>({m,d:Math.abs(result(m).a-result(m).b)})).sort((a,b)=>b.d-a.d)[0];
-  if(big){ const r=result(big.m); ins.push({cls:"",ic:"💥",t:"Biggest blowout",x:`<b>${tlink(big.m.team1)} ${r.display} ${tlink(big.m.team2)}</b> — a ${big.d}-goal margin.`}); }
+  if(big){ const r=result(big.m); ins.push({cls:"",ic:icon("fire"),t:"Biggest blowout",x:`<b>${tlink(big.m.team1)} ${r.display} ${tlink(big.m.team2)}</b> — a ${big.d}-goal margin.`}); }
   const peak=ts.timing.indexOf(Math.max(...ts.timing));
-  ins.push({cls:"",ic:"⏱️",t:"When goals happen",x:`The <b>${BUCKETS[peak]}'</b> window is the most prolific — <b>${ts.timing[peak]}</b> of ${ts.goals} goals land there.`});
-  ins.push({cls:"",ic:"🎯",t:"How goals are scored",x:`<b>${Math.round(ts.open/Math.max(1,ts.goals)*100)}%</b> from open play · <b>${ts.pens}</b> penalt${ts.pens===1?"y":"ies"}${ts.ogs?` · <b>${ts.ogs}</b> own goal${ts.ogs===1?"":"s"}`:""}.`});
+  ins.push({cls:"",ic:icon("calendar"),t:"When goals happen",x:`The <b>${BUCKETS[peak]}'</b> window is the most prolific — <b>${ts.timing[peak]}</b> of ${ts.goals} goals land there.`});
+  ins.push({cls:"",ic:icon("stats"),t:"How goals are scored",x:`<b>${Math.round(ts.open/Math.max(1,ts.goals)*100)}%</b> from open play · <b>${ts.pens}</b> penalt${ts.pens===1?"y":"ies"}${ts.ogs?` · <b>${ts.ogs}</b> own goal${ts.ogs===1?"":"s"}`:""}.`});
   if(enr){ const cre=[...players].sort((a,b)=>b.assists-a.assists)[0];
-    if(cre&&cre.assists) ins.push({cls:"",ic:"🅰️",t:"Chief creator",x:`<b>${pname(cre.name,cre.team)}</b> tops the assist chart with <b>${cre.assists}</b>, from the matches we have detail for.`}); }
+    if(cre&&cre.assists) ins.push({cls:"",ic:icon("players"),t:"Chief creator",x:`<b>${pname(cre.name,cre.team)}</b> tops the assist chart with <b>${cre.assists}</b>, from the matches we have detail for.`}); }
   return ins;
 }
 function renderStats(groups,thirds){
@@ -3620,9 +3686,9 @@ function renderStats(groups,thirds){
   // summary cards
   const summary=[
     {ico:"📊",big:ts.played,lbl:"Matches played"},
-    {ico:"⚽",big:ts.goals,lbl:"Goals"},
+    {ico:icon("ball"),big:ts.goals,lbl:"Goals"},
     {ico:"📈",big:(ts.goals/Math.max(1,ts.played)).toFixed(2),lbl:"Goals per match"},
-    {ico:"🎯",big:ts.pens,lbl:"Penalties scored"},
+    {ico:icon("stats"),big:ts.pens,lbl:"Penalties scored"},
   ];
   // team power hbars (top 12)
   const powerRows=power.slice(0,12).map((o,i)=>({ rank:i+1, value:o.score, disp:o.score,
@@ -3654,28 +3720,28 @@ function renderStats(groups,thirds){
       ${summary.map(s=>`<div class="card"><div class="stat"><span class="ico">${s.ico}</span><span class="big">${s.big}</span><span class="lbl">${esc(s.lbl)}</span></div></div>`).join("")}
     </div>
 
-    <h2 class="section" style="font-size:16px;margin:4px 0 10px">📌 Storylines</h2>
+    <h2 class="section" style="font-size:16px;margin:4px 0 10px">${icon("learn")} Storylines</h2>
     <div class="insights" style="margin-bottom:22px">
       ${ins.map(i=>`<div class="insight ${i.cls}"><div class="it">${i.ic} ${esc(i.t)}</div><div class="ix">${i.x}</div></div>`).join("")}
     </div>
 
     <div class="grid cols-2" style="margin-bottom:18px">
-      <div class="schart"><h3>🏆 Team Power Rankings</h3><p class="sub">Composite of points, goal difference, recent form &amp; knockout progress — scaled 0–100. Click a team for its profile.</p>${hbars(powerRows)}</div>
-    <div class="schart"><h3>🥇 Golden Boot &amp; creators</h3><p class="sub">Top scorers — <span style="color:var(--series-a-hi)">crimson = goals</span>${enr?`, <span style="color:var(--series-b-hi)">cyan = assists</span>`:""}. Click a name for their card.</p>${hbars(scorerRows)}</div>
+      <div class="schart"><h3><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/></svg>Team Power Rankings</h3><p class="sub">Composite of points, goal difference, recent form &amp; knockout progress — scaled 0–100. Click a team for its profile.</p>${hbars(powerRows)}</div>
+    <div class="schart"><h3><svg class="ico-svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M8.5 14.5L6 22l6-3 6 3-2.5-7.5"/></svg>Golden Boot &amp; creators</h3><p class="sub">Top scorers — <span style="color:var(--series-a-hi)">crimson = goals</span>${enr?`, <span style="color:var(--series-b-hi)">cyan = assists</span>`:""}. Click a name for their card.</p>${hbars(scorerRows)}</div>
     </div>
 
-    <div class="schart" style="margin-bottom:18px"><h3>🎛️ Attack vs. Defense</h3><p class="sub">Every team plotted by goals scored vs. conceded per game. <b>Top-right = elite</b> — scores freely and concedes little. Dashed lines mark the tournament average. Click a dot for the team.</p>${scatterChart(scTeams)}</div>
+    <div class="schart" style="margin-bottom:18px"><h3>${icon("stats")}Attack vs. Defense</h3><p class="sub">Every team plotted by goals scored vs. conceded per game. <b>Top-right = elite</b> — scores freely and concedes little. Dashed lines mark the tournament average. Click a dot for the team.</p>${scatterChart(scTeams)}</div>
 
     <div class="grid cols-2" style="margin-bottom:18px">
-      <div class="schart"><h3>⏱️ When goals are scored</h3><p class="sub">All ${ts.goals} goals by 15-minute window (stoppage time folded into 45+ and 90+).</p>${vbars(timeRows)}</div>
+      <div class="schart"><h3>${icon("calendar")}When goals are scored</h3><p class="sub">All ${ts.goals} goals by 15-minute window (stoppage time folded into 45+ and 90+).</p>${vbars(timeRows)}</div>
       <div class="schart"><h3>🧩 How goals are scored</h3><p class="sub">Open play vs. penalties vs. own goals.</p>${types.length?donut(types):'<div class="empty">No goals yet.</div>'}</div>
     </div>
 
     <div class="grid cols-2" style="margin-bottom:18px">
       <div class="schart"><h3>⚡ Player impact index</h3><p class="sub">Goals + assists weighted, with a bonus for knockout goals &amp; multi-goal games.</p>${hbars(impRows)}</div>
-      <div class="schart"><h3>📅 Goals by stage</h3><p class="sub">How the goals are spread across the rounds.</p>${vbars(stageRows)}</div>
+      <div class="schart"><h3>${icon("calendar")}Goals by stage</h3><p class="sub">How the goals are spread across the rounds.</p>${vbars(stageRows)}</div>
     </div>
-    ${enr?"":`<div class="tbd-note">🔄 Assists and player photos are still loading from TheSportsDB and will appear as matches are fetched.</div>`}`;
+    ${enr?"":`<div class="tbd-note">${icon("calendar")} Assists and player photos are still loading from TheSportsDB and will appear as matches are fetched.</div>`}`;
 }
 
 /* ---------- A team's next match (+ mini preview) ---------- */
@@ -3704,7 +3770,7 @@ function winReward(m){
   if(m.group) return `three points in <b>Group ${esc(groupKey(m))}</b>`;
   const nm=nextMatchFor(m);
   if(nm) return `a place in the <b>${esc(nm.round||"next round")}</b>`;
-  if(/final/i.test(m.round||"")&&!/third/i.test(m.round||"")) return `the <b>World Cup title</b> 🏆`;
+  if(/final/i.test(m.round||"")&&!/third/i.test(m.round||"")) return `the <b>World Cup title</b>`;
   if(/third/i.test(m.round||"")) return `<b>third place</b>`;
   return `a place in <b>the next round</b>`;
 }
@@ -3753,7 +3819,7 @@ function nextMatchSection(team,st,groups){
   const nx=teamNextMatch(team);
   if(!nx){
     let msg;
-    if(st.cls==="gold") msg="🏆 Champions of the world — no more matches to play.";
+    if(st.cls==="gold") msg=icon("trophy")+"Champions of the world — no more matches to play.";
     else if(st.advanced===false) msg="🏁 Their tournament is over — no upcoming match.";
     else msg="No upcoming match scheduled yet.";
     return `<div class="nextm nextm-none">${msg}</div>`;
@@ -3771,7 +3837,7 @@ function nextMatchSection(team,st,groups){
     const scoreHtml=myScore!=null?`<div class="score live">${myScore}–${oppScore}</div>`:`<div class="live-clock">● LIVE</div>`;
     const clockHtml=lv?`<div class="live-clock" data-live-clock="${esc(matchId(m))}">${esc(liveClockText(lv))}</div>`:"";
     return `<div class="nextm live" role="button" tabindex="0" aria-expanded="false">
-      <div class="nm-h">🔴 Live now <span class="round-chip">${esc(chip)}</span></div>
+      <div class="nm-h"><span class="live-dot"></span> Live now <span class="round-chip">${esc(chip)}</span></div>
       <div class="nm-main" style="justify-content:space-between">
         <span class="nm-opp"><span class="teamcell" data-team="${esc(team)}" style="display:inline-flex">${flag(team,20)} ${tnm(team)}</span></span>
         <span style="text-align:center">${scoreHtml}${clockHtml}</span>
@@ -3789,7 +3855,7 @@ function nextMatchSection(team,st,groups){
     ? `<span class="nm-opp"><span class="teamcell" data-team="${esc(opp)}" style="display:inline-flex">${flag(opp,20)} ${tnm(opp)}</span></span>`
     : `<span class="nm-opp tbd">${esc(slotLabel(opp))}</span>`;
   return `<div class="nextm" role="button" tabindex="0" aria-expanded="false">
-    <div class="nm-h">⏭️ Next match <span class="round-chip">${esc(chip)}</span></div>
+    <div class="nm-h">${icon("calendar")} Next match <span class="round-chip">${esc(chip)}</span></div>
     <div class="nm-main">
       <span class="nm-vs">vs</span>
       ${oppHtml}
@@ -4026,7 +4092,7 @@ function currentStage(){
   if(koPlayed.length){
     // any final played?
     const fin=koPlayed.find(m=>/^final$/i.test((m.round||'').trim()));
-    if(fin) return "Complete 🏆";
+    if(fin) return "Complete";
     // furthest round reached
     let best=koPlayed.reduce((a,m)=>Math.max(a,koRoundIndex(m.round)),-1);
     const name=KO_ORDER[best];
@@ -4097,7 +4163,7 @@ function showError(err){
   $("#ovStats").innerHTML=`<div class="card" style="grid-column:1/-1"><div class="empty">
     <div style="font-size:30px;margin-bottom:8px">📡</div>
     <b>Couldn't reach the data source.</b><br>
-    <span style="font-size:13px">Check your internet connection, then press <b>↻ Refresh</b>.<br>
+    <span style="font-size:13px">Check your internet connection, then press <b><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg> Refresh</b>.<br>
     <span style="color:var(--faint)">(${esc(err.message||err)})</span></span></div></div>`;
 }
 
