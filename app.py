@@ -115,6 +115,28 @@ TEAM_PROFILE_MAP = {
     "Canada": {"coach": "Jesse Marsch", "captain": "Alphonso Davies", "ranking": 30, "form": "Fast direct runners"},
 }
 
+GOALKEEPER_MAP = {
+    "Argentina": "Emiliano Martínez",
+    "Australia": "Mathew Ryan",
+    "Belgium": "Thibaut Courtois",
+    "Brazil": "Alisson Becker",
+    "Canada": "Dayne St. Clair",
+    "Colombia": "Camilo Vargas",
+    "England": "Jordan Pickford",
+    "France": "Mike Maignan",
+    "Germany": "Manuel Neuer",
+    "Mexico": "Guillermo Ochoa",
+    "Morocco": "Yassine Bounou",
+    "Netherlands": "Bart Verbruggen",
+    "Norway": "Ørjan Nyland",
+    "Portugal": "Diogo Costa",
+    "Spain": "Unai Simón",
+    "Sweden": "Robin Olsen",
+    "Switzerland": "Yann Sommer",
+    "United States": "Matt Turner",
+    "USA": "Matt Turner",
+}
+
 PLAYER_PROFILE_MAP = {
     "Kylian Mbappé": {"club": "Real Madrid", "position": "Forward", "age": 27},
     "Lionel Messi": {"club": "Inter Miami", "position": "Forward", "age": 39},
@@ -251,17 +273,21 @@ st.markdown(
       .wc-small {font-size:.82rem; color:var(--wc-muted);}
       .wc-table-note {color:var(--wc-muted); font-size:.90rem; margin:6px 0 14px;}
       .wc-rank-row {display:grid; grid-template-columns:28px 1.1fr 2fr 42px; gap:10px; align-items:center; margin:9px 0;}
-      .wc-overview-grid {display:grid; grid-template-columns:repeat(3, minmax(220px,1fr)); gap:12px; margin:14px 0; align-items:stretch;}
-      .wc-summary-card {border:1px solid var(--wc-border); border-radius:16px; padding:14px; background:rgba(15,31,53,.76); min-height:142px; height:100%; box-sizing:border-box;}
-      .wc-summary-card h4 {margin:0 0 10px; color:#fff; font-size:.98rem;}
-      .wc-summary-list {display:flex; flex-direction:column; gap:8px;}
-      .wc-summary-row {display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; min-height:28px; color:var(--wc-muted); font-size:.88rem;}
-      .wc-summary-main {display:flex; align-items:center; gap:8px; min-width:0;}
+      .wc-overview-grid {display:grid; grid-template-columns:repeat(2, minmax(320px,1fr)); gap:16px; margin:14px 0; align-items:stretch;}
+      .wc-summary-card {border:1px solid rgba(71,100,145,.9); border-radius:16px; padding:16px 18px; background:linear-gradient(180deg, rgba(25,39,62,.94), rgba(17,29,48,.94)); min-height:310px; height:100%; box-sizing:border-box; box-shadow:0 18px 42px rgba(0,0,0,.24);}
+      .wc-summary-card h4 {margin:0 0 14px; color:#cbd5e1; font-size:.78rem; text-transform:uppercase; letter-spacing:.12em; font-weight:950;}
+      .wc-summary-card h4::before {content:""; display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:10px; vertical-align:1px; background:linear-gradient(135deg,#f472b6,#38bdf8); box-shadow:0 0 14px rgba(244,114,182,.45);}
+      .wc-summary-list {display:flex; flex-direction:column;}
+      .wc-summary-row {display:grid; grid-template-columns:118px minmax(0,1fr) auto; gap:12px; align-items:center; min-height:40px; color:var(--wc-muted); font-size:.86rem; border-top:1px solid rgba(100,116,139,.26);}
+      .wc-summary-row:first-child {border-top:0;}
+      .wc-summary-main {display:flex; align-items:center; justify-content:flex-end; gap:8px; min-width:0;}
       .wc-summary-main .team-chip {vertical-align:middle;}
       .wc-summary-name, .wc-summary-country {font-weight:900; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
       .wc-summary-name:hover, .wc-summary-country:hover, .wc-overview-grid .wc-entity-link:hover .team-name {color:var(--wc-green) !important;}
-      .wc-summary-meta {color:var(--wc-muted); white-space:nowrap;}
+      .wc-summary-meta {color:var(--wc-muted); white-space:nowrap; font-size:.78rem;}
+      .wc-summary-stage {color:#cbd5e1; font-size:.76rem; white-space:normal; line-height:1.05;}
       .wc-summary-score {justify-self:end; text-align:right; font-weight:950; color:#fff; white-space:nowrap;}
+      .wc-summary-goal {font-size:1.15rem; color:#fde68a;}
       .wc-rank-num {background:rgba(247,201,72,.18); color:#f7c948; border-radius:7px; text-align:center; font-weight:900; padding:3px;}
       .wc-bar {height:14px; border-radius:99px; background:rgba(148,163,184,.20); overflow:hidden;}
       .wc-bar-fill {height:100%; border-radius:99px; background:linear-gradient(90deg,#f43f5e,#22d3ee);}
@@ -305,7 +331,7 @@ st.markdown(
       .wc-inline-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:-4px 0 12px;}
       .wc-timeline-strip{height:18px;margin:18px 8px 10px;position:relative;border-radius:999px;background:linear-gradient(90deg,rgba(34,197,94,.25),rgba(247,201,72,.25),rgba(56,189,248,.25))}.wc-timeline-dot{position:absolute;top:50%;width:13px;height:13px;transform:translate(-50%,-50%);border-radius:50%;background:#22c55e;border:2px solid #fff;box-shadow:0 0 18px rgba(34,197,94,.5)}.wc-timeline-dot.away{background:#38bdf8}.wc-match-events{display:grid;grid-template-columns:1fr 54px 1fr;gap:8px;align-items:center}.wc-event-left{text-align:right}.wc-event-right{text-align:left}.wc-event-time{text-align:center;color:#f7c948;font-weight:950}
       .wc-stat-row{display:grid;grid-template-columns:1fr 150px 1fr;gap:12px;align-items:center;margin:10px 0}.wc-stat-bar{height:9px;border-radius:999px;background:rgba(148,163,184,.18);overflow:hidden}.wc-stat-fill-home,.wc-stat-fill-away{height:100%;border-radius:999px}.wc-stat-fill-home{margin-left:auto;background:linear-gradient(90deg,#22c55e,#f7c948)}.wc-stat-fill-away{background:linear-gradient(90deg,#38bdf8,#818cf8)}
-      .wc-refresh-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(56,189,248,.28);border-radius:999px;padding:5px 10px;background:rgba(56,189,248,.10);font-weight:800;color:#dff6ff}.wc-bracket-board{position:relative}.wc-bracket-board::before{content:"";position:absolute;inset:84px 238px;background:linear-gradient(90deg,transparent 0 8%,rgba(247,201,72,.72) 8% calc(8% + 2px),transparent calc(8% + 2px) 88%,rgba(247,201,72,.72) 88% calc(88% + 2px),transparent calc(88% + 2px)),linear-gradient(0deg,transparent 0 calc(50% - 1px),rgba(247,201,72,.70) calc(50% - 1px) calc(50% + 1px),transparent calc(50% + 1px));pointer-events:none}.wc-bracket-card::before{content:"";position:absolute;top:50%;height:2px;width:18px;background:rgba(247,201,72,.82)}.wc-bracket-side.left .wc-bracket-card::before{right:-18px}.wc-bracket-side.right .wc-bracket-card::before{left:-18px}.wc-route-legend{text-align:center;color:#a8b3c7;margin-top:10px;font-size:.86rem}.wc-team-profile{border:1px solid var(--wc-border);border-radius:24px;padding:18px;background:linear-gradient(135deg,rgba(15,31,53,.94),rgba(8,20,36,.94));}.wc-team-hero{display:flex;gap:14px;align-items:center}.wc-team-flag-xl{font-size:3rem}.wc-form-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.wc-form-badge{height:28px;min-width:28px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:950;background:rgba(148,163,184,.18)}.wc-form-badge.win{background:rgba(34,197,94,.22);color:#bbf7d0}.wc-form-badge.loss{background:rgba(239,68,68,.18);color:#fecaca}.wc-form-badge.draw{background:rgba(247,201,72,.18);color:#fde68a}.wc-player-grid{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}.wc-player-card{border:1px solid var(--wc-border);border-radius:18px;padding:14px;background:rgba(15,31,53,.82)}.wc-player-card-top{display:flex;gap:12px;align-items:center}.wc-player-card .wc-player-photo,.wc-player-card .wc-player-avatar{width:54px;height:54px;font-size:1rem}.wc-player-meta{color:#a8b3c7;font-size:.84rem;margin-top:4px}.wc-player-statline{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.wc-player-stat{border-radius:12px;background:rgba(148,163,184,.12);padding:8px;text-align:center}.wc-player-stat b{display:block;color:#fff;font-size:1.1rem}
+      .wc-refresh-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(56,189,248,.28);border-radius:999px;padding:5px 10px;background:rgba(56,189,248,.10);font-weight:800;color:#dff6ff}.wc-bracket-board{position:relative}.wc-bracket-board::before{display:none}.wc-bracket-card::before{content:"";position:absolute;top:50%;height:2px;width:14px;background:rgba(247,201,72,.82);z-index:0}.wc-bracket-card::after{content:"";display:block;position:absolute;top:16px;bottom:16px;width:2px;background:rgba(247,201,72,.54);z-index:0}.wc-bracket-side.left .wc-bracket-card::before{right:-14px}.wc-bracket-side.left .wc-bracket-card::after{right:-15px}.wc-bracket-side.right .wc-bracket-card::before{left:-14px}.wc-bracket-side.right .wc-bracket-card::after{left:-15px}.wc-bracket-side.left>div:last-child .wc-bracket-card::before,.wc-bracket-side.left>div:last-child .wc-bracket-card::after,.wc-bracket-side.right>div:first-child .wc-bracket-card::before,.wc-bracket-side.right>div:first-child .wc-bracket-card::after{display:block}.wc-route-legend{text-align:center;color:#a8b3c7;margin-top:10px;font-size:.86rem}.wc-team-profile{border:1px solid var(--wc-border);border-radius:24px;padding:18px;background:linear-gradient(135deg,rgba(15,31,53,.94),rgba(8,20,36,.94));}.wc-team-hero{display:flex;gap:14px;align-items:center}.wc-team-flag-xl{font-size:3rem}.wc-form-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.wc-form-badge{height:28px;min-width:28px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:950;background:rgba(148,163,184,.18)}.wc-form-badge.win{background:rgba(34,197,94,.22);color:#bbf7d0}.wc-form-badge.loss{background:rgba(239,68,68,.18);color:#fecaca}.wc-form-badge.draw{background:rgba(247,201,72,.18);color:#fde68a}.wc-player-grid{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}.wc-player-card{border:1px solid var(--wc-border);border-radius:18px;padding:14px;background:rgba(15,31,53,.82)}.wc-player-card-top{display:flex;gap:12px;align-items:center}.wc-player-card .wc-player-photo,.wc-player-card .wc-player-avatar{width:54px;height:54px;font-size:1rem}.wc-player-meta{color:#a8b3c7;font-size:.84rem;margin-top:4px}.wc-player-statline{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.wc-player-stat{border-radius:12px;background:rgba(148,163,184,.12);padding:8px;text-align:center}.wc-player-stat b{display:block;color:#fff;font-size:1.1rem}
       @media (max-width: 900px) {.wc-stat-row{grid-template-columns:1fr}.wc-centre-score{grid-template-columns:1fr}.wc-player-grid{grid-template-columns:1fr 1fr}.wc-bracket-board{grid-template-columns:1fr;min-width:760px}.wc-bracket-board::before{display:none}}
       @media (max-width: 640px) {.wc-player-grid{grid-template-columns:1fr}.wc-hero-inner{align-items:flex-start}.wc-trophy{display:none}}
 
@@ -1049,27 +1075,54 @@ def biggest_wins(matches_df: pd.DataFrame, limit: int = 10) -> pd.DataFrame:
 
 
 def overview_row(main_html: str, score_html: str = "", meta_html: str = "") -> str:
-    meta = f"<span class='wc-summary-meta'>{meta_html}</span>" if meta_html else ""
+    meta = f"<div class='wc-summary-stage'>{meta_html}</div>" if meta_html else "<div class='wc-summary-stage'></div>"
     score = f"<span class='wc-summary-score'>{score_html}</span>" if score_html else ""
-    return f"<div class='wc-summary-row'><div class='wc-summary-main'>{main_html}{meta}</div>{score}</div>"
+    return f"<div class='wc-summary-row'>{meta}<div class='wc-summary-main'>{main_html}</div>{score}</div>"
+
+
+def clean_sheet_table(matches_df: pd.DataFrame, limit: int = 8) -> pd.DataFrame:
+    finished = matches_df[matches_df["status"] == "Finished"].dropna(subset=["home_score", "away_score"]).copy() if not matches_df.empty else pd.DataFrame()
+    records = []
+    for _, r in finished.iterrows():
+        if int(r["away_score"]) == 0:
+            team = clean_text(r["home_team"])
+            records.append({"team": team, "keeper": GOALKEEPER_MAP.get(team, "Starting keeper"), "clean_sheets": 1})
+        if int(r["home_score"]) == 0:
+            team = clean_text(r["away_team"])
+            records.append({"team": team, "keeper": GOALKEEPER_MAP.get(team, "Starting keeper"), "clean_sheets": 1})
+    if not records:
+        return pd.DataFrame(columns=["team", "keeper", "clean_sheets"])
+    return (pd.DataFrame(records)
+        .groupby(["team", "keeper"], as_index=False)["clean_sheets"].sum()
+        .sort_values(["clean_sheets", "team"], ascending=[False, True])
+        .head(limit))
 
 
 def render_overview_summary_cards(matches_df: pd.DataFrame) -> None:
     players = extract_player_stats(matches_df)
-    top_scorers = players[players["G"] >= 4].head(10) if not players.empty else pd.DataFrame()
-    team_goals = team_goal_table(matches_df).head(10)
-    big_wins = biggest_wins(matches_df)
-    upcoming = matches_df[matches_df["status"] == "Scheduled"].sort_values("date_time", na_position="last").head(6) if not matches_df.empty else pd.DataFrame()
-    latest = matches_df[matches_df["status"] == "Finished"].sort_values("date_time", ascending=False, na_position="last").head(6) if not matches_df.empty else pd.DataFrame()
+    top_scorers = players[players["G"] >= 4].head(8) if not players.empty else pd.DataFrame()
+    clean_sheets = clean_sheet_table(matches_df, limit=8)
+    big_wins = biggest_wins(matches_df, limit=6)
+    upcoming = matches_df[matches_df["status"] == "Scheduled"].sort_values("date_time", na_position="last").head(7) if not matches_df.empty else pd.DataFrame()
+    latest = matches_df[matches_df["status"] == "Finished"].sort_values("date_time", ascending=False, na_position="last").head(7) if not matches_df.empty else pd.DataFrame()
     cards = [
-        ("🥇 Top scorers", [
+        ("🏟️ Latest results", [
             overview_row(
-                f"<span class='wc-summary-name'>{esc(r.Player)}</span>{team_chip(r.Country)}",
-                f"{int(r.G)} goal{'s' if int(r.G) != 1 else ''}",
+                f"{team_chip(r.home_team)} <span class='wc-summary-meta'>vs</span> {team_chip(r.away_team)}",
+                scoreline_label(pd.Series(r._asdict())),
+                esc(r.stage_label),
             )
-            for r in top_scorers.itertuples()
-        ] if not top_scorers.empty else [overview_row("Scorers with at least four goals will appear here.")]),
-        ("🎆 Biggest wins", [
+            for r in latest.itertuples()
+        ] if not latest.empty else [overview_row("Latest results will appear after completed matches.")]),
+        ("🗓️ What's next", [
+            overview_row(
+                f"{team_chip(r.home_team)} <span class='wc-summary-meta'>vs</span> {team_chip(r.away_team)}",
+                esc(r.kickoff),
+                esc(r.stage_label),
+            )
+            for r in upcoming.itertuples()
+        ] if not upcoming.empty else [overview_row("No upcoming matches are currently loaded.")]),
+        ("🔥 Biggest wins", [
             overview_row(
                 f"{team_chip(r.home_team)} <span class='wc-summary-meta'>vs</span> {team_chip(r.away_team)}",
                 scoreline_label(pd.Series(r._asdict())),
@@ -1077,18 +1130,21 @@ def render_overview_summary_cards(matches_df: pd.DataFrame) -> None:
             )
             for r in big_wins.itertuples()
         ] if not big_wins.empty else [overview_row("Wins where the winning team scores at least five goals will appear here.")]),
-        ("🔥 Top team goals", [
-            overview_row(team_chip(r.team), f"{int(r.goals)} goal{'s' if int(r.goals) != 1 else ''}")
-            for r in team_goals.itertuples()
-        ] if not team_goals.empty else [overview_row("Team goal totals will populate after completed matches.")]),
-        ("⏭️ Upcoming matches", [
-            overview_row(f"{team_chip(r.home_team)} <span class='wc-summary-meta'>vs</span> {team_chip(r.away_team)}", esc(r.kickoff))
-            for r in upcoming.itertuples()
-        ] if not upcoming.empty else [overview_row("No upcoming matches are currently loaded.")]),
-        ("🕘 Latest results", [
-            overview_row(f"{team_chip(r.home_team)} <span class='wc-summary-meta'>vs</span> {team_chip(r.away_team)}", scoreline_label(pd.Series(r._asdict())), esc(r.stage_label))
-            for r in latest.itertuples()
-        ] if not latest.empty else [overview_row("Latest results will appear after completed matches.")]),
+        ("🏅 Top scorers", [
+            overview_row(
+                f"<span class='wc-summary-name'>{esc(r.Player)}</span>{team_chip(r.Country)}",
+                f"<span class='wc-summary-goal'>{int(r.G)}</span>",
+                str(i),
+            )
+            for i, r in enumerate(top_scorers.itertuples(), start=1)
+        ] if not top_scorers.empty else [overview_row("Scorers with at least four goals will appear here.")]),
+        ("🥅 Most clean sheets", [
+            overview_row(
+                f"<span class='wc-summary-name'>{esc(r.keeper)}</span> {team_chip(r.team)}",
+                f"{int(r.clean_sheets)} CS",
+            )
+            for r in clean_sheets.itertuples()
+        ] if not clean_sheets.empty else [overview_row("Clean sheets will appear after shutouts are recorded.")]),
     ]
     html_cards = []
     for title, items in cards:
@@ -1977,7 +2033,7 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     cache_note = "60 seconds" if source == "Live API" else "1 hour"
     st.caption(f"Data source: {source} • Cache: {cache_note}")
 
-    st.markdown("### At a glance")
+    st.markdown("### Tournament Dashboard")
     st.markdown(f"<div class='explain'><b>Overview shows:</b> current tournament status, live or next match, completed-match progress, goal pace, and headline summary cards. {explain_current_stage(matches_df)} New to football? Start with the <a class='wc-basics-link' href='?tab=Football%20101' target='_self'>Football 101</a> tab for quick rules and tournament basics.</div><div class='wc-overview-spacer'></div>", unsafe_allow_html=True)
 
     c1, c2, c3, c4 = st.columns(4)
