@@ -365,9 +365,49 @@ st.markdown(
       .wc-bracket-shell.compact .wc-flag {width:19px;height:14px;font-size:.8rem;}
       .wc-route-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(247,201,72,.32);background:rgba(247,201,72,.10);border-radius:999px;padding:4px 9px;margin:3px;color:#fde68a;font-size:.75rem;font-weight:900}
 
+
       .wc-section-kicker{color:#a8b3c7;font-weight:900;text-transform:uppercase;letter-spacing:.10em;font-size:.78rem;margin:10px 0;}
       .wc-team-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 14px;}.wc-team-filter-pill{border:1px solid rgba(148,163,184,.46);border-radius:999px;padding:6px 12px;background:rgba(15,31,53,.78);color:#cbd5e1;font-weight:900;font-size:.83rem;text-decoration:none;}.wc-team-filter-pill.active{border-color:#2dd4bf;background:rgba(45,212,191,.16);color:#fff;box-shadow:0 0 18px rgba(45,212,191,.16);}
       .wc-team-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:8px;}.wc-team-card{display:block;text-decoration:none;border:1px solid rgba(71,100,145,.95);border-radius:12px;padding:14px;background:radial-gradient(circle at 88% 86%,rgba(56,189,248,.13),transparent 4rem),linear-gradient(135deg,rgba(25,39,62,.96),rgba(15,27,45,.96));min-height:116px;color:#f8fafc;box-shadow:0 14px 32px rgba(0,0,0,.22);transition:transform .18s ease,border-color .18s ease;}.wc-team-card:hover{transform:translateY(-2px);border-color:rgba(45,212,191,.70);}.wc-team-card-top{display:flex;align-items:center;gap:8px;min-width:0;}.wc-team-card-flag .flag-img,.wc-team-card-flag .wc-flag{width:48px;height:32px;font-size:1.7rem;border-radius:4px;}.wc-team-card-name{font-weight:950;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.wc-team-card-group{margin-left:56px;color:#a8b3c7;font-size:.78rem;font-weight:800;}.wc-team-card-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;}.wc-team-status{border:1px solid rgba(34,197,94,.42);background:rgba(34,197,94,.13);color:#bbf7d0;border-radius:999px;padding:4px 9px;font-size:.70rem;font-weight:950;}.wc-team-status.eliminated{border-color:rgba(244,63,94,.55);background:rgba(244,63,94,.16);color:#fecdd3;}.wc-team-form{display:flex;gap:4px;}.wc-mini-form{width:20px;height:20px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:950;background:#94a3b8;color:#06111f}.wc-mini-form.win{background:#22c55e}.wc-mini-form.loss{background:#fb7185}.wc-mini-form.draw{background:#cbd5e1;}
+      /* HTML reference parity: compact sticky-style header, tab bar, cards, tables, and pills from Javascript and HTML Football.html. */
+      :root {
+        --bg:#0c1018; --bg2:#121826; --card:#161d2e; --card2:#1b2438;
+        --line:#26314a; --line2:#33415f; --txt:#e8edf6; --muted:#9aa7bf; --faint:#6b7894;
+        --accent:#16c784; --accent2:#3aa0ff; --gold:#f5c542;
+        --win:#16c784; --draw:#9aa7bf; --loss:#ef5b6b; --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.35);
+      }
+      .wc-hero {border-radius:0 0 18px 18px !important; margin:-0.35rem -1rem 0.75rem !important; padding:14px 18px !important; border-width:0 0 1px 0 !important; border-color:var(--line) !important; background:rgba(12,16,24,.88) !important; backdrop-filter:blur(10px); box-shadow:0 6px 24px rgba(0,0,0,.28) !important;}
+      .wc-hero::after {display:none !important;}
+      .wc-hero-inner {max-width:1180px; margin:0 auto;}
+      .wc-hero-title {font-size:18px !important; letter-spacing:.2px !important; white-space:normal !important; margin:0 !important;}
+      .wc-hero-kicker {color:var(--muted) !important; letter-spacing:0 !important; text-transform:none !important; font-size:12px !important; font-weight:500 !important;}
+      .wc-format-line {display:none !important;}
+      .wc-host-pill {background:var(--card2) !important; border-color:var(--line2) !important; border-radius:9px !important; padding:5px 9px !important; color:var(--muted) !important;}
+      .wc-trophy {width:42px !important; min-width:42px !important; height:42px !important; border-radius:12px !important; font-size:1.8rem !important;}
+      .wc-trophy-img {max-width:32px !important; max-height:36px !important;}
+      .wc-tab-nav {position:sticky; top:0; z-index:25; margin:0 -1rem 24px !important; padding:0 4px !important; border-radius:0 !important; border-width:0 0 1px 0 !important; border-color:var(--line) !important; background:rgba(12,16,24,.72) !important; backdrop-filter:blur(6px); box-shadow:none !important;}
+      div[role="radiogroup"][aria-label="Dashboard section selector"] {max-width:1180px; margin:0 auto; gap:4px !important; overflow-x:auto;}
+      div[role="radiogroup"][aria-label="Dashboard section selector"] label {border:0 !important; border-bottom:2px solid transparent !important; border-radius:0 !important; background:transparent !important; color:var(--muted) !important; padding:13px 16px !important; min-height:48px !important; font-weight:500 !important; box-shadow:none !important;}
+      div[role="radiogroup"][aria-label="Dashboard section selector"] label:hover {background:transparent !important; color:var(--txt) !important; transform:none !important;}
+      div[role="radiogroup"][aria-label="Dashboard section selector"] label:has(input:checked) {background:transparent !important; color:var(--txt) !important; border-bottom-color:var(--accent) !important; box-shadow:none !important;}
+      div[role="radiogroup"][aria-label="Dashboard section selector"] label:has(input:checked) * {color:var(--txt) !important;}
+      .wc-section-title, h1, h2, h3 {letter-spacing:.1px;}
+      .wc-section-title {font-size:20px !important; margin:6px 0 4px !important;}
+      .wc-section-title::after {display:none !important;}
+      .wc-stat-card, .match-card, .wc-live-card, .wc-bracket-card, .wc-summary-card, .wc-team-profile, .wc-player-card, .wc-basics-card, .wc-panel {border:1px solid var(--line) !important; border-radius:var(--radius) !important; background:linear-gradient(180deg,var(--card),var(--bg2)) !important; box-shadow:var(--shadow) !important;}
+      .wc-stat-card {height:auto !important; min-height:116px !important; align-items:flex-start !important; flex-direction:column !important; gap:2px !important;}
+      .wc-stat-icon {background:transparent !important; width:auto !important; height:auto !important; flex:0 !important; font-size:20px !important;}
+      .wc-stat-value {font-size:30px !important; font-weight:700 !important; letter-spacing:-.5px !important;}
+      .wc-stat-label, .subtle, .wc-small, .wc-table-note {color:var(--muted) !important;}
+      .tag, .wc-team-filter-pill, div.stButton > button[kind="secondary"] {border-radius:999px !important;}
+      .explain, .info {background:linear-gradient(180deg,#13233a,#0f1a2c) !important; border:1px solid #244065 !important; border-left:3px solid var(--accent2) !important; border-radius:10px !important; color:#cfe0f5 !important;}
+      .wc-team-card-grid {grid-template-columns:repeat(auto-fill,minmax(220px,1fr)) !important; gap:12px !important;}
+      .wc-team-card {background:var(--card) !important; border:1px solid var(--line) !important; border-radius:12px !important; padding:13px !important; box-shadow:none !important;}
+      .wc-team-card:hover {border-color:var(--accent) !important; transform:translateY(-2px);}
+      .wc-team-status.still-in, .badge.adv {background:rgba(22,199,132,.14) !important; color:var(--accent) !important; border-color:rgba(22,199,132,.3) !important;}
+      .wc-team-status.eliminated {background:rgba(239,91,107,.12) !important; color:var(--loss) !important; border-color:rgba(239,91,107,.28) !important;}
+      div[data-testid="stDataFrame"] {border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);}
+
     </style>
     """,
     unsafe_allow_html=True,
@@ -2633,7 +2673,7 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     st.markdown(f"<span class='tag'>Data quality: {esc(quality)}</span>", unsafe_allow_html=True)
 
     st.markdown("### Tournament Dashboard")
-    st.markdown(f"<div class='explain'><b>Overview shows:</b> current tournament status, live or next match, completed-match progress, goal pace, and headline summary cards. {explain_current_stage(matches_df)} New to football? Start with the <a class='wc-basics-link' href='?tab=Football%20101' target='_self'>Football 101</a> tab for quick rules and tournament basics.</div><div class='wc-overview-spacer'></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='explain'><b>Overview shows:</b> current tournament status, live or next match, completed-match progress, goal pace, and headline summary cards. {explain_current_stage(matches_df)} New to football? Start with the <a class='wc-basics-link' href='?tab=Learn%20the%20Basics' target='_self'>Football 101</a> tab for quick rules and tournament basics.</div><div class='wc-overview-spacer'></div>", unsafe_allow_html=True)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -2984,10 +3024,8 @@ def main() -> None:
         height=28,
     )
 
-    tab_names = ["Overview", "Upcoming & Live", "Knockout Bracket", "Stats & Insights", "Groups & Standings", "Teams", "Players", "Football 101"]
+    tab_names = ["Overview", "Upcoming & Live", "Knockout Bracket", "Stats & Insights", "Groups & Standings", "Teams", "Players", "Learn the Basics"]
     requested_tab = st.query_params.get("tab", "Overview")
-    if requested_tab == "Learn the Basics":
-        requested_tab = "Football 101"
     if requested_tab in tab_names and st.session_state.get("dashboard_section") not in tab_names:
         st.session_state["dashboard_section"] = requested_tab
     default_index = tab_names.index(st.session_state.get("dashboard_section", requested_tab if requested_tab in tab_names else "Overview"))
@@ -3011,7 +3049,7 @@ def main() -> None:
         render_interactive_component(html_payload, "teams", height=900)
     elif active_tab == "Players":
         render_players_tab(matches)
-    elif active_tab == "Football 101":
+    elif active_tab == "Learn the Basics":
         render_fan_guide()
 
 
