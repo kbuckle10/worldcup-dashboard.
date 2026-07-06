@@ -3670,6 +3670,7 @@ async function ensureCleanSheetKeeper(m,team){
   }catch(e){ KEEPER_CS[key]=""; }
   KEEPER_CS_INFLIGHT.delete(key);
   if($("#view-players") && $("#view-players").classList.contains("active")) renderPlayers();
+  if($("#view-stats") && $("#view-stats").classList.contains("active") && LAST.groups) renderStats(LAST.groups,LAST.thirds);
 }
 function goldenGloves(n,groups){
   const teams=new Set();
@@ -3726,7 +3727,17 @@ function buildPlayers(){
     return p;
   });
 }
-function playerByKey(name,team){ return (LAST.players||buildPlayers()).find(p=>p.key===pkey(name,team)); }
+function playerByKey(name,team){
+  const found=(LAST.players||buildPlayers()).find(p=>p.key===pkey(name,team));
+  if(found) return found;
+  // Golden Gloves can include keepers who have not scored, so synthesize a stat card
+  // from clean-sheet attribution instead of requiring the goalscorer table to know them.
+  if(LAST.groups){
+    const gg=goldenGloves(64,LAST.groups).find(s=>!s.pending&&!s.unavailable&&s.keeper===name&&s.team===team);
+    if(gg) return {key:pkey(name,team),name,team,goals:0,pens:0,og:0,assists:0,yc:0,rc:0,matches:new Set(),assistMatches:new Set(),minutes:[],byStage:{},perMatch:{},photo:ENR.photo[pkey(name,team)]||null,ga:0,open:0,mc:gg.played,braces:0,hats:0,earliest:null,gpm:0,cards:0,cleanSheets:gg.cs,gapg:gg.gapg,keeperCard:true};
+  }
+  return null;
+}
 function pname(name,team){ return `<span class="player" data-player="${esc(name)}" data-team="${esc(team)}">${esc(name)}</span>`; }
 function avatar(p,px){ px=px||30; return p&&p.photo
   ? `<img class="pavatar" style="width:${px}px;height:${px}px" loading="lazy" src="${esc(p.photo)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'pavatar-x',textContent:(this.alt||'·').slice(0,1)}))">`
@@ -3756,7 +3767,7 @@ function renderPlayers(){
       label:`${flag(p.team,15)} <span class="player" data-player="${esc(p.name)}" data-team="${esc(p.team)}">${esc(p.name)}</span>`}));
   // Keeper-level Golden Glove rows: the label is the keeper name, with the country
   // retained only as supporting context below the clean-sheet count.
-  const gloveRows=LAST.groups?goldenGloves(5,LAST.groups).map((s,i)=>({rank:i+1, value:s.cs, disp:s.cs, sub:s.pending?`${tnm(s.team)} · loading keeper`:s.unavailable?`${tnm(s.team)} · lineup unavailable`:`${tnm(s.team)} · ${s.played} played`,
+  const gloveRows=LAST.groups?goldenGloves(5,LAST.groups).map((s,i)=>({rank:i+1, value:s.cs, disp:s.cs,
     fill:"solid",
     label:`${flag(s.team,15)} <span class="${s.pending?'':'player'}" ${s.pending?'':`data-player="${esc(s.keeper)}" data-team="${esc(s.team)}"`}>${esc(s.keeper)}</span>`})):[];
   // "Bad Boys" pool is intentionally broader than the goal/assist contributors the table
@@ -3834,13 +3845,17 @@ function openPlayer(name,team,anchor){
     <div class="pph">${avatar(p,52)}<div><div class="nm">${esc(p.name)}</div>
       <div class="tm">${flag(p.team,15)} <span class="teamcell" data-team="${esc(p.team)}">${tnm(p.team)}</span></div></div></div>
     <div class="pbig">
-      <div class="b"><div class="v">${p.goals}</div><div class="k">Goals</div></div>
+      ${p.keeperCard?`<div class="b"><div class="v">${p.cleanSheets}</div><div class="k">Clean sheets</div></div>
+      <div class="b"><div class="v">${p.mc}</div><div class="k">Team matches</div></div>
+      <div class="b"><div class="v">${p.gapg.toFixed(2)}</div><div class="k">GA / match</div></div>`:`<div class="b"><div class="v">${p.goals}</div><div class="k">Goals</div></div>
       <div class="b"><div class="v">${enr?p.assists:"—"}</div><div class="k">Assists</div></div>
-      <div class="b"><div class="v">${enr?p.ga:p.goals}</div><div class="k">G+A</div></div>
+      <div class="b"><div class="v">${enr?p.ga:p.goals}</div><div class="k">G+A</div></div>`}
     </div>
-    <div class="prow"><span>Scored in</span><b>${p.mc} match${p.mc===1?"":"es"}</b></div>
+    ${p.keeperCard?`<div class="prow"><span>Clean sheets</span><b>${p.cleanSheets}</b></div>
+    <div class="prow"><span>Team matches played</span><b>${p.mc}</b></div>
+    <div class="prow"><span>Team goals against per match</span><b>${p.gapg.toFixed(2)}</b></div>`:`<div class="prow"><span>Scored in</span><b>${p.mc} match${p.mc===1?"":"es"}</b></div>
     <div class="prow"><span>Goals per match</span><b>${p.gpm.toFixed(2)}</b></div>
-    <div class="prow"><span>Open play · Penalties</span><b>${p.open} · ${p.pens}</b></div>
+    <div class="prow"><span>Open play · Penalties</span><b>${p.open} · ${p.pens}</b></div>`}
     ${multi.length?`<div class="prow"><span>Big games</span><b>${multi.join(" · ")}</b></div>`:""}
     ${p.og?`<div class="prow"><span>Own goals</span><b>${p.og}</b></div>`:""}
     ${enr&&(p.yc||p.rc)?`<div class="prow"><span>Cards</span><b>${p.yc} 🟨${p.rc?" · "+p.rc+" 🟥":""}</b></div>`:""}
@@ -3986,6 +4001,11 @@ function renderStats(groups,thirds){
   const powerRows=power.slice(0,12).map((o,i)=>({ rank:i+1, value:o.score, disp:o.score,
     sub:o.kw?`${o.kw} KO win${o.kw>1?"s":""}`:"",
     fill:"g", label:`${flag(o.team,16)} <span class="teamcell" data-team="${esc(o.team)}" style="display:inline-flex;min-width:0">${tnm(o.team)}</span>` }));
+  // team clean sheets (top 10)
+  const cleanSheetRows=Object.values(groups).flatMap(g=>Object.values(g.teams)).map(r=>({team:r.team,s:statline(r.team,groups)}))
+    .filter(o=>o.s.cs>0).sort((a,b)=>b.s.cs-a.s.cs || a.s.gapg-b.s.gapg || a.team.localeCompare(b.team)).slice(0,10)
+    .map((o,i)=>({ rank:i+1, value:o.s.cs, disp:o.s.cs, sub:`${o.s.gapg.toFixed(1)} GA/g`, fill:"solid",
+      label:`${flag(o.team,16)} <span class="teamcell" data-team="${esc(o.team)}" style="display:inline-flex;min-width:0">${tnm(o.team)}</span>` }));
   // golden boot / creators (top 10) stacked goals + assists
   const scorers=[...players].sort((a,b)=>b.goals-a.goals||b.ga-a.ga||a.name.localeCompare(b.name)).filter(p=>p.goals>0).slice(0,10);
   const scorerRows=scorers.map((p,i)=>({ rank:i+1, value:enr?p.ga:p.goals, disp:`${p.goals}${enr&&p.assists?` <small>+${p.assists}a</small>`:""}`,
@@ -4027,6 +4047,10 @@ function renderStats(groups,thirds){
 
     <div class="grid cols-2" style="margin-bottom:18px">
       <div class="schart"><h3>🏆 Team Power Rankings</h3><p class="sub">Composite of points, goal difference, recent form &amp; knockout progress — scaled 0–100. Click a team for its profile.</p>${hbars(powerRows)}</div>
+      <div class="schart"><h3>🧤 Most Clean Sheets by Team</h3><p class="sub">Teams with the most shutouts. Click a country for its profile and match details.</p>${cleanSheetRows.length?hbars(cleanSheetRows):'<div class="empty">No clean sheets yet.</div>'}</div>
+    </div>
+
+    <div class="grid cols-2" style="margin-bottom:18px">
     <div class="schart"><h3>🥇 Golden Boot &amp; creators</h3><p class="sub">Top scorers — <span style="color:var(--series-a-hi)">crimson = goals</span>${enr?`, <span style="color:var(--series-b-hi)">cyan = assists</span>`:""}. Click a name for their card.</p>${hbars(scorerRows)}</div>
     </div>
 
