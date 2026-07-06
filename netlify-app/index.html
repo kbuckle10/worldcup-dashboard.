@@ -100,6 +100,7 @@
   .pos.p3q{background:rgba(58,160,255,.16);color:var(--adv3)}
   .pos.pout{background:rgba(239,91,107,.12);color:var(--out)}
   .teamcell{display:flex;align-items:center;gap:9px;font-weight:600;cursor:pointer}
+  .teamcell>span,.teamcell{border-bottom:1px dotted var(--faint)}
   .teamcell:hover{color:var(--accent)}
   .t3{font-size:.76em;color:var(--faint);font-weight:700;letter-spacing:.4px;white-space:nowrap}
   .tnm{min-width:0}
@@ -186,6 +187,14 @@
   .mini-stats .ms .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
   .match-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
   .match-row:last-child{border-bottom:none}
+  .match-row.today{background:rgba(247,201,72,.07);border-radius:9px;padding-left:8px;padding-right:8px;box-shadow:inset 3px 0 0 rgba(247,201,72,.55)}
+  .match-row[data-mnum]{cursor:pointer}
+  .ov-companion{display:flex;align-items:center;gap:9px;padding:9px 14px;margin-top:10px;background:var(--card2);border:1px solid var(--line);border-radius:10px;font-size:12.5px;color:var(--muted);cursor:pointer;flex-wrap:wrap}
+  .ov-companion:hover{border-color:var(--line2);background:#1c2841}
+  .ov-companion .oc-label{font-weight:700;color:var(--faint);text-transform:uppercase;font-size:10px;letter-spacing:.3px;flex-shrink:0}
+  .ov-companion .oc-teams{font-weight:600;color:var(--txt);display:inline-flex;align-items:center;gap:6px}
+  .ov-companion .oc-vs{color:var(--faint);font-weight:500}
+  .ov-companion .oc-when{margin-left:auto;color:var(--faint);white-space:nowrap;font-variant-numeric:tabular-nums}
   .match-row .rd{font-size:12.5px;color:var(--muted);width:104px;flex-shrink:0;line-height:1.4}
   .match-row .opp{flex:1;display:flex;align-items:center;gap:7px}
   .match-row .res{font-weight:700;font-variant-numeric:tabular-nums}
@@ -221,6 +230,8 @@
   .mc.open{border-color:var(--line2)}
   .mc.live{border-color:rgba(239,91,107,.45);box-shadow:0 0 0 1px rgba(239,91,107,.18)}
   .mc.pending{border-color:rgba(247,201,72,.4);box-shadow:0 0 0 1px rgba(247,201,72,.14)}
+  .mc.done{border-color:rgba(22,199,132,.4);box-shadow:0 0 0 1px rgba(22,199,132,.14)}
+  .mc.done .mc-head{cursor:pointer}
   .mc-head{display:grid;grid-template-columns:120px 1fr 26px;align-items:center;gap:14px;padding:14px 16px;cursor:pointer}
   .mc-head:hover{background:rgba(255,255,255,.018)}
   .mc-meta{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--faint)}
@@ -230,13 +241,14 @@
   .live-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(239,91,107,.16);color:#ff8593;border:1px solid rgba(239,91,107,.4);padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:700;width:fit-content;letter-spacing:.4px}
   .live-badge .pd{width:6px;height:6px;border-radius:50%;background:#ff5b6b;animation:pulse 1.3s infinite}
   .live-badge.pending{background:rgba(247,201,72,.15);color:#e0b84a;border-color:rgba(247,201,72,.4)}
+  .live-badge.today{background:rgba(247,201,72,.15);color:#e0b84a;border-color:rgba(247,201,72,.4)}
 
   .mc-core{display:flex;flex-direction:column;gap:8px}
   .mc-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
   .mc-side{display:flex;align-items:center;gap:9px;min-width:0}
   .mc-side.b{flex-direction:row-reverse;text-align:right}
-  .mc-side .tn{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .mc-side .tn.tbd{color:var(--faint);font-weight:500;font-style:italic;font-size:13px}
+  .mc-side .tn{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px dotted var(--faint);cursor:pointer}
+  .mc-side .tn.tbd{color:var(--faint);font-weight:500;font-style:italic;font-size:13px;border-bottom:none;cursor:default}
   .mc-side .pdg{font-size:11px;color:var(--faint);font-weight:500}
   .mc-mid{text-align:center;min-width:54px}
   .mc-mid .vs{font-size:12px;color:var(--faint);font-weight:700;letter-spacing:1px}
@@ -405,6 +417,7 @@
   .hbar .ht i.a{background:linear-gradient(90deg,#2b80d9,var(--accent2))}
   .hbar .ht i.solid{background:linear-gradient(90deg,#2b80d9,var(--accent2))}
   .hbar .ht i.gold{background:linear-gradient(90deg,var(--gold),#d9a814)}
+  .hbar .ht i.red{background:linear-gradient(90deg,var(--loss),#ff8a97)}
   .hbar .hv{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
   .hbar .hv small{color:var(--faint);font-weight:600}
   .pw-rank{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:6px;background:var(--card2);font-size:11px;font-weight:800;color:var(--muted)}
@@ -813,6 +826,36 @@
     bottom:0;
     width:3px;
     background:linear-gradient(180deg,#f7c948,#ffe08a);
+  }
+  .mc.today{
+    border-color:rgba(247,201,72,.52);
+    background:
+      linear-gradient(180deg,rgba(247,201,72,.05),rgba(255,255,255,.01)),
+      linear-gradient(180deg,var(--card),var(--bg2));
+  }
+  .mc.today::after{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:3px;
+    background:linear-gradient(180deg,#f7c948,#ffe08a);
+  }
+  .mc.done{
+    border-color:rgba(24,208,139,.5);
+    background:
+      linear-gradient(180deg,rgba(24,208,139,.06),rgba(255,255,255,.012)),
+      linear-gradient(180deg,var(--card),var(--bg2));
+  }
+  .mc.done::after{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:3px;
+    background:linear-gradient(180deg,var(--win),#7be8c4);
   }
   .mc-head{position:relative;z-index:1;padding:16px 18px}
   .mc-head:hover{background:rgba(255,255,255,.03)}
@@ -1445,18 +1488,35 @@
      lineupHtml/eventListHtml) since a 26-a-side roster or a full event log is a lot to push
      into a popup someone opened just to check the score. */
   .mm-drawer{margin:20px 0}
-  .mm-drawer>summary{cursor:pointer;font-size:16px;font-weight:700;color:var(--txt);list-style:none;display:flex;align-items:center;gap:8px}
+  .mm-drawer>summary{cursor:pointer;font-size:16px;font-weight:700;color:var(--txt);list-style:none;display:flex;align-items:center;gap:8px;padding:4px 0}
   .mm-drawer>summary::-webkit-details-marker{display:none}
-  .mm-drawer>summary .chev{margin-left:auto;color:var(--faint);transition:.2s}
+  .mm-drawer>summary .tap-hint{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.3px}
+  .mm-drawer>summary .chev{color:var(--accent2);font-size:18px;font-weight:900;transition:.2s}
   .mm-drawer[open]>summary .chev{transform:rotate(90deg)}
   .mm-drawer .mm-goals{margin-top:10px}
-  .mtl{margin:0 0 18px}
+  @media(max-width:480px){
+    .mm-drawer>summary .tap-hint{font-size:0}
+    .mm-drawer>summary .tap-hint .chev{font-size:20px}
+  }
+  .mtl{margin:0 0 18px;position:relative}
   .mtl-row{position:relative;height:24px}
   .mtl-row.a{--mtl-team:var(--series-a)}
   .mtl-row.b{--mtl-team:var(--series-b)}
   .mtl-axis{position:relative;height:20px;margin:2px 0}
   .mtl-line{position:absolute;top:2px;left:0;right:0;height:2px;background:var(--line);border-radius:2px}
-  .mtl-tick{position:absolute;top:8px;transform:translateX(-50%);font-size:10px;color:var(--faint)}
+  /* Minute ticks come in two tiers: .major marks kickoff/half/fulltime (and ET boundaries),
+     drawn taller with a bigger label; every other tick is a plain-event minute, smaller and
+     quieter so the major marks still read as the primary scale at a glance. */
+  .mtl-tick{position:absolute;top:7px;transform:translateX(-50%);font-size:9px;color:var(--faint);white-space:nowrap}
+  .mtl-tick::before{content:"";position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:1px;height:4px;background:var(--line)}
+  .mtl-tick.major{top:6px;font-size:11px;font-weight:700;color:var(--muted)}
+  .mtl-tick.major::before{top:-7px;height:7px;width:2px;background:var(--muted)}
+  /* Live-only "now" marker — spans the full height of the two event rows plus the axis so
+     it visually threads through everything, and only ever renders while a match is actually
+     in progress (see matchTimelineHtml's live check). Position is updated every second by
+     tickLiveClocks(), using the same minute-compression math the event markers use so a
+     goal scored "right now" lines up with the marker that appears for it. */
+  .mtl-now{position:absolute;top:0;bottom:0;width:2px;background:var(--faint);opacity:.55;pointer-events:none;z-index:1;transition:left 1s linear}
   /* Row position (above/below the centreline) already says which team; colour reinforces it
      using the same red/blue pair the stats bars use (--series-a/--series-b), not green/blue.
      Shape+fill carries the event type: goals are a plain filled circle, cards are a smaller
@@ -1497,7 +1557,7 @@
 <header>
   <div class="head-in">
     <div class="brand">
-      <span class="ball"><img class="official-logo" src="https://assets.football-logos.cc/logos/tournaments/1500x1500/fifa-world-cup-2026.31d2489d.png" alt="FIFA World Cup 2026 emblem"></span>
+      <span class="ball"><img class="official-logo" src="https://assets.football-logos.cc/logos/tournaments/1500x1500/fifa-world-cup-2026.31d2489d.png" alt="FIFA World Cup 2026 emblem" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'⚽',style:'font-size:26px'}))"></span>
       <div>
         <h1><span class="wc-title">World Cup 2026</span> <span class="expl">Explorer</span></h1>
         <div class="sub">Canada · Mexico · USA — 48 teams, 12 groups</div>
@@ -1509,15 +1569,15 @@
     </div>
     <button class="btn" id="refreshBtn" title="Fetch the latest results now">↻ Refresh</button>
   </div>
-  <nav class="tabs" id="tabs">
-    <button data-view="overview" class="active">Overview</button>
-    <button data-view="upcoming">Upcoming<span class="tx"> &amp; Live</span></button>
-    <button data-view="bracket"><span class="tx">Knockout </span>Bracket</button>
-    <button data-view="stats">Stats<span class="tx"> &amp; Insights</span></button>
-    <button data-view="groups">Groups<span class="tx"> &amp; Standings</span></button>
-    <button data-view="teams">Teams</button>
-    <button data-view="players">Players</button>
-    <button data-view="learn">Learn<span class="tx"> the Basics</span></button>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Dashboard sections">
+    <button data-view="overview" class="active" role="tab" aria-selected="true">Overview</button>
+    <button data-view="upcoming" role="tab" aria-selected="false">Upcoming<span class="tx"> &amp; Live</span></button>
+    <button data-view="bracket" role="tab" aria-selected="false"><span class="tx">Knockout </span>Bracket</button>
+    <button data-view="stats" role="tab" aria-selected="false">Stats<span class="tx"> &amp; Insights</span></button>
+    <button data-view="groups" role="tab" aria-selected="false">Groups<span class="tx"> &amp; Standings</span></button>
+    <button data-view="teams" role="tab" aria-selected="false">Teams</button>
+    <button data-view="players" role="tab" aria-selected="false">Players</button>
+    <button data-view="learn" role="tab" aria-selected="false">Learn<span class="tx"> the Basics</span></button>
   </nav>
 </header>
 
@@ -1555,7 +1615,7 @@
   <!-- UPCOMING & LIVE -->
   <section class="view" id="view-upcoming">
     <h2 class="section">Upcoming &amp; Live</h2>
-    <p class="lead">Every fixture still to come, with a stat-by-stat breakdown of each matchup, a rough win-likelihood read, and exactly what's at stake. Matches kicking off right now appear at the top.</p>
+    <p class="lead">The knockout stage from first result to next kickoff — past matches in green, tap any of them for the full breakdown. Jumps straight to today.</p>
     <div id="liveWrap"></div>
     <div class="pill-row" id="upFilter"></div>
     <div id="upSchedule"></div>
@@ -1596,12 +1656,19 @@
   <section class="view" id="view-teams">
     <h2 class="section">Teams</h2>
     <p class="lead">Click any team for a full profile: every match, goals for &amp; against, current form, scorers, and how far they got.</p>
+    <div class="grid cols-4" id="teamStatCards" style="margin-bottom:18px"></div>
     <div class="pill-row" id="teamFilter">
       <button data-f="all" class="active">All</button>
       <button data-f="adv">Still in it</button>
       <button data-f="out">Eliminated</button>
     </div>
     <div class="team-grid" id="teamGrid"></div>
+    <h2 class="section" style="font-size:16px;margin:22px 0 4px">📋 Full team table</h2>
+    <p class="lead" style="margin-top:0">Group-stage standings columns for every team — click a header to sort, use the group filter to narrow it down.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+      <select id="teamGroupFilter" class="selectbox"><option value="all">All groups</option></select>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden"><div id="teamTable"></div></div>
   </section>
 
   <!-- PLAYERS -->
@@ -1609,6 +1676,7 @@
     <h2 class="section">Players</h2>
     <p class="lead">Every player who's found the net so far, ranked by goals. Filter by country, or click any name for a quick stat card. (This free data feed only records goals, so the leaderboard is goalscorers.)</p>
     <div class="grid cols-4" id="playerStatCards" style="margin-bottom:18px"></div>
+    <div class="grid cols-3" id="playerLeaderboards" style="margin-bottom:18px"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
       <select id="playerCountry" class="selectbox"></select>
       <input id="playerSearch" class="selectbox" placeholder="Search a player…" style="flex:1;min-width:180px">
@@ -1698,7 +1766,7 @@
 
 <!-- Team profile modal -->
 <div class="overlay" id="overlay">
-  <div class="modal" id="modal"></div>
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Details"></div>
 </div>
 
 <script>
@@ -1903,17 +1971,27 @@ function teamStatus(team, groups, thirds){
       else { advanced=null; label=row.rank+"th in group"; cls="out"; }
     }
   }
-  // knockout progress
+  // knockout progress. Round-name tests must be anchored: "Quarter-final" and
+  // "Semi-final" both contain the substring "final", so /^final$/ only.
+  const isFinalRound=r=>/^final$/i.test((r||"").trim());
+  const isThirdRound=r=>/third/i.test(r||"");
   const ko=knockoutMatches().filter(isPlayed).filter(m=>m.team1===team||m.team2===team);
-  let furthest=null, eliminatedRound=null, champion=false;
+  let furthest=null, eliminatedRound=null, champion=false, thirdResult=null;
   for(const m of ko){
     const r=result(m); const won = (m.team1===team&&r.winner===1)||(m.team2===team&&r.winner===2);
     furthest=m.round;
+    if(isThirdRound(m.round)){ thirdResult=won?"won":"lost"; continue; }
     if(!won){ eliminatedRound=m.round; advanced=false; }
-    else { advanced=true; if(/Final/i.test(m.round)&&!/third/i.test(m.round)) champion=true; }
+    else { advanced=true; if(isFinalRound(m.round)) champion=true; }
   }
   if(furthest){
+    const thirdFixture=knockoutMatches().find(m=>isThirdRound(m.round));
     if(champion){ label="🏆 Champion"; cls="gold"; }
+    else if(thirdResult){ label=thirdResult==="won"?"🥉 Third place":"4th place"; cls=thirdResult==="won"?"adv3":"out"; advanced=false; }
+    else if(isFinalRound(eliminatedRound)){ label="🥈 Runners-up"; cls="adv3"; advanced=false; }
+    else if(eliminatedRound && /semi/i.test(eliminatedRound) && thirdFixture && !isPlayed(thirdFixture)){
+      label="Into the 3rd-place match"; cls="adv3"; advanced=null;
+    }
     else if(eliminatedRound){ label="Out — "+eliminatedRound; cls="out"; }
     else { label="Into "+nextRoundName(furthest); cls=cls==="out"?"adv":cls; advanced=true; }
   }
@@ -1954,6 +2032,13 @@ function matchState(m){
   const k=parseKickoff(m); if(!k) return "upcoming";
   const now=Date.now(), start=k.getTime();
   if(now<start) return "upcoming";
+  // The ESPN live overlay knows the real in-play state — trust it when present, so a
+  // match in extra time / a shootout (past the fixed window) still reads as live, and
+  // one that ended early reads as awaiting-result. The 135-minute window is only the
+  // fallback for when no overlay data has arrived (poll hasn't run, or ESPN lacks it).
+  const lv=LIVE[matchId(m)];
+  if(lv && lv.state==="in") return "live";
+  if(lv && lv.state==="post") return "awaiting";
   if(now<start+135*60000) return "live";
   return "awaiting";
 }
@@ -1980,11 +2065,12 @@ function resolveTeam(name){
 function slotLabel(name){
   if(!isPlaceholder(name)) return name;
   const resolved=resolveTeam(name); if(resolved) return resolved; // feeder already decided
-  const mt=name.match(/^[WL](\d+)$/i);
-  if(mt){ const src=koByNum(+mt[1]); if(src){ const a=src.team1,b=src.team2;
+  const mt=name.match(/^([WL])(\d+)$/i);
+  if(mt){ const kind=mt[1].toUpperCase()==="W"?"winner":"loser";
+    const src=koByNum(+mt[2]); if(src){ const a=src.team1,b=src.team2;
     const an=isPlaceholder(a)?null:a, bn=isPlaceholder(b)?null:b;
-    if(an||bn) return `winner of ${an||"?"} v ${bn||"?"}`;
-    return `winner of match ${mt[1]}`; } }
+    if(an||bn) return `${kind} of ${an||"?"} v ${bn||"?"}`;
+    return `${kind} of match ${mt[2]}`; } }
   return name;
 }
 function ord(n){ const s=["th","st","nd","rd"],v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
@@ -2053,14 +2139,16 @@ function stakesHtml(m){
   const tA=resolveTeam(m.team1)||m.team1, tB=resolveTeam(m.team2)||m.team2;
   const aReal=!isPlaceholder(tA), bReal=!isPlaceholder(tB);
   const aN=aReal?esc(tA):"The winner here", bN=bReal?esc(tB):"The other side";
+  const isFinal=/^final$/i.test((m.round||"").trim()), isThird=/third/i.test(m.round||""), isSemi=/semi/i.test(m.round||"");
   let dest;
   if(nm){ const other=(nm.team1==="W"+m.num)?nm.team2:nm.team1;
     dest=`advance to the <b>${esc(nm.round)}</b> to face <b>${esc(slotLabel(other))}</b>`; }
-  else if(/final/i.test(m.round)&&!/third/i.test(m.round)) dest=`lift the trophy as <b>World Champions</b> 🏆`;
-  else if(/third/i.test(m.round)) dest=`secure <b>3rd place</b> at the World Cup`;
+  else if(isFinal) dest=`lift the trophy as <b>World Champions</b> 🏆`;
+  else if(isThird) dest=`secure <b>3rd place</b> at the World Cup`;
   else dest=`move on to the next round`;
-  const lose=/third/i.test(m.round)?"finish <b>4th</b>"
-    :(/final/i.test(m.round)&&!/third/i.test(m.round))?"finish as <b>runners-up</b>"
+  const lose=isThird?"finish <b>4th</b>"
+    :isFinal?"finish as <b>runners-up</b>"
+    :isSemi?"drop into the <b>3rd-place match</b>"
     :"are <b>eliminated</b> — their tournament ends";
   return `<div class="stakes">
     <div class="stake adv"><div class="sh">✅ If ${aN} win</div><div class="st">They ${dest}. ${bN} ${lose}.</div></div>
@@ -2204,13 +2292,13 @@ function matchTimelineHtml(m,r){
   const wentExtra=r.decidedBy!=="ft";
   const scaleMax=wentExtra?120:90;
   const pMin=raw=>{ const mt=String(raw||"").match(/^(\d+)(?:\+(\d+))?/); if(!mt) return 0; return Math.min(scaleMax, +mt[1]+(mt[2]?+mt[2]*0.4:0)); };
-  const goalEvs=(arr,team)=>(arr||[]).map(g=>({min:pMin(g.minute),cls:g.owngoal?"og":(g.penalty?"goal pen":"goal"),team,
+  const goalEvs=(arr,team)=>(arr||[]).map(g=>({min:pMin(g.minute),rawMin:g.minute,cls:g.owngoal?"og":(g.penalty?"goal pen":"goal"),team,
     title:`${g.owngoal?`${g.name} (own goal)`:g.name}${g.penalty?" (pen)":""} · ${g.minute||"?"}'`}));
-  const cards=cardEventsFor(m).map(c=>({min:pMin(c.minute),cls:c.red?"card-r":"card-y",team:c.team,
+  const cards=cardEventsFor(m).map(c=>({min:pMin(c.minute),rawMin:c.minute,cls:c.red?"card-r":"card-y",team:c.team,
     title:`${c.name} — ${c.red?"red":"yellow"} card · ${c.minute||"?"}'`}));
-  const subs=subEventsFor(m).map(s=>({min:pMin(s.minute),cls:"sub",team:s.team,
+  const subs=subEventsFor(m).map(s=>({min:pMin(s.minute),rawMin:s.minute,cls:"sub",team:s.team,
     title:`${s.inName} on${s.outName?`, ${s.outName} off`:""} · ${s.minute||"?"}'`}));
-  const penMisses=penMissEventsFor(m).map(p=>({min:pMin(p.minute),cls:"pen-miss",team:p.team,
+  const penMisses=penMissEventsFor(m).map(p=>({min:pMin(p.minute),rawMin:p.minute,cls:"pen-miss",team:p.team,
     title:`${p.name} — penalty ${p.saved?"saved":"missed"} · ${p.minute||"?"}'`}));
   const all=[...goalEvs(m.goals1,m.team1), ...goalEvs(m.goals2,m.team2), ...cards, ...subs, ...penMisses];
   if(!all.length) return "";
@@ -2218,7 +2306,26 @@ function matchTimelineHtml(m,r){
   const pct=v=>(v/scaleMax*100).toFixed(1);
   const glyph=e=>e.cls==="sub"?"⇄":e.cls.includes("pen")?"P":"";
   const marker=e=>`<span class="mtl-ev ${e.cls}" style="left:${pct(e.min)}%" title="${esc(e.title)}">${glyph(e)}</span>`;
-  const ticks=[0,45,90]; if(wentExtra) ticks.push(105,120);
+  const majorMins=[0,45,90]; if(wentExtra) majorMins.push(105,120);
+  const majorTicks=majorMins.map(t=>({min:t,label:t+"'",major:true}));
+  // One small tick per distinct event minute — skipped where it would land on (or right on
+  // top of) a major tick, since that would just double-draw the same mark.
+  const seenMin=new Set();
+  const minorTicks=[];
+  for(const e of all){
+    const key=e.min.toFixed(2);
+    if(seenMin.has(key)) continue;
+    seenMin.add(key);
+    if(majorMins.some(t=>Math.abs(t-e.min)<0.5)) continue;
+    minorTicks.push({min:e.min,label:(e.rawMin||"?")+"'",major:false});
+  }
+  const tickHtml=t=>`<span class="mtl-tick${t.major?' major':''}" style="left:${pct(t.min)}%">${t.label}</span>`;
+  // Live-only "now" line — see .mtl-now in CSS. matchState()/LIVE both key off m's real
+  // date/num/score fields, which survive the shallow goals1/goals2 clone the live-scored
+  // caller passes in, so this resolves correctly whether m is the raw fixture or that clone.
+  const lv=matchState(m)==="live"?LIVE[matchId(m)]:null;
+  const nowMin=lv?liveNowMinute(lv,scaleMax):null;
+  const nowLine=nowMin!=null?`<div class="mtl-now" data-live-now="${esc(matchId(m))}" data-scale-max="${scaleMax}" style="left:${pct(nowMin)}%"></div>`:"";
   const legend=`<div class="mtl-legend">
       <span><i class="mtl-ev goal"></i> Goal</span>
       <span><i class="mtl-ev goal pen">P</i> Pen. scored</span>
@@ -2237,12 +2344,13 @@ function matchTimelineHtml(m,r){
   ).join("");
   return `<h4>Match timeline</h4>
     <div class="mtl">
+      ${nowLine}
       <div class="mtl-row a">${evA.map(marker).join("")}</div>
-      <div class="mtl-axis"><div class="mtl-line"></div>${ticks.map(t=>`<span class="mtl-tick" style="left:${pct(t)}%">${t}'</span>`).join("")}</div>
+      <div class="mtl-axis"><div class="mtl-line"></div>${[...majorTicks,...minorTicks].map(tickHtml).join("")}</div>
       <div class="mtl-row b">${evB.map(marker).join("")}</div>
     </div>
     ${legend}
-    <details class="mm-drawer"><summary>Full event list <span class="chev">›</span></summary>
+    <details class="mm-drawer"><summary>Full event list <span class="tap-hint">Tap to expand <span class="chev">›</span></span></summary>
       <div class="mtl-list">${listRows}</div>
     </details>`;
 }
@@ -2274,6 +2382,7 @@ function shootoutHtml(m, tA, tB){
 const EXPANDED_CARDS = new Set(); // matchId(m) strings
 function matchCard(m,groups){
   const st=matchState(m), live=(st==="live"||st==="awaiting"), pending=st==="awaiting";
+  const isTodayUpcoming=st==="upcoming"&&m.date===todayStr();
   const mcId=matchId(m); // renamed to avoid colliding with the `mid` (score/VS block) var below
   // Use the actual qualified nation when a feeder match has already decided this slot,
   // so a fixture whose both sides are known gets the full head-to-head — not "TBD".
@@ -2290,7 +2399,7 @@ function matchCard(m,groups){
   let timeBlock;
   if(pending){ timeBlock=`<span class="live-badge pending">Result pending</span><span class="mc-time">${esc(localTimeOnly)}</span>`; }
   else if(live){ timeBlock=`<span class="live-badge"><span class="pd"></span>LIVE</span><span class="mc-time">${esc(localTimeOnly)}</span>`; }
-  else { timeBlock=`<span class="round-chip">${esc(roundChip(m.round||m.group||""))}</span><span class="mc-time"><b>${esc(fmtDate(m.date))}</b> · ${k?esc(localT.replace(/^[A-Za-z]+ /,"")):esc(m.time||"")}</span>`; }
+  else { timeBlock=`<span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${isTodayUpcoming?'<span class="live-badge today">Today</span>':""}<span class="round-chip">${esc(roundChip(m.round||m.group||""))}</span></span><span class="mc-time"><b>${esc(fmtDate(m.date))}</b> · ${k?esc(localT.replace(/^[A-Za-z]+ /,"")):esc(m.time||"")}</span>`; }
   // mid (score / vs)
   let mid;
   if(live){
@@ -2306,7 +2415,7 @@ function matchCard(m,groups){
   const nameB=bReal?`<span class="tn" data-team="${esc(tB)}">${tnm(tB)}</span>`:`<span class="tn tbd">${esc(slotLabel(m.team2))}</span>`;
   const probBar=both?`<div>
       <div class="prob"><i class="a" style="width:${pa}%"></i><i class="b" style="width:${pb}%"></i></div>
-      <div class="prob-lbl"><span><b>${pa}%</b> ${esc(tA)}${tcode(tA)}</span><span>${esc(tB)}${tcode(tB)} <b>${pb}%</b></span></div>
+      <div class="prob-lbl"><span><b>${pa}%</b> ${esc(tA)}${tcode(tA)}</span>${live?`<span style="color:var(--faint);text-transform:uppercase;letter-spacing:.4px">pre-match odds</span>`:""}<span>${esc(tB)}${tcode(tB)} <b>${pb}%</b></span></div>
     </div>`:"";
   // body — the only head-to-head content on this compact card is probBar above; once a live
   // match has any goal/card, the expanded body switches to the same goals/timeline/recap
@@ -2327,14 +2436,14 @@ function matchCard(m,groups){
       <h4>What's at stake</h4>
       ${stakesHtml(m)}`;
   }
-  return `<div class="mc ${pending?'pending':live?'live':''}${EXPANDED_CARDS.has(mcId)?' open':''}" data-mc-id="${esc(mcId)}">
+  return `<div class="mc ${pending?'pending':live?'live':isTodayUpcoming?'today':''}${EXPANDED_CARDS.has(mcId)?' open':''}" data-mc-id="${esc(mcId)}">
     <div class="mc-head">
       <div class="mc-meta">${timeBlock}</div>
       <div class="mc-core">
         <div class="mc-teams">
-          <div class="mc-side a">${flag(m.team1,live?26:20)}<span style="min-width:0">${nameA}<br>${sideTag(sa)}</span></div>
+          <div class="mc-side a">${flag(tA,live?26:20)}<span style="min-width:0">${nameA}<br>${sideTag(sa)}</span></div>
           <div class="mc-mid">${mid}</div>
-          <div class="mc-side b">${flag(m.team2,live?26:20)}<span style="min-width:0;text-align:right;display:inline-block">${nameB}<br>${sideTag(sb)}</span></div>
+          <div class="mc-side b">${flag(tB,live?26:20)}<span style="min-width:0;text-align:right;display:inline-block">${nameB}<br>${sideTag(sb)}</span></div>
         </div>
         ${probBar}
       </div>
@@ -2343,52 +2452,85 @@ function matchCard(m,groups){
     <div class="mc-body">${body}</div>
   </div>`;
 }
+// A compact, non-expanding row for a finished knockout match — green-accented, opens the
+// full match modal on click (via the existing [data-mnum] delegation) instead of the
+// inline accordion body matchCard() gives live/upcoming fixtures, since a finished match's
+// "same timeline and stats" view is exactly what openMatch() already renders.
+function pastKnockoutRow(m){
+  const tA=resolveTeam(m.team1)||m.team1, tB=resolveTeam(m.team2)||m.team2;
+  const r=result(m);
+  return `<div class="mc done" data-mnum="${m.num}">
+    <div class="mc-head">
+      <div class="mc-meta"><span class="round-chip">${esc(roundChip(m.round||m.group||""))}</span><span class="mc-time">${esc(fmtDate(m.date))}</span></div>
+      <div class="mc-core">
+        <div class="mc-teams">
+          <div class="mc-side a">${flag(tA,20)}<span class="tn" data-team="${esc(tA)}">${tnm(tA)}</span></div>
+          <div class="mc-mid"><div class="score">${r.ea}–${r.eb}</div>${r.extra?`<div class="mm-x">${esc(r.extra)}</div>`:""}</div>
+          <div class="mc-side b"><span class="tn" data-team="${esc(tB)}" style="text-align:right">${tnm(tB)}</span>${flag(tB,20)}</div>
+        </div>
+      </div>
+      <div class="mc-caret">›</div>
+    </div>
+  </div>`;
+}
 function renderUpcoming(groups){
-  const notDone=STATE.matches.filter(m=>!isPlayed(m));
-  const live=notDone.filter(m=>{const s=matchState(m);return s==="live"||s==="awaiting";})
+  // Knockout only — group stage is fully wrapped up by the time this timeline matters and
+  // would otherwise bury the handful of matches that still need attention under dozens of
+  // old group games (see design doc §1).
+  const knockout=STATE.matches.filter(m=>!m.group);
+  const live=knockout.filter(m=>!isPlayed(m)&&{live:1,awaiting:1}[matchState(m)])
     .sort((a,b)=>(parseKickoff(a)?.getTime()||0)-(parseKickoff(b)?.getTime()||0));
-  let upcoming=notDone.filter(m=>matchState(m)==="upcoming")
+  const upcoming=knockout.filter(m=>matchState(m)==="upcoming")
     .sort((a,b)=>{const ka=parseKickoff(a),kb=parseKickoff(b);
       if(ka&&kb) return ka-kb; return (a.date||"").localeCompare(b.date||"")||(a.num||0)-(b.num||0);});
 
-  // live block
+  // top info line — no separate live card block anymore, live matches render inline in the
+  // timeline below at their (today's) date; this is just a heads-up strip.
   const lw=$("#liveWrap"); lw.innerHTML="";
   if(live.length){
     const stillLive=live.some(m=>matchState(m)==="live");
     const label=stillLive?"🔴 Live now":"⏳ Result pending";
-    lw.appendChild(el("div","date-head",`<span class="day-today">${label}</span><span class="cnt">${live.length} match${live.length>1?"es":""}</span>`));
-    const box=el("div"); box.innerHTML=live.map(m=>matchCard(m,groups)).join(""); lw.appendChild(box);
-    lw.appendChild(el("div","info",`Heads-up: this free data feed publishes the <b>final result</b> after each match rather than minute-by-minute scores, so a finished game can sit here as "Result pending" for a while until the source confirms it. Hit <b>↻ Refresh</b> for the latest.`));
+    lw.appendChild(el("div","info",`<b>${label}</b> — ${live.length} match${live.length>1?"es":""} in play. Live scores and clocks update automatically every ~25 seconds. Heads-up: the <b>official final result</b> comes from a slower results feed, so a just-finished game can show "Result pending" for a little while before it's confirmed. Hit <b>↻ Refresh</b> for the latest.`));
   } else {
     const next=upcoming[0];
     lw.appendChild(el("div","tbd-note",
       next?`No matches are in play right now. Next kickoff: <b style="color:var(--txt)">${esc(isPlaceholder(next.team1)?slotLabel(next.team1):next.team1)} v ${esc(isPlaceholder(next.team2)?slotLabel(next.team2):next.team2)}</b> — ${esc(fmtDate(next.date))}, ${timeUntil(parseKickoff(next))}.`
-      :`The tournament is complete — no upcoming matches. 🏆`));
+      :`The knockout stage is complete — no more matches. 🏆`));
   }
 
-  // round filter
-  const rounds=[...new Set(upcoming.map(m=>m.round||"").filter(Boolean))].sort((a,b)=>koRoundIndex(a)-koRoundIndex(b));
+  // round filter — spans the whole knockout bracket (past+live+upcoming), not just what's left
+  const rounds=[...new Set(knockout.map(m=>m.round||"").filter(Boolean))].sort((a,b)=>koRoundIndex(a)-koRoundIndex(b));
   const ff=$("#upFilter"); ff.innerHTML="";
   if(rounds.length>1){
     const mk=(f,lbl)=>`<button data-f="${esc(f)}" class="${UP_FILTER===f?'active':''}">${esc(lbl)}</button>`;
     ff.innerHTML=mk("all","All rounds")+rounds.map(r=>mk(r,roundChip(r))).join("");
   }
-  if(UP_FILTER!=="all") upcoming=upcoming.filter(m=>m.round===UP_FILTER);
+  const filtered=(UP_FILTER==="all"?knockout:knockout.filter(m=>m.round===UP_FILTER));
 
-  // schedule grouped by date
+  // one continuous chronological timeline: past results → live → upcoming
   const sch=$("#upSchedule"); sch.innerHTML="";
-  if(!upcoming.length){ sch.appendChild(el("div","empty","No upcoming matches match this filter.")); return; }
+  if(!filtered.length){ sch.appendChild(el("div","empty","No knockout matches match this filter.")); return; }
   const byDate={};
-  for(const m of upcoming){ (byDate[m.date]=byDate[m.date]||[]).push(m); }
+  for(const m of filtered){ (byDate[m.date]=byDate[m.date]||[]).push(m); }
+  const dates=Object.keys(byDate).sort();
   const today=todayStr();
-  Object.keys(byDate).sort().forEach(date=>{
-    const list=byDate[date];
+  // Anchor for the auto-scroll: today's date if it has matches, otherwise the nearest date
+  // that isn't in the past (rest days between rounds are common), else the very last date.
+  const anchorDate=dates.find(d=>d>=today)||dates[dates.length-1];
+  dates.forEach(date=>{
+    const list=byDate[date].slice().sort((a,b)=>
+      (parseKickoff(a)?.getTime()||0)-(parseKickoff(b)?.getTime()||0)||(a.num||0)-(b.num||0));
     const dObj=new Date(date+"T00:00:00");
     const label=dObj.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
     const isToday=date===today;
-    sch.appendChild(el("div","date-head",
-      `<span class="${isToday?'day-today':''}">${isToday?"Today · ":""}${esc(label)}</span><span class="cnt">${list.length} match${list.length>1?"es":""}</span>`));
-    const box=el("div"); box.innerHTML=list.map(m=>matchCard(m,groups)).join(""); sch.appendChild(box);
+    const head=el("div","date-head",
+      `<span class="${isToday?'day-today':''}">${isToday?"Today · ":""}${esc(label)}</span><span class="cnt">${list.length} match${list.length>1?"es":""}</span>`);
+    // The auto-scroll always lands on this date's header, never mid-list — a stable, always
+    // -the-same landing spot rather than jumping to whichever match happens to be first live
+    // /upcoming that day.
+    if(date===anchorDate) head.id="up-today";
+    sch.appendChild(head);
+    const box=el("div"); box.innerHTML=list.map(m=>isPlayed(m)?pastKnockoutRow(m):matchCard(m,groups)).join(""); sch.appendChild(box);
   });
 }
 
@@ -2409,27 +2551,62 @@ function render(){
   if(CURRENT_MATCH) refreshOpenMatch(CURRENT_MATCH);
 }
 
+// One-line clickable summary of an adjacent match (opens the full match modal), shown small
+// above/below the Overview's primary slot so a fan can see what's next without losing sight
+// of what's currently the headline (a live match, or today's last result).
+function overviewCompanion(label,m){
+  const tA=resolveTeam(m.team1)||m.team1, tB=resolveTeam(m.team2)||m.team2;
+  const r=isPlayed(m)?result(m):null;
+  const k=parseKickoff(m);
+  const when=r?`${r.ea}–${r.eb}${r.extra?" "+esc(r.extra):""}`:(k?k.toLocaleString(undefined,{weekday:"short",hour:"numeric",minute:"2-digit"}):esc(fmtDate(m.date)));
+  return `<div class="ov-companion" data-mnum="${m.num}">
+    <span class="oc-label">${esc(label)}</span>
+    <span class="oc-teams">${flag(tA,14)} ${tnm(tA)} <span class="oc-vs">v</span> ${tnm(tB)} ${flag(tB,14)}</span>
+    <span class="oc-when">${when}</span>
+  </div>`;
+}
 function renderOverview(groups,thirds){
   // A genuinely live match is the single most pertinent thing a fan can know right now —
   // it leads the page, above even the headline stats.
   const liveNow=STATE.matches.filter(m=>matchState(m)==="live")
     .sort((a,b)=>(parseKickoff(a)?.getTime()||0)-(parseKickoff(b)?.getTime()||0));
+  const today=todayStr();
+  const nextUpcoming=()=>STATE.matches.filter(m=>matchState(m)==="upcoming")
+    .sort((a,b)=>{const ka=parseKickoff(a),kb=parseKickoff(b);
+      if(ka&&kb) return ka-kb; return (a.date||"").localeCompare(b.date||"")||(a.num||0)-(b.num||0);})[0];
+  const lastFinished=()=>[...STATE.matches].filter(isPlayed)
+    .sort((a,b)=>{const ka=parseKickoff(a),kb=parseKickoff(b);
+      if(ka&&kb) return kb-ka; return (b.date||"").localeCompare(a.date||"")||(b.num||0)-(a.num||0);})[0];
   const ovLive=$("#ovLive");
   if(liveNow.length){
+    const next=nextUpcoming();
     ovLive.innerHTML=`<div class="date-head"><span class="day-today">🔴 Live now</span><span class="cnt">${liveNow.length} match${liveNow.length>1?"es":""}</span></div>`
-      + liveNow.map(m=>matchCard(m,groups)).join("");
+      + liveNow.map(m=>matchCard(m,groups)).join("")
+      + (next?overviewCompanion("⏭️ Next match",next):"");
     ovLive.style.marginBottom="18px";
   } else {
-    // Nothing live right now — the next kickoff is the next most pertinent thing, so the
-    // slot never sits empty.
-    const next=STATE.matches.filter(m=>matchState(m)==="upcoming")
+    // Nothing live — hold today's most recently finished match as the headline (not just the
+    // instant a game ends) until the calendar date actually rolls over, then fall through to
+    // the next kickoff so the slot never sits empty.
+    const lastToday=STATE.matches.filter(m=>isPlayed(m)&&m.date===today)
       .sort((a,b)=>{const ka=parseKickoff(a),kb=parseKickoff(b);
-        if(ka&&kb) return ka-kb; return (a.date||"").localeCompare(b.date||"")||(a.num||0)-(b.num||0);})[0];
-    if(next){
-      ovLive.innerHTML=`<div class="date-head"><span class="day-today">⏭️ Next match</span></div>`+matchCard(next,groups);
+        if(ka&&kb) return kb-ka; return (b.num||0)-(a.num||0);})[0];
+    if(lastToday){
+      const next=nextUpcoming();
+      ovLive.innerHTML=`<div class="date-head"><span class="day-today">✅ Last result</span></div>`
+        + pastKnockoutRow(lastToday)
+        + (next?overviewCompanion("⏭️ Next match",next):"");
       ovLive.style.marginBottom="18px";
     } else {
-      ovLive.innerHTML=""; ovLive.style.marginBottom="";
+      const next=nextUpcoming();
+      if(next){
+        const prev=lastFinished();
+        ovLive.innerHTML=(prev?overviewCompanion("◀ Previous match",prev):"")
+          + `<div class="date-head"><span class="day-today">⏭️ Next match</span></div>`+matchCard(next,groups);
+        ovLive.style.marginBottom="18px";
+      } else {
+        ovLive.innerHTML=""; ovLive.style.marginBottom="";
+      }
     }
   }
   const played=STATE.matches.filter(isPlayed);
@@ -2479,24 +2656,33 @@ function renderOverview(groups,thirds){
   $("#ovUpcoming").innerHTML= up.length? "" : `<div class="empty" style="padding:20px">No upcoming matches — tournament complete! 🏆</div>`;
   up.forEach(m=>$("#ovUpcoming").appendChild(upcomingRow(m)));
 }
+// Both rows below open the full match modal (openMatch, via the [data-mnum] click
+// delegation) on click anywhere in the row — same detail view (timeline, lineup, etc.) a
+// fixture gives on the Upcoming page, so the Overview's compact rows aren't a dead end.
 function miniMatch(m){
   const r=result(m);
   const w1=r.winner===1,w2=r.winner===2;
   const tag=m.group?esc(m.group):esc(m.round||"");
-  return el("div","match-row",
+  const row=el("div","match-row",
     `<span class="rd">${tag}</span>
      <span class="opp" style="justify-content:flex-end;text-align:right;${w1?'color:var(--win);font-weight:700':''}">${nameClickable(m.team1)} ${flag(m.team1)}</span>
      <span class="res">${r.display}${r.extra?` <small style="color:var(--muted);font-weight:600">${r.extra}</small>`:""}</span>
      <span class="opp" style="${w2?'color:var(--win);font-weight:700':''}">${flag(m.team2)} ${nameClickable(m.team2)}</span>`);
+  row.dataset.mnum=m.num;
+  return row;
 }
 function upcomingRow(m){
   const dt=m.date?esc(fmtDateTime(m)):"";
   const tag=m.group?esc(m.group):esc(m.round||"");
-  return el("div","match-row",
-    `<span class="rd">${dt}<br>${tag}</span>
-     <span class="opp" style="justify-content:flex-end;text-align:right">${nameOrPlaceholder(m.team1)} ${flag(m.team1)}</span>
+  const tA=resolveTeam(m.team1)||m.team1, tB=resolveTeam(m.team2)||m.team2;
+  const isTodayUpcoming=matchState(m)==="upcoming"&&m.date===todayStr();
+  const row=el("div","match-row"+(isTodayUpcoming?" today":""),
+    `<span class="rd">${isTodayUpcoming?'<span class="live-badge today">Today</span><br>':dt+"<br>"}${tag}</span>
+     <span class="opp" style="justify-content:flex-end;text-align:right">${nameOrPlaceholder(tA)} ${flag(tA)}</span>
      <span class="res" style="color:var(--faint)">v</span>
-     <span class="opp">${flag(m.team2)} ${nameOrPlaceholder(m.team2)}</span>`);
+     <span class="opp">${flag(tB)} ${nameOrPlaceholder(tB)}</span>`);
+  row.dataset.mnum=m.num;
+  return row;
 }
 
 let GROUP_SORT={}, THIRD_SORT=null;
@@ -2522,7 +2708,7 @@ function sortRows(rows,cur,getters){
 function renderGroups(groups,thirds){
   const wrap=$("#groupGrid"); wrap.innerHTML="";
   const keys=Object.keys(groups).sort();
-  const groupGetters={rank:r=>r.rank, team:r=>tnm(r.team), Pld:r=>r.Pld, GD:r=>r.GD, Pts:r=>r.Pts};
+  const groupGetters={rank:r=>r.rank, team:r=>r.team, Pld:r=>r.Pld, GD:r=>r.GD, Pts:r=>r.Pts};
   for(const k of keys){
     const g=groups[k];
     const card=el("div","group-card");
@@ -2548,7 +2734,7 @@ function renderGroups(groups,thirds){
   const tr=$("#thirdRace"); tr.innerHTML="";
   if(!thirds.length){ tr.innerHTML=`<div class="empty">Standings not available yet.</div>`; }
   else{
-    const thirdGetters={thirdRank:r=>r.thirdRank, team:r=>tnm(r.team), group:r=>r.group, Pts:r=>r.Pts, GD:r=>r.GD, GF:r=>r.GF};
+    const thirdGetters={thirdRank:r=>r.thirdRank, team:r=>r.team, group:r=>r.group, Pts:r=>r.Pts, GD:r=>r.GD, GF:r=>r.GF};
     const tbl=el("table");
     tbl.innerHTML=`<thead><tr>${sortTh("#","thirdRank",THIRD_SORT,"num")}${sortTh("Team","team",THIRD_SORT)}${sortTh("Grp","group",THIRD_SORT,"num mob-hide")}${sortTh("Pts","Pts",THIRD_SORT,"num")}${sortTh("GD","GD",THIRD_SORT,"num")}${sortTh("GF","GF",THIRD_SORT,"num mob-hide")}<th>Status</th></tr></thead>`;
     const body=el("tbody");
@@ -2726,12 +2912,33 @@ function fmtDateTime(m){
 }
 
 let LAST = {groups:null,thirds:null};
+let TEAM_SORT={key:"Pts",dir:"desc"}, TEAM_GROUP_FILTER="all";
 function renderTeams(groups,thirds){
   LAST.groups=groups; LAST.thirds=thirds;
   const teams=new Set();
   Object.values(groups).forEach(g=>Object.keys(g.teams).forEach(t=>teams.add(t)));
   const arr=[...teams].sort();
   const filter=$("#teamFilter .active")?.dataset.f||"all";
+
+  // stat cards — whole-tournament attack/defense/discipline leaders (min 3 games played,
+  // so a single fluky result can't top the list). ENR.cards is keyed by player, so cards
+  // are rolled up to team totals here.
+  const cardTotals=teamCardTotals();
+  const eligible=arr.map(t=>statline(t,groups)).filter(s=>s.played>=3);
+  const bestAttack=[...eligible].sort((a,b)=>b.gfpg-a.gfpg)[0];
+  const bestDefense=[...eligible].sort((a,b)=>a.gapg-b.gapg)[0];
+  const cardedTeams=Object.keys(cardTotals);
+  const dirtiest=cardedTeams.length?cardedTeams.reduce((a,b)=>cardTotals[b].total>cardTotals[a].total?b:a):null;
+  const disciplined=eligible.map(s=>s.team).filter(t=>cardedTeams.includes(t))
+    .reduce((a,b)=>(a==null||cardTotals[b].total<cardTotals[a].total)?b:a, null);
+  const cards=[
+    {ico:"⚔️",big:bestAttack?bestAttack.gfpg.toFixed(1):"–",lbl:bestAttack?("Best attack · "+bestAttack.team):"Best attack"},
+    {ico:"🛡️",big:bestDefense?bestDefense.gapg.toFixed(1):"–",lbl:bestDefense?("Best defense · "+bestDefense.team):"Best defense"},
+    {ico:"🕊️",big:disciplined?cardTotals[disciplined].total:"–",lbl:disciplined?("Most disciplined · "+disciplined):"Most disciplined"},
+    {ico:"🟨",big:dirtiest?cardTotals[dirtiest].total:"–",lbl:dirtiest?("Dirtiest team · "+dirtiest):"Dirtiest team"},
+  ];
+  $("#teamStatCards").innerHTML=cards.map(c=>`<div class="card"><div class="stat"><span class="ico">${c.ico}</span><span class="big">${c.big}</span><span class="lbl">${esc(c.lbl)}</span></div></div>`).join("");
+
   const grid=$("#teamGrid"); grid.innerHTML="";
   let shown=0;
   for(const t of arr){
@@ -2747,6 +2954,36 @@ function renderTeams(groups,thirds){
     grid.appendChild(tile);
   }
   if(!shown) grid.innerHTML=`<div class="empty">No teams match this filter.</div>`;
+
+  // full sortable/filterable table — group-stage standings columns (same basis as the
+  // Groups & Standings page), flattened across all 12 groups so they can be sorted globally.
+  const grpSel=$("#teamGroupFilter"), grpKeys=Object.keys(groups).sort();
+  if(grpSel.dataset.sig!==""+grpKeys.length){ grpSel.dataset.sig=""+grpKeys.length;
+    grpSel.innerHTML=`<option value="all">All groups</option>`+grpKeys.map(k=>`<option value="${esc(k)}">Group ${esc(k)}</option>`).join("");
+  }
+  grpSel.value=TEAM_GROUP_FILTER;
+  let tblRows=arr.map(t=>{ const st=teamStatus(t,groups,thirds); return {team:t,st,row:st.row}; }).filter(r=>r.row);
+  if(filter==="adv") tblRows=tblRows.filter(r=>r.st.advanced!==false);
+  if(filter==="out") tblRows=tblRows.filter(r=>r.st.advanced===false);
+  if(TEAM_GROUP_FILTER!=="all") tblRows=tblRows.filter(r=>r.row.group===TEAM_GROUP_FILTER);
+  const getters={team:r=>r.team, group:r=>r.row.group, Pld:r=>r.row.Pld, W:r=>r.row.W, D:r=>r.row.D, L:r=>r.row.L,
+    GF:r=>r.row.GF, GA:r=>r.row.GA, GD:r=>r.row.GD, Pts:r=>r.row.Pts};
+  tblRows=sortRows(tblRows,TEAM_SORT,getters);
+  const tt=$("#teamTable");
+  if(!tblRows.length){ tt.innerHTML=`<div class="empty">No teams match this filter.</div>`; }
+  else{
+    const th=(lbl,key,cls)=>sortTh(lbl,key,TEAM_SORT,cls);
+    tt.innerHTML=`<table class="ptbl"><thead><tr>${th("Team","team")}${th("Grp","group","num mob-hide")}
+        ${th("P","Pld","num")}${th("W","W","num mob-hide")}${th("D","D","num mob-hide")}${th("L","L","num mob-hide")}
+        ${th("GF","GF","num mob-hide")}${th("GA","GA","num mob-hide")}${th("GD","GD","num")}${th("Pts","Pts","num")}
+        <th class="mob-hide">Form</th><th>Status</th></tr></thead><tbody>${tblRows.map(r=>`<tr data-team="${esc(r.team)}" style="cursor:pointer">
+        <td><span class="teamcell" data-team="${esc(r.team)}" style="display:inline-flex">${flag(r.team)} ${tnm(r.team)}</span></td>
+        <td class="num mob-hide">${esc(r.row.group)}</td>
+        <td class="num">${r.row.Pld}</td><td class="num mob-hide">${r.row.W}</td><td class="num mob-hide">${r.row.D}</td><td class="num mob-hide">${r.row.L}</td>
+        <td class="num mob-hide">${r.row.GF}</td><td class="num mob-hide">${r.row.GA}</td><td class="num">${r.row.GD>0?"+":""}${r.row.GD}</td>
+        <td class="num" style="font-weight:700">${r.row.Pts}</td>
+        <td class="mob-hide">${formHtml(r.row.form)}</td><td><span class="badge ${r.st.cls}">${esc(r.st.label)}</span></td></tr>`).join("")}</tbody></table>`;
+  }
 }
 
 /* ===================================================================
@@ -2766,6 +3003,10 @@ const TSDB_LEAGUE="4429", TSDB_SEASON="2026";
 const ENR = { eventByNum:{}, meta:{}, assists:{}, assistMatches:{}, cards:{}, matchCards:{}, matchSubs:{}, matchPenMisses:{}, matchShootout:{}, photo:{},
               loaded:new Set(), seasonTried:false };
 let enrQueue=[], enrPumping=false, enrTimer=null;
+// Matches currently being processed by ONE of the two card sources (TSDB enrichment
+// queue / ESPN backfill). Claimed synchronously before any await, so the two async
+// paths can never both process — and double-count — the same match.
+const ENR_INFLIGHT=new Set();
 
 /* ===================================================================
    RESULT BACKFILL  (openfootball is slow to post final scores — sometimes
@@ -2915,6 +3156,26 @@ function liveClockText(lv, now){
   const totalSec=baseMin*60+elapsedSec, mm=Math.floor(totalSec/60), ss=totalSec%60;
   return `${mm}:${String(ss).padStart(2,"0")}'`;
 }
+// Where the match-timeline "now" line sits, on the same 0..scaleMax minute axis
+// matchTimelineHtml()'s pMin() places event markers on — added time is compressed ×0.4
+// there too, so a goal scored "right now" and this line land in the same spot. Elapsed
+// real seconds (not whole minutes) feed straight into the position, so it advances every
+// second, not just when the whole-minute clock text rolls over. Paused/halftime freezes it
+// at the last confirmed clock value, same as liveClockText's paused branch.
+function liveNowMinute(lv, scaleMax, now){
+  if(!lv || !lv.clock) return null;
+  const mt=lv.clock.match(/^(\d+)'?(?:\+(\d+)'?)?/);
+  if(!mt) return null;
+  const baseMin=+mt[1], stoppageBase=mt[2]!=null?+mt[2]:null;
+  let liveMin=stoppageBase!=null?stoppageBase:0;
+  if(!lv.paused && lv.state==="in"){
+    now=now||Date.now();
+    const elapsedMin=Math.max(0,(now-(lv.clockAt||now))/1000)/60;
+    liveMin+=elapsedMin;
+  }
+  const pos=stoppageBase!=null?baseMin+liveMin*0.4:baseMin+liveMin;
+  return Math.min(scaleMax, pos);
+}
 // Restarts a CSS animation on an element by toggling its class off, forcing a reflow
 // (browsers won't replay an animation on a class that's already applied), then back on.
 function beatPulse(el){ el.classList.remove("beat"); void el.offsetWidth; el.classList.add("beat"); }
@@ -2926,6 +3187,12 @@ function tickLiveClocks(){
   $$("[data-live-clock]").forEach(el=>{
     const lv=LIVE[el.dataset.liveClock];
     if(lv) el.textContent=liveClockText(lv);
+  });
+  $$("[data-live-now]").forEach(el=>{
+    const lv=LIVE[el.dataset.liveNow];
+    const scaleMax=+el.dataset.scaleMax||90;
+    const pos=lv?liveNowMinute(lv,scaleMax):null;
+    if(pos!=null) el.style.left=(pos/scaleMax*100).toFixed(1)+"%";
   });
   $$(".live-clock, .mc.live, .modal.live, .tie.live, .nextm.live").forEach(el=>{
     // A halftime clock is frozen text, not a ticking value — pulsing it alongside a
@@ -3073,24 +3340,18 @@ async function espnEventIdFor(m){
 // (the result never changes); anything else gets a short TTL so a newly-published lineup or
 // a new card shows up on the next fetch instead of being stuck on a stale cached miss.
 const ESPN_SUM_MEM = {}; // eventId -> {at, data}
+// In-memory only: a single summary payload runs ~350KB, so persisting them to
+// localStorage exhausts the ~5MB quota after a dozen matches and silently breaks
+// every later write — including the primary offline cache (wc2026-cache-v1).
 async function espnSummary(eventId, isFinal){
   if(!eventId) return null;
   const ttl = isFinal ? Infinity : 5*60*1000;
   const mem=ESPN_SUM_MEM[eventId];
   if(mem && Date.now()-mem.at<ttl) return mem.data;
-  const cacheKey="espn-sum-"+eventId;
-  if(!mem){
-    try{
-      const raw=localStorage.getItem(cacheKey);
-      if(raw){ const o=JSON.parse(raw); if(Date.now()-o.at<ttl){ ESPN_SUM_MEM[eventId]=o; return o.data; } }
-    }catch(e){}
-  }
   try{
     const r=await fetch(`${ESPN_BASE}/summary?event=${eventId}`);
     const data=await r.json();
-    const entry={at:Date.now(),data};
-    ESPN_SUM_MEM[eventId]=entry;
-    try{ localStorage.setItem(cacheKey,JSON.stringify(entry)); }catch(e){}
+    ESPN_SUM_MEM[eventId]={at:Date.now(),data};
     return data;
   }catch(e){ return null; }
 }
@@ -3149,7 +3410,9 @@ function espnLineupFromRosters(rosters, c1, c2){
 // so a match is never double-counted by both sources — whichever processes it first wins.
 async function espnBackfillCards(m){
   const mid=matchId(m);
-  if(ENR.loaded.has(mid) || !isPlayed(m)) return false;
+  if(ENR.loaded.has(mid) || ENR_INFLIGHT.has(mid) || !isPlayed(m)) return false;
+  ENR_INFLIGHT.add(mid);
+  try{
   const id=await espnEventIdFor(m); if(!id) return false;
   const summary=await espnSummary(id, true);
   if(!summary || !summary.keyEvents) return false;
@@ -3181,6 +3444,7 @@ async function espnBackfillCards(m){
   if(shootout) ENR.matchShootout[mid]=shootout;
   ENR.loaded.add(mid);
   return true;
+  }finally{ ENR_INFLIGHT.delete(mid); }
 }
 async function pollLiveScores(){
   if(LIVE_POLLING) return false;
@@ -3329,11 +3593,15 @@ function enrPump(){
   step();
 }
 async function enrFetchTimeline(m){
-  const mid=matchId(m), id=ENR.eventByNum[mid]; if(!id || ENR.loaded.has(mid)) return;
-  const tl=await tsdbTimeline(id);
-  ENR.loaded.add(mid);
-  enrProcess(m, tl);
-  enrScheduleRerender();
+  const mid=matchId(m), id=ENR.eventByNum[mid];
+  if(!id || ENR.loaded.has(mid) || ENR_INFLIGHT.has(mid)) return;
+  ENR_INFLIGHT.add(mid);
+  try{
+    const tl=await tsdbTimeline(id);
+    ENR.loaded.add(mid);
+    enrProcess(m, tl);
+    enrScheduleRerender();
+  }finally{ ENR_INFLIGHT.delete(mid); }
 }
 function enrProcess(m, tl){
   const teamOf=t=>{ const n=norm(t); return norm(m.team1)===n?m.team1:(norm(m.team2)===n?m.team2:t); };
@@ -3359,6 +3627,28 @@ function enrProcess(m, tl){
 }
 function enrScheduleRerender(){ clearTimeout(enrTimer); enrTimer=setTimeout(()=>{ if(STATE.matches.length) render(); }, 700); }
 function enrichmentActive(){ return Object.keys(ENR.eventByNum).length>0; }
+// Per-team card totals rolled up from ENR.cards (keyed by player) — shared by the Teams
+// page's discipline stat cards and the Stats page's discipline leaderboard. team -> {y,r,total}
+function teamCardTotals(){
+  const totals={};
+  for(const k in ENR.cards){ const meta=ENR.meta[k]; if(!meta) continue; const c=ENR.cards[k];
+    const t=totals[meta.team]=totals[meta.team]||{y:0,r:0,total:0};
+    t.y+=c.y; t.r+=c.r; t.total=t.y+t.r;
+  }
+  return totals;
+}
+
+// Top N teams by clean sheets (min 1 game played), tie-broken by fewest goals conceded
+// per game. Whole-tournament, team-level — no per-goalkeeper attribution, since that would
+// need a bulk ESPN lineup fetch across every played match (~390KB each) just for this one
+// widget. Returns statline()-shaped objects (team, cs, gapg, played, ...).
+function goldenGloves(n,groups){
+  const teams=new Set();
+  Object.values(groups).forEach(g=>Object.keys(g.teams).forEach(t=>teams.add(t)));
+  return [...teams].map(t=>statline(t,groups)).filter(s=>s.played>0)
+    .sort((a,b)=>b.cs-a.cs || a.gapg-b.gapg)
+    .slice(0,n);
+}
 
 // Aggregate every goalscorer (and, via enrichment, assisters / carded players).
 function buildPlayers(){
@@ -3413,6 +3703,28 @@ function renderPlayers(){
     {ico:"🥇",big:boot?boot.goals:0,lbl:boot?("Golden Boot · "+boot.name):"Golden Boot"},
   ];
   $("#playerStatCards").innerHTML=cards.map(c=>`<div class="card"><div class="stat"><span class="ico">${c.ico}</span><span class="big">${c.big}</span><span class="lbl">${esc(c.lbl)}</span></div></div>`).join("");
+  // mini-dashboard leaderboards — Golden Boot / Golden Gloves / Bad Boys
+  const bootRows=[...players].sort((a,b)=>b.goals-a.goals||b.ga-a.ga||a.name.localeCompare(b.name)).filter(p=>p.goals>0).slice(0,5)
+    .map((p,i)=>({rank:i+1, value:enr?p.ga:p.goals, disp:`${p.goals}${enr&&p.assists?` <small>+${p.assists}a</small>`:""}`,
+      segs:[{w:p.goals,cls:"g"},{w:enr?p.assists:0,cls:"a"}],
+      label:`${flag(p.team,15)} <span class="player" data-player="${esc(p.name)}" data-team="${esc(p.team)}">${esc(p.name)}</span>`}));
+  // Team-level (not per-keeper — see goldenGloves()'s comment for why), pairs with Teams
+  // page's "Best defense" card but as a top-5 leaderboard instead of a single leader.
+  const gloveRows=LAST.groups?goldenGloves(5,LAST.groups).map((s,i)=>({rank:i+1, value:s.cs, disp:s.cs, sub:`${s.played} played`,
+    fill:"solid",
+    label:`${flag(s.team,15)} <span class="teamcell" data-team="${esc(s.team)}" style="display:inline-flex;min-width:0">${tnm(s.team)}</span>`})):[];
+  // "Bad Boys" pool is intentionally broader than the goal/assist contributors the table
+  // shows — a player with zero goals but two yellow cards belongs here even though they'd
+  // never appear in the main table's default sort.
+  const cardPool=players.filter(p=>enr&&(p.yc>0||p.rc>0));
+  const badBoyRows=cardPool.sort((a,b)=>(b.rc*3+b.yc)-(a.rc*3+a.yc)||b.rc-a.rc).slice(0,5)
+    .map((p,i)=>({rank:i+1, value:p.yc+p.rc, disp:`${p.yc}<small>🟨</small>${p.rc?` ${p.rc}<small>🟥</small>`:""}`,
+      segs:[{w:p.yc,cls:"gold"},{w:p.rc,cls:"red"}],
+      label:`${flag(p.team,15)} <span class="player" data-player="${esc(p.name)}" data-team="${esc(p.team)}">${esc(p.name)}</span>`}));
+  $("#playerLeaderboards").innerHTML=`
+    <div class="schart"><h3>🥇 Golden Boot</h3><p class="sub">Top scorers.</p>${bootRows.length?hbars(bootRows):'<div class="empty">No goals yet.</div>'}</div>
+    <div class="schart"><h3>🧤 Golden Gloves</h3><p class="sub">Most clean sheets, by team (whole tournament).</p>${gloveRows.length?hbars(gloveRows):'<div class="empty">No clean sheets yet.</div>'}</div>
+    <div class="schart"><h3>🟨🟥 Bad Boys</h3><p class="sub">Most cards — red weighted above yellow.</p>${enr?(badBoyRows.length?hbars(badBoyRows):'<div class="empty">No cards yet.</div>'):'<div class="empty">Loading cards…</div>'}</div>`;
   // country dropdown (rebuild only when the set changes)
   const countries=[...new Set(contributors.map(p=>p.team))].sort();
   const sel=$("#playerCountry"), sig="c"+countries.length;
@@ -3429,7 +3741,7 @@ function renderPlayers(){
   const S={ goals:(a,b)=>b.goals-a.goals||b.ga-a.ga, assists:(a,b)=>b.assists-a.assists||b.goals-a.goals,
             ga:(a,b)=>b.ga-a.ga||b.goals-a.goals, open:(a,b)=>b.open-a.open||b.goals-a.goals,
             pens:(a,b)=>b.pens-a.pens||b.goals-a.goals,
-            name:(a,b)=>a.name.localeCompare(b.name), team:(a,b)=>tnm(a.team).localeCompare(tnm(b.team)) };
+            name:(a,b)=>a.name.localeCompare(b.name), team:(a,b)=>a.team.localeCompare(b.team) };
   list.sort(S[PLAYER_F.sort]||S.goals);
   // table
   const arw=k=>PLAYER_F.sort===k?'<span class="arw">▼</span>':'';
@@ -3646,6 +3958,12 @@ function renderStats(groups,thirds){
   const scTeams=Object.values(groups).flatMap(g=>Object.values(g.teams)).map(r=>{const s=statline(r.team,groups);return {team:r.team,x:s.gfpg,y:s.gapg};}).filter(t=>t.x||t.y);
   // goal types donut
   const types=[ {label:"Open play",value:ts.open,color:"var(--series-a)"}, {label:"Penalties",value:ts.pens,color:"var(--series-b)"}, {label:"Own goals",value:ts.ogs,color:"var(--gold)"} ].filter(s=>s.value>0);
+  // discipline (top 10 by total cards)
+  const cardTotals=teamCardTotals();
+  const disciplineRows=Object.entries(cardTotals).sort((a,b)=>b[1].total-a[1].total).slice(0,10)
+    .map(([team,c],i)=>({ rank:i+1, value:c.total, disp:`${c.y}<small>🟨</small>${c.r?` ${c.r}<small>🟥</small>`:""}`,
+      segs:[{w:c.y,cls:"gold"},{w:c.r,cls:"red"}],
+      label:`${flag(team,16)} <span class="teamcell" data-team="${esc(team)}" style="display:inline-flex;min-width:0">${tnm(team)}</span>` }));
   // insights
   const ins=buildInsights(ts,players,power,groups);
 
@@ -3659,12 +3977,12 @@ function renderStats(groups,thirds){
       ${ins.map(i=>`<div class="insight ${i.cls}"><div class="it">${i.ic} ${esc(i.t)}</div><div class="ix">${i.x}</div></div>`).join("")}
     </div>
 
+    <div class="schart" style="margin-bottom:18px"><h3>🎛️ Attack vs. Defense</h3><p class="sub">Every team plotted by goals scored vs. conceded per game. <b>Top-right = elite</b> — scores freely and concedes little. Dashed lines mark the tournament average. Click a dot for the team.</p>${scatterChart(scTeams)}</div>
+
     <div class="grid cols-2" style="margin-bottom:18px">
       <div class="schart"><h3>🏆 Team Power Rankings</h3><p class="sub">Composite of points, goal difference, recent form &amp; knockout progress — scaled 0–100. Click a team for its profile.</p>${hbars(powerRows)}</div>
     <div class="schart"><h3>🥇 Golden Boot &amp; creators</h3><p class="sub">Top scorers — <span style="color:var(--series-a-hi)">crimson = goals</span>${enr?`, <span style="color:var(--series-b-hi)">cyan = assists</span>`:""}. Click a name for their card.</p>${hbars(scorerRows)}</div>
     </div>
-
-    <div class="schart" style="margin-bottom:18px"><h3>🎛️ Attack vs. Defense</h3><p class="sub">Every team plotted by goals scored vs. conceded per game. <b>Top-right = elite</b> — scores freely and concedes little. Dashed lines mark the tournament average. Click a dot for the team.</p>${scatterChart(scTeams)}</div>
 
     <div class="grid cols-2" style="margin-bottom:18px">
       <div class="schart"><h3>⏱️ When goals are scored</h3><p class="sub">All ${ts.goals} goals by 15-minute window (stoppage time folded into 45+ and 90+).</p>${vbars(timeRows)}</div>
@@ -3675,6 +3993,8 @@ function renderStats(groups,thirds){
       <div class="schart"><h3>⚡ Player impact index</h3><p class="sub">Goals + assists weighted, with a bonus for knockout goals &amp; multi-goal games.</p>${hbars(impRows)}</div>
       <div class="schart"><h3>📅 Goals by stage</h3><p class="sub">How the goals are spread across the rounds.</p>${vbars(stageRows)}</div>
     </div>
+
+    <div class="schart" style="margin-bottom:18px"><h3>🟨🟥 Discipline</h3><p class="sub">Total cards per team — <span style="color:var(--gold)">yellow</span> + <span style="color:var(--loss)">red</span>. Click a team for its profile.</p>${disciplineRows.length?hbars(disciplineRows):'<div class="empty">No cards yet.</div>'}</div>
     ${enr?"":`<div class="tbd-note">🔄 Assists and player photos are still loading from TheSportsDB and will appear as matches are fetched.</div>`}`;
 }
 
@@ -3692,10 +4012,11 @@ function teamNextMatch(team){
   if(ko.length){
     const last=ko[ko.length-1], r=result(last);
     const won=(last.team1===team&&r.winner===1)||(last.team2===team&&r.winner===2);
-    if(won){ const code="W"+last.num;
-      const slot=STATE.matches.find(m=>!isPlayed(m)&&(m.team1===code||m.team2===code));
-      if(slot){ const opp=slot.team1===code?slot.team2:slot.team1; return {match:slot, opp:resolveTeam(opp)||opp}; }
-    }
+    // Winners advance via "W<num>" slots; a semi-final loser still has the third-place
+    // play-off, which references them as "L<num>". Any other loser matches no slot.
+    const code=(won?"W":"L")+last.num;
+    const slot=STATE.matches.find(m=>!isPlayed(m)&&(m.team1===code||m.team2===code));
+    if(slot){ const opp=slot.team1===code?slot.team2:slot.team1; return {match:slot, opp:resolveTeam(opp)||opp}; }
   }
   return null;
 }
@@ -3704,7 +4025,7 @@ function winReward(m){
   if(m.group) return `three points in <b>Group ${esc(groupKey(m))}</b>`;
   const nm=nextMatchFor(m);
   if(nm) return `a place in the <b>${esc(nm.round||"next round")}</b>`;
-  if(/final/i.test(m.round||"")&&!/third/i.test(m.round||"")) return `the <b>World Cup title</b> 🏆`;
+  if(/^final$/i.test((m.round||"").trim())) return `the <b>World Cup title</b> 🏆`;
   if(/third/i.test(m.round||"")) return `<b>third place</b>`;
   return `a place in <b>the next round</b>`;
 }
@@ -3804,6 +4125,7 @@ function nextMatchSection(team,st,groups){
 /* ---------- Team profile modal ---------- */
 let TEAM_NAV=[];      // history of teams viewed before the current one
 let CURRENT_TEAM=null;
+let MODAL_OPENER=null; // element focused before the modal opened — focus returns there on close
 function openTeam(team,isBack){
   if(!LAST.groups) return;
   $("#modal").classList.remove("live");
@@ -3862,12 +4184,19 @@ function openTeam(team,isBack){
       <h3 style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin:0 0 4px">All matches</h3>
       ${rowsHtml||'<div class="empty">No matches.</div>'}
     </div>`;
+  if(!overlayOpen) MODAL_OPENER=document.activeElement;
   $("#overlay").classList.add("open");
   $("#closeModal").onclick=closeModal;
+  $("#closeModal").focus();
   const back=$("#backTeam"); if(back) back.onclick=teamBack;
 }
 function teamBack(){ if(!TEAM_NAV.length) return; openTeam(TEAM_NAV.pop(),true); }
-function closeModal(){ $("#overlay").classList.remove("open"); $("#modal").classList.remove("live"); TEAM_NAV=[]; CURRENT_TEAM=null; CURRENT_MATCH=null; }
+function closeModal(){
+  $("#overlay").classList.remove("open"); $("#modal").classList.remove("live");
+  TEAM_NAV=[]; CURRENT_TEAM=null; CURRENT_MATCH=null;
+  if(MODAL_OPENER && document.contains(MODAL_OPENER)) MODAL_OPENER.focus();
+  MODAL_OPENER=null;
+}
 
 /* ---------- Match modal (shared analysis, reachable from the bracket) ---------- */
 // Scorers for a finished match, split by side; player names are clickable.
@@ -3920,7 +4249,7 @@ function lineupHtml(m, tA, tB){
   const cached=LINEUP_CACHE[matchId(m)];
   if(!cached || !cached.lineup) return "";
   const [a,b]=cached.lineup;
-  return `<details class="mm-drawer"><summary>Starting lineup <span class="chev">›</span></summary>
+  return `<details class="mm-drawer"><summary>Starting lineup <span class="tap-hint">Tap to expand <span class="chev">›</span></span></summary>
     <div class="mm-goals"><div class="gcol">${lineupSideHtml(a,tA)}</div><div class="gcol right">${lineupSideHtml(b,tB)}</div></div>
   </details>`;
 }
@@ -4012,8 +4341,10 @@ function openMatch(m){
       ${body}
     </div>`;
   $("#modal").classList.toggle("live",!!lv);
+  if(!$("#overlay").classList.contains("open")) MODAL_OPENER=document.activeElement;
   $("#overlay").classList.add("open");
   $("#closeModal").onclick=closeModal;
+  $("#closeModal").focus();
 }
 
 /* ---------- Misc derived ---------- */
@@ -4068,10 +4399,16 @@ async function load(showSpin){
     backfillFromESPN().then(changed=>{ if(changed) render(); }); // fire-and-forget faster normal-time results from ESPN
     pollLiveScores().then(changed=>{ if(changed) render(); }); // fire-and-forget live in-progress scores from ESPN
   }catch(err){
-    // fall back to cache
-    const ok=loadCache();
-    if(ok){ render(); setStatus("err","Offline · showing saved data from "+timeAgo(STATE.fetchedAt)); }
-    else { setStatus("err","Couldn't load data"); showError(err); }
+    // Never regress state we already have: the in-memory STATE can be *ahead* of the
+    // persisted cache (TSDB/ESPN backfills mutate STATE after the cache is written),
+    // so reloading the cache on a flaky refresh would revert finished scores.
+    if(STATE.matches.length){
+      setStatus("err","Offline · refresh failed, showing data from "+timeAgo(STATE.fetchedAt));
+    } else {
+      const ok=loadCache();
+      if(ok){ render(); setStatus("err","Offline · showing saved data from "+timeAgo(STATE.fetchedAt)); }
+      else { setStatus("err","Couldn't load data"); showError(err); }
+    }
   }
 }
 function loadCache(){
@@ -4103,9 +4440,24 @@ function showError(err){
 
 /* ---------- Events / wiring ---------- */
 function goTo(view,scroll=true){
-  $$("#tabs button").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
+  $$("#tabs button").forEach(b=>{ const on=b.dataset.view===view; b.classList.toggle("active",on); b.setAttribute("aria-selected",on?"true":"false"); });
   $$(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+view));
-  if(scroll) window.scrollTo({top:0,behavior:"smooth"});
+  if(view==="upcoming"){
+    // Jump straight to today's spot in the knockout timeline rather than its oldest result —
+    // "auto" (no smooth animation) on the silent initial-load restore (scroll=false) so the
+    // page doesn't visibly scroll itself right after paint; smooth on an actual tab click.
+    // Called synchronously (no requestAnimationFrame) — rAF is throttled/suspended in a
+    // backgrounded tab, and scrollIntoView forces the layout it needs on its own anyway.
+    const t=$("#up-today");
+    if(t){
+      // Both the header and the tab bar are sticky, so a plain scrollIntoView(block:"start")
+      // lands the target right underneath them, hidden from view — offset by their combined
+      // height (computed live since it varies with viewport width/wrapping).
+      const offset=($("header")?.offsetHeight||0)+($("nav.tabs")?.offsetHeight||0);
+      const top=t.getBoundingClientRect().top+window.pageYOffset-offset-8;
+      window.scrollTo({top,behavior:scroll?"smooth":"auto"});
+    }
+  } else if(scroll) window.scrollTo({top:0,behavior:"smooth"});
   try{ localStorage.setItem("wc-active-tab",view); }catch(e){}
 }
 $("#tabs").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) goTo(b.dataset.view); });
@@ -4117,7 +4469,7 @@ document.addEventListener("click",e=>{
   const mn=e.target.closest("[data-mnum]"); if(mn){ openMatch(koByNum(+mn.dataset.mnum)); return; }
   // clicking anywhere else dismisses an open player popup
   if(PLAYER_POP_FOR && !e.target.closest("#playerPop")) closePlayerPop();
-  const tc=e.target.closest("[data-team]"); if(tc){ const t=tc.dataset.team; if(t && !isPlaceholder(t)) openTeam(t); return; }
+  const tc=e.target.closest("[data-team]"); if(tc){ const t=tc.dataset.team; if(t && !isPlaceholder(t)){ closePlayerPop(); openTeam(t); } return; }
   // click-toggle the next-match preview
   const nm=e.target.closest(".nextm"); if(nm && !nm.classList.contains("nextm-none") && !e.target.closest(".nm-pop")){ const open=nm.classList.toggle("show"); nm.setAttribute("aria-expanded",open?"true":"false"); }
 });
@@ -4147,6 +4499,14 @@ $("#teamFilter").addEventListener("click",e=>{
   $$("#teamFilter button").forEach(x=>x.classList.remove("active")); b.classList.add("active");
   if(LAST.groups) renderTeams(LAST.groups,LAST.thirds);
 });
+$("#teamGroupFilter").addEventListener("change",e=>{
+  TEAM_GROUP_FILTER=e.target.value; if(LAST.groups) renderTeams(LAST.groups,LAST.thirds);
+});
+$("#teamTable").addEventListener("click",e=>{
+  const th=e.target.closest("th.sortable"); if(!th) return;
+  TEAM_SORT=toggleSort(TEAM_SORT,th.dataset.s);
+  if(LAST.groups) renderTeams(LAST.groups,LAST.thirds);
+});
 $("#upFilter").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b) return;
   UP_FILTER=b.dataset.f; if(LAST.groups) renderUpcoming(LAST.groups);
@@ -4155,13 +4515,27 @@ $("#upFilter").addEventListener("click",e=>{
 document.addEventListener("click",e=>{
   const head=e.target.closest(".mc-head"); if(!head) return;
   if(e.target.closest("[data-team]")) return;
+  if(e.target.closest("[data-mnum]")) return; // finished-match row — opens the modal, no inline accordion
   const card=head.parentElement, mid=card.dataset.mcId;
   if(mid){ if(EXPANDED_CARDS.has(mid)) EXPANDED_CARDS.delete(mid); else EXPANDED_CARDS.add(mid); }
   card.classList.toggle("open");
 });
 $("#refreshBtn").addEventListener("click",()=>load(true));
 $("#overlay").addEventListener("click",e=>{ if(e.target.id==="overlay") closeModal(); });
-document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closePlayerPop(); closeModal(); } });
+// Keep Tab cycling inside the open modal instead of escaping into the page behind it.
+$("#overlay").addEventListener("keydown",e=>{
+  if(e.key!=="Tab" || !$("#overlay").classList.contains("open")) return;
+  const f=$$("#modal button, #modal [tabindex]:not([tabindex='-1'])").filter(x=>!x.disabled && x.offsetParent!==null);
+  if(!f.length) return;
+  const first=f[0], last=f[f.length-1];
+  if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+});
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){
+  // Peel one layer per press: popup first (it stacks above the modal), then the modal.
+  if(PLAYER_POP_FOR){ closePlayerPop(); return; }
+  closeModal();
+} });
 window.addEventListener("resize",()=>{ if(PLAYER_POP_FOR) closePlayerPop(); });
 
 // keep "updated X ago" fresh
@@ -4170,7 +4544,9 @@ setInterval(()=>{ if(STATE.fetchedAt && !STATE.stale) setStatus("live","Live · 
 setInterval(()=>load(false),REFRESH_MS);
 setInterval(()=>{ pollLiveScores().then(changed=>{ if(changed) render(); }); },25000);
 
-// boot: show cache instantly if present, then fetch fresh
+// boot: evict summary blobs persisted by earlier versions (they crowd out the
+// offline cache — see espnSummary), then show cache instantly and fetch fresh.
+try{ Object.keys(localStorage).filter(k=>k.startsWith("espn-sum-")).forEach(k=>localStorage.removeItem(k)); }catch(e){}
 if(loadCache()){ render(); setStatus("","Showing saved data — refreshing…"); }
 load(true);
 // restore the tab the user was on before the last refresh
