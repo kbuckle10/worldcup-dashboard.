@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>World Cup 2026 — Explorer Dashboard</title>
+<title>World Cup 2026 — Tracker Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;500;700;800&display=swap" rel="stylesheet">
@@ -545,6 +545,7 @@
   }
   .brand h1 .wc-title{font-weight:800}
   .brand h1 .expl{font-weight:300;letter-spacing:.06em;color:#8b98b4}
+  .brand h1 .tracker{font-weight:300;letter-spacing:.075em;color:#d5e7ff}
   .brand h1 strong,
   .brand h1 .wc-title{
     background:linear-gradient(100deg,#ffffff 0%,#ff8fb0 38%,#22d3ee 76%,#ffe08a 100%);
@@ -1167,6 +1168,7 @@
     box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 14px 34px rgba(0,0,0,.34),0 0 28px rgba(225,29,72,.11);
   }
   .brand .official-logo{width:42px;height:42px}
+  .brand .radar-icon{width:42px;height:42px}
   .brand h1{
     font-size:clamp(26px,2.5vw,34px);
     line-height:.92;
@@ -1179,6 +1181,64 @@
     background-clip:text;
     color:transparent;
     filter:drop-shadow(0 0 16px rgba(6,182,212,.12));
+  }
+
+  .brand .radar-mark{
+    position:relative;
+    overflow:hidden;
+    background:
+      radial-gradient(circle at 50% 50%,rgba(255,255,255,.2) 0 2px,transparent 3px),
+      radial-gradient(circle at 34% 28%,rgba(255,255,255,.2),transparent 34%),
+      linear-gradient(145deg,rgba(225,29,72,.24),rgba(6,182,212,.2));
+  }
+  .brand .radar-mark::before{
+    content:"";
+    position:absolute;
+    inset:8px;
+    border-radius:50%;
+    border:1px solid rgba(214,239,255,.32);
+    box-shadow:0 0 0 7px rgba(74,168,255,.08),0 0 24px rgba(6,182,212,.22);
+  }
+  .brand .radar-mark::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:50%;
+    height:50%;
+    transform-origin:0 0;
+    transform:rotate(-28deg);
+    background:linear-gradient(90deg,rgba(103,232,249,.9),rgba(103,232,249,.18),transparent 72%);
+    clip-path:polygon(0 0,100% 12%,100% 88%);
+    filter:drop-shadow(0 0 10px rgba(103,232,249,.45));
+  }
+  .brand .radar-icon{
+    position:relative;
+    display:block;
+    border-radius:50%;
+    background:
+      radial-gradient(circle,rgba(255,255,255,.92) 0 2px,transparent 3px),
+      repeating-radial-gradient(circle,transparent 0 8px,rgba(214,239,255,.36) 8px 9px,transparent 9px 14px);
+  }
+  .brand .radar-icon::before,
+  .brand .radar-icon::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:5px;
+    bottom:5px;
+    width:1px;
+    background:rgba(214,239,255,.26);
+  }
+  .brand .radar-icon::after{
+    transform:rotate(90deg);
+  }
+  .brand h1 .tracker{
+    background:linear-gradient(96deg,#dbeafe 0%,#67e8f9 42%,#fef3c7 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    text-shadow:none;
   }
   .brand .sub{font-size:13px;margin-top:5px;color:#b3bfd3}
   nav.tabs button{font-size:15px}
@@ -1429,6 +1489,7 @@
   @media(max-width:720px){
     .brand .ball{width:46px;height:46px;border-radius:15px}
     .brand .official-logo{width:36px;height:36px}
+    .brand .radar-icon{width:36px;height:36px}
     .brand h1{font-size:23px;line-height:.98}
     .brand .sub{font-size:12.5px}
   }
@@ -1436,6 +1497,7 @@
   @media(max-width:480px){
     .brand .ball{width:42px;height:42px}
     .brand .official-logo{width:33px;height:33px}
+    .brand .radar-icon{width:33px;height:33px}
     .brand h1{font-size:21px}
     #view-upcoming #upSchedule::before{left:8px}
     #view-upcoming #upSchedule>.date-head,
@@ -1557,9 +1619,9 @@
 <header>
   <div class="head-in">
     <div class="brand">
-      <span class="ball"><img class="official-logo" src="https://assets.football-logos.cc/logos/tournaments/1500x1500/fifa-world-cup-2026.31d2489d.png" alt="FIFA World Cup 2026 emblem" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'⚽',style:'font-size:26px'}))"></span>
+      <span class="ball radar-mark" aria-hidden="true"><span class="radar-icon"></span></span>
       <div>
-        <h1><span class="wc-title">World Cup 2026</span> <span class="expl">Explorer</span></h1>
+        <h1><span class="wc-title">World Cup 2026</span> <span class="tracker">Tracker</span></h1>
         <div class="sub">Canada · Mexico · USA — 48 teams, 12 groups</div>
       </div>
     </div>
@@ -1772,7 +1834,7 @@
 <script>
 "use strict";
 /* ============================================================
-   World Cup 2026 Explorer — all logic, no dependencies.
+   World Cup 2026 Tracker — all logic, no dependencies.
    Data source: openfootball public-domain JSON (CORS-enabled).
    ============================================================ */
 
