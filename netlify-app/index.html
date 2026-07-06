@@ -4047,11 +4047,7 @@ function renderStats(groups,thirds){
 
     <div class="grid cols-2" style="margin-bottom:18px">
       <div class="schart"><h3>🏆 Team Power Rankings</h3><p class="sub">Composite of points, goal difference, recent form &amp; knockout progress — scaled 0–100. Click a team for its profile.</p>${hbars(powerRows)}</div>
-      <div class="schart"><h3>🧤 Most Clean Sheets by Team</h3><p class="sub">Teams with the most shutouts. Click a country for its profile and match details.</p>${cleanSheetRows.length?hbars(cleanSheetRows):'<div class="empty">No clean sheets yet.</div>'}</div>
-    </div>
-
-    <div class="grid cols-2" style="margin-bottom:18px">
-    <div class="schart"><h3>🥇 Golden Boot &amp; creators</h3><p class="sub">Top scorers — <span style="color:var(--series-a-hi)">crimson = goals</span>${enr?`, <span style="color:var(--series-b-hi)">cyan = assists</span>`:""}. Click a name for their card.</p>${hbars(scorerRows)}</div>
+      <div class="schart"><h3>🥇 Golden Boot &amp; creators</h3><p class="sub">Top scorers — <span style="color:var(--series-a-hi)">crimson = goals</span>${enr?`, <span style="color:var(--series-b-hi)">cyan = assists</span>`:""}. Click a name for their card.</p>${hbars(scorerRows)}</div>
     </div>
 
     <div class="grid cols-2" style="margin-bottom:18px">
@@ -4064,7 +4060,10 @@ function renderStats(groups,thirds){
       <div class="schart"><h3>📅 Goals by stage</h3><p class="sub">How the goals are spread across the rounds.</p>${vbars(stageRows)}</div>
     </div>
 
-    <div class="schart" style="margin-bottom:18px"><h3>🟨🟥 Discipline</h3><p class="sub">Total cards per team — <span style="color:var(--gold)">yellow</span> + <span style="color:var(--loss)">red</span>. Click a team for its profile.</p>${disciplineRows.length?hbars(disciplineRows):'<div class="empty">No cards yet.</div>'}</div>
+    <div class="grid cols-2" style="margin-bottom:18px">
+      <div class="schart"><h3>🟨🟥 Discipline</h3><p class="sub">Total cards per team — <span style="color:var(--gold)">yellow</span> + <span style="color:var(--loss)">red</span>. Click a team for its profile.</p>${disciplineRows.length?hbars(disciplineRows):'<div class="empty">No cards yet.</div>'}</div>
+      <div class="schart"><h3>🧤 Most Clean Sheets by Team</h3><p class="sub">Teams with the most shutouts. Click a country for its profile and match details.</p>${cleanSheetRows.length?hbars(cleanSheetRows):'<div class="empty">No clean sheets yet.</div>'}</div>
+    </div>
     ${enr?"":`<div class="tbd-note">🔄 Assists and player photos are still loading from TheSportsDB and will appear as matches are fetched.</div>`}`;
 }
 
