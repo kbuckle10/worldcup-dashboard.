@@ -3638,15 +3638,61 @@ function teamCardTotals(){
   return totals;
 }
 
-// Top N teams by clean sheets (min 1 game played), tie-broken by fewest goals conceded
-// per game. Whole-tournament, team-level — no per-goalkeeper attribution, since that would
-// need a bulk ESPN lineup fetch across every played match (~390KB each) just for this one
-// widget. Returns statline()-shaped objects (team, cs, gapg, played, ...).
+// Golden Glove standings: attribute each clean sheet to the named starting keeper
+// when ESPN lineup data is available. While those heavier match summaries are still
+// loading, keep the card populated with team-level clean-sheet leaders and label them
+// as pending keeper attribution instead of showing only the country name.
+const KEEPER_CS={}; // matchId::team -> keeper name | "" (looked up, unavailable)
+const KEEPER_CS_INFLIGHT=new Set();
+function cleanSheetMatches(team){
+  return STATE.matches.filter(m=>isPlayed(m)&&(m.team1===team||m.team2===team)).filter(m=>{
+    const r=result(m), home=m.team1===team, against=home?r.b:r.a;
+    return against===0;
+  });
+}
+function keeperForLineupSide(side){
+  if(!side || !side.starters) return null;
+  const gk=side.starters.find(p=>/^G(K)?$/i.test(p.position||"") || /keeper/i.test(p.position||""));
+  return gk?gk.name:null;
+}
+async function ensureCleanSheetKeeper(m,team){
+  const key=matchId(m)+"::"+team;
+  if(Object.prototype.hasOwnProperty.call(KEEPER_CS,key) || KEEPER_CS_INFLIGHT.has(key)) return;
+  KEEPER_CS_INFLIGHT.add(key);
+  try{
+    const id=await espnEventIdFor(m);
+    const summary=await espnSummary(id, true);
+    const comp=summary && summary.header && summary.header.competitions && summary.header.competitions[0];
+    const found=comp && findFixtureForEspnCompetition(comp,[m]);
+    const lineup=found && summary.rosters && espnLineupFromRosters(summary.rosters, found.c1, found.c2);
+    const isA=team===m.team1;
+    KEEPER_CS[key]=(lineup && keeperForLineupSide(lineup[isA?0:1])) || "";
+  }catch(e){ KEEPER_CS[key]=""; }
+  KEEPER_CS_INFLIGHT.delete(key);
+  if($("#view-players") && $("#view-players").classList.contains("active")) renderPlayers();
+}
 function goldenGloves(n,groups){
   const teams=new Set();
   Object.values(groups).forEach(g=>Object.keys(g.teams).forEach(t=>teams.add(t)));
-  return [...teams].map(t=>statline(t,groups)).filter(s=>s.played>0)
-    .sort((a,b)=>b.cs-a.cs || a.gapg-b.gapg)
+  for(const t of teams) cleanSheetMatches(t).forEach(m=>ensureCleanSheetKeeper(m,t));
+  const byKeeper={};
+  for(const t of teams){
+    const s=statline(t,groups);
+    let loading=0, unavailable=0;
+    for(const m of cleanSheetMatches(t)){
+      const name=KEEPER_CS[matchId(m)+"::"+t];
+      if(name){
+        const k=pkey(name,t);
+        const row=byKeeper[k]||(byKeeper[k]={keeper:name,team:t,cs:0,played:s.played,gapg:s.gapg,pending:false});
+        row.cs++; row.played=s.played; row.gapg=s.gapg;
+      }else if(name===undefined) loading++;
+      else unavailable++;
+    }
+    if(loading) byKeeper["pending::"+t]={keeper:"Keeper loading…",team:t,cs:loading,played:s.played,gapg:s.gapg,pending:true};
+    if(unavailable) byKeeper["unavailable::"+t]={keeper:"Keeper unavailable",team:t,cs:unavailable,played:s.played,gapg:s.gapg,unavailable:true};
+  }
+  return Object.values(byKeeper).filter(s=>s.cs>0)
+    .sort((a,b)=>b.cs-a.cs || a.gapg-b.gapg || a.keeper.localeCompare(b.keeper))
     .slice(0,n);
 }
 
@@ -3708,11 +3754,11 @@ function renderPlayers(){
     .map((p,i)=>({rank:i+1, value:enr?p.ga:p.goals, disp:`${p.goals}${enr&&p.assists?` <small>+${p.assists}a</small>`:""}`,
       segs:[{w:p.goals,cls:"g"},{w:enr?p.assists:0,cls:"a"}],
       label:`${flag(p.team,15)} <span class="player" data-player="${esc(p.name)}" data-team="${esc(p.team)}">${esc(p.name)}</span>`}));
-  // Team-level (not per-keeper — see goldenGloves()'s comment for why), pairs with Teams
-  // page's "Best defense" card but as a top-5 leaderboard instead of a single leader.
-  const gloveRows=LAST.groups?goldenGloves(5,LAST.groups).map((s,i)=>({rank:i+1, value:s.cs, disp:s.cs, sub:`${s.played} played`,
+  // Keeper-level Golden Glove rows: the label is the keeper name, with the country
+  // retained only as supporting context below the clean-sheet count.
+  const gloveRows=LAST.groups?goldenGloves(5,LAST.groups).map((s,i)=>({rank:i+1, value:s.cs, disp:s.cs, sub:s.pending?`${tnm(s.team)} · loading keeper`:s.unavailable?`${tnm(s.team)} · lineup unavailable`:`${tnm(s.team)} · ${s.played} played`,
     fill:"solid",
-    label:`${flag(s.team,15)} <span class="teamcell" data-team="${esc(s.team)}" style="display:inline-flex;min-width:0">${tnm(s.team)}</span>`})):[];
+    label:`${flag(s.team,15)} <span class="${s.pending?'':'player'}" ${s.pending?'':`data-player="${esc(s.keeper)}" data-team="${esc(s.team)}"`}>${esc(s.keeper)}</span>`})):[];
   // "Bad Boys" pool is intentionally broader than the goal/assist contributors the table
   // shows — a player with zero goals but two yellow cards belongs here even though they'd
   // never appear in the main table's default sort.
@@ -3723,7 +3769,7 @@ function renderPlayers(){
       label:`${flag(p.team,15)} <span class="player" data-player="${esc(p.name)}" data-team="${esc(p.team)}">${esc(p.name)}</span>`}));
   $("#playerLeaderboards").innerHTML=`
     <div class="schart"><h3>🥇 Golden Boot</h3><p class="sub">Top scorers.</p>${bootRows.length?hbars(bootRows):'<div class="empty">No goals yet.</div>'}</div>
-    <div class="schart"><h3>🧤 Golden Gloves</h3><p class="sub">Most clean sheets, by team (whole tournament).</p>${gloveRows.length?hbars(gloveRows):'<div class="empty">No clean sheets yet.</div>'}</div>
+    <div class="schart"><h3>🧤 Golden Gloves</h3><p class="sub">Most clean sheets, tracked by keeper name.</p>${gloveRows.length?hbars(gloveRows):'<div class="empty">No clean sheets yet.</div>'}</div>
     <div class="schart"><h3>🟨🟥 Bad Boys</h3><p class="sub">Most cards — red weighted above yellow.</p>${enr?(badBoyRows.length?hbars(badBoyRows):'<div class="empty">No cards yet.</div>'):'<div class="empty">Loading cards…</div>'}</div>`;
   // country dropdown (rebuild only when the set changes)
   const countries=[...new Set(contributors.map(p=>p.team))].sort();
