@@ -2,8 +2,8 @@
 World Cup 2026 Dashboard & Explorer
 Interactive Streamlit components edition.
 
-Default data source: GitHub-hosted OpenFootball public-domain JSON
-Optional live source: https://worldcup26.ir public World Cup 2026 API
+Default data source: https://worldcup26.ir public World Cup 2026 API
+Optional experimental source: GitHub-hosted OpenFootball JSON with ESPN/TheSportsDB enrichment
 Optional token support: set WORLDCUP26_TOKEN in Streamlit secrets if your API instance requires auth.
 """
 
@@ -384,6 +384,55 @@ def clean_text(value: Any, default: str = "") -> str:
 
 
 
+
+PLAYER_FIELD_KEYS = {"minute", "team", "type", "player", "assist", "event", "source"}
+KNOWN_INITIALS = {"JR", "SR", "Jr", "Sr"}
+
+
+def valid_player_name(value: Any, teams: Optional[Iterable[Any]] = None) -> bool:
+    name = clean_text(value)
+    if not name:
+        return False
+    lower = name.lower()
+    if lower in PLAYER_FIELD_KEYS or lower in {"none", "null", "nan", "tbd", "own", "own goal", "goal", "event"}:
+        return False
+    if any(ch in name for ch in ['{', '}', ':', '[', ']']):
+        return False
+    if len(name) < 3 and name not in KNOWN_INITIALS:
+        return False
+    team_names = set(FALLBACK_FLAGS) | set(TEAM_CODE_MAP) | set(TEAM_ISO2_MAP)
+    if teams:
+        team_names |= {clean_text(t) for t in teams if clean_text(t)}
+    team_keys = {team_match_key(t) for t in team_names if clean_text(t)}
+    if team_match_key(name) in team_keys:
+        return False
+    return True
+
+
+def valid_scorer_string(value: Any, teams: Optional[Iterable[Any]] = None) -> bool:
+    text = clean_text(value)
+    if not text:
+        return False
+    names = [clean_player_name(piece, teams=teams) for piece in re.split(r",|;|\|", text)]
+    valid_names = [name for name in names if name]
+    return bool(valid_names) and all(valid_player_name(name, teams=teams) for name in valid_names)
+
+
+def player_name_from_event(item: Dict[str, Any], teams: Optional[Iterable[Any]] = None) -> str:
+    for key in ["player", "player_name", "strPlayer", "athlete", "scorer", "goal_scorer", "name"]:
+        val = item.get(key)
+        if isinstance(val, dict):
+            val = val.get("displayName") or val.get("name")
+        candidate = clean_player_name(val, teams=teams)
+        if valid_player_name(candidate, teams=teams):
+            return candidate
+    for key in ["strTimelineDetail", "detail", "text", "description"]:
+        candidate = clean_player_name(item.get(key), teams=teams)
+        if valid_player_name(candidate, teams=teams):
+            return candidate
+    logger.info("Skipping event with unknown/untrusted player shape: %s", item)
+    return ""
+
 def build_flag_map(teams_df: pd.DataFrame) -> Dict[str, str]:
     flags = dict(FALLBACK_FLAGS)
     if not teams_df.empty:
@@ -478,12 +527,12 @@ def inject_live_clock_script() -> None:
               if (!start) return;
               const total = Math.max(0, Math.floor((Date.now() - start) / 1000));
               const mins = Math.floor(total / 60);
-              const secs = total % 60;
-              el.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+              el.textContent = `${Math.max(1, mins)}'`;
             });
           }
           tickClocks();
           setInterval(tickClocks, 1000);
+          setTimeout(() => window.parent.location.reload(), 30000);
         </script>
         """,
         height=0,
@@ -681,7 +730,7 @@ def response_or_none(resp: requests.Response) -> Any:
     return resp.json()
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=30, show_spinner=False)
 def fetch_api(path: str, api_base: str, token: str = "") -> Any:
     headers = {"Accept": "application/json"}
     if token:
@@ -921,8 +970,8 @@ def calculate_standings_from_matches(matches_df: pd.DataFrame, teams_df: pd.Data
     return table
 
 
-@st.cache_data(ttl=60, show_spinner=False)
-def load_live_data(api_base: str, token: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
+@st.cache_data(ttl=30, show_spinner=False)
+def load_live_data(api_base: str, token: str, fallback_to_demo: bool = True) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
     errors = []
     try:
         matches_raw = fetch_api("/get/games", api_base, token)
@@ -936,8 +985,9 @@ def load_live_data(api_base: str, token: str) -> Tuple[pd.DataFrame, pd.DataFram
         return matches, teams, groups, stadiums, "Live API"
     except Exception as exc:
         errors.append(str(exc))
+        if not fallback_to_demo:
+            raise RuntimeError("; ".join(errors)) from exc
         matches, teams, groups, stadiums, source = load_fallback()
-        st.warning("Live API could not be loaded, so the app is using the demo fallback snapshot. Details: " + "; ".join(errors))
         return matches, teams, groups, stadiums, source
 
 
@@ -1217,7 +1267,7 @@ def component_payload(matches_df: pd.DataFrame, teams_df: pd.DataFrame, standing
             if not g: continue
             gdf = gdf.sort_values(["Pts", "GD", "GF"], ascending=[False, False, False], na_position="last")
             for rank, (_, row) in enumerate(gdf.iterrows(), 1):
-                payload_standings.append({"group": g, "rank": rank, "team": clean_text(row.get("team")), "flag": team_flag(row.get("team")), "P": to_int(row.get("P"),0), "W": to_int(row.get("W"),0), "D": to_int(row.get("D"),0), "L": to_int(row.get("L"),0), "GF": to_int(row.get("GF"),0), "GA": to_int(row.get("GA"),0), "GD": to_int(row.get("GD"),0), "Pts": to_int(row.get("Pts"),0)})
+                payload_standings.append({"group": g, "rank": rank, "team": clean_text(row.get("team")), "flag": team_flag(row.get("team")), "code": team_code(row.get("team")), "P": to_int(row.get("P"),0), "W": to_int(row.get("W"),0), "D": to_int(row.get("D"),0), "L": to_int(row.get("L"),0), "GF": to_int(row.get("GF"),0), "GA": to_int(row.get("GA"),0), "GD": to_int(row.get("GD"),0), "Pts": to_int(row.get("Pts"),0)})
     return {"teams": payload_teams, "matches": payload_matches, "standings": payload_standings}
 
 
@@ -1225,19 +1275,33 @@ def interactive_component_html(payload: Dict[str, Any], mode: str) -> str:
     data = _json_for_components(payload)
     return f"""
 <div id='wc-app'></div>
-<style>body{{margin:0;background:#06111f;color:#f8fafc;font-family:Inter,system-ui,Arial}}.grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}}.card,.panel{{border:1px solid rgba(148,163,184,.25);border-radius:18px;background:linear-gradient(180deg,rgba(15,31,53,.96),rgba(8,20,36,.96));padding:14px;box-shadow:0 14px 34px rgba(0,0,0,.25)}}.card{{cursor:pointer;transition:.18s}}.card:hover{{transform:translateY(-2px);border-color:#f7c948}}.muted{{color:#a8b3c7;font-size:.86rem}}.team{{font-weight:900;font-size:1.05rem}}.flag{{font-size:2rem}}.tag{{display:inline-flex;gap:6px;align-items:center;border:1px solid rgba(148,163,184,.25);border-radius:999px;padding:4px 9px;margin:2px;font-weight:800;font-size:.76rem}}.live{{color:#fecaca;background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.4)}}.dot{{width:9px;height:9px;border-radius:99px;background:#ef4444;animation:blink 1s infinite;box-shadow:0 0 16px #ef4444}}@keyframes blink{{50%{{opacity:.2}}}}.clock{{color:#f7c948;font-weight:950}}table{{width:100%;border-collapse:collapse;overflow:hidden}}th,td{{padding:10px;border-top:1px solid rgba(148,163,184,.18);text-align:left}}tr[data-team]{{cursor:pointer}}tr[data-team]:hover{{background:rgba(56,189,248,.12)}}.score{{font-size:2.2rem;font-weight:950;text-align:center}}.matchline{{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}}.modal{{position:fixed;inset:0;background:rgba(2,6,23,.78);display:none;align-items:center;justify-content:center;z-index:99;padding:18px}}.modal.open{{display:flex}}.modal-card{{max-width:900px;width:100%;max-height:88vh;overflow:auto;border:1px solid rgba(247,201,72,.4);border-radius:24px;background:#081424;padding:20px}}.close{{float:right;border:0;border-radius:999px;padding:8px 12px;cursor:pointer}}.stats{{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}}.stat{{border-radius:12px;background:rgba(148,163,184,.12);padding:9px;text-align:center}}.bar{{height:8px;background:rgba(148,163,184,.18);border-radius:99px;overflow:hidden}}.fill{{height:100%;background:linear-gradient(90deg,#22c55e,#f7c948)}}.centre{{display:none;margin-top:12px}}.centre.open{{display:block}}.event{{display:grid;grid-template-columns:1fr 70px 1fr;gap:8px;margin:4px 0}}</style>
+<style>
+:root{{--bg:#06111f;--panel:#0b1728;--panel2:#0f1f35;--muted:#a8b3c7;--line:rgba(148,163,184,.24);--gold:#f7c948;--cyan:#38bdf8;--green:#22c55e;--red:#ef4444}}
+*{{box-sizing:border-box}} body{{margin:0;background:#06111f;color:#f8fafc;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif}}
+.copy{{color:var(--muted);margin:0 0 14px;font-size:.96rem;line-height:1.45}} .section-title{{font-size:1.55rem;font-weight:950;letter-spacing:-.03em;margin:0 0 6px;color:#fff}} .section-title:after{{content:"";display:block;width:76px;height:3px;margin-top:10px;background:linear-gradient(90deg,#2dd4bf,#f7c948);border-radius:99px}}
+.grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:14px}} .card,.panel{{border:1px solid var(--line);border-radius:20px;background:linear-gradient(180deg,rgba(15,31,53,.96),rgba(8,20,36,.96));padding:15px;box-shadow:0 14px 34px rgba(0,0,0,.25)}}
+.card{{cursor:pointer;transition:transform .18s,border-color .18s,background .18s}} .card:hover{{transform:translateY(-2px);border-color:#f7c948;background:linear-gradient(180deg,rgba(20,42,72,.98),rgba(9,24,43,.98))}}
+.team-card{{min-height:178px;display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden}} .team-card:after{{content:"";position:absolute;right:-38px;top:-38px;width:120px;height:120px;border-radius:999px;background:rgba(56,189,248,.08)}}
+.team-top{{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;position:relative;z-index:1}} .flag{{font-size:2.25rem;line-height:1}} .team-name{{font-weight:950;font-size:1.13rem;color:#fff;line-height:1.15}} .code{{display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(247,201,72,.38);background:rgba(247,201,72,.12);color:#fde68a;border-radius:999px;padding:4px 9px;font-weight:950;font-size:.75rem;letter-spacing:.08em;white-space:nowrap}}
+.muted{{color:var(--muted);font-size:.86rem}} .team-meta{{display:flex;flex-wrap:wrap;gap:6px;position:relative;z-index:1}} .tag{{display:inline-flex;gap:6px;align-items:center;border:1px solid rgba(148,163,184,.25);border-radius:999px;padding:4px 9px;margin:2px 2px 2px 0;font-weight:850;font-size:.76rem;background:rgba(148,163,184,.11)}}
+.live{{color:#fecaca;background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.4)}} .dot{{width:9px;height:9px;border-radius:99px;background:#ef4444;animation:blink 1s infinite;box-shadow:0 0 16px #ef4444}} @keyframes blink{{50%{{opacity:.2}}}} .clock{{color:#f7c948;font-weight:950}}
+table{{width:100%;border-collapse:collapse;overflow:hidden}} th,td{{padding:10px;border-top:1px solid rgba(148,163,184,.18);text-align:left}} th{{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;color:#a8b3c7}} tr[data-team]{{cursor:pointer}} tr[data-team]:hover{{background:rgba(56,189,248,.12)}} .standing-team{{display:flex;align-items:center;gap:9px;font-weight:900;color:#fff}} .standing-flag{{font-size:1.3rem;min-width:1.6rem;text-align:center}}
+.score{{font-size:2.2rem;font-weight:950;text-align:center}} .matchline{{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}} .team{{font-weight:900;font-size:1.05rem}}
+.modal{{position:fixed;inset:0;background:rgba(2,6,23,.78);display:none;align-items:center;justify-content:center;z-index:99;padding:18px}} .modal.open{{display:flex}} .modal-card{{max-width:920px;width:100%;max-height:88vh;overflow:auto;border:1px solid rgba(247,201,72,.4);border-radius:24px;background:#081424;padding:20px;box-shadow:0 28px 90px rgba(0,0,0,.48)}} .close{{float:right;border:0;border-radius:999px;padding:8px 12px;cursor:pointer;font-weight:850}} .stats{{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}} .stat{{border-radius:12px;background:rgba(148,163,184,.12);padding:9px;text-align:center}} .bar{{height:8px;background:rgba(148,163,184,.18);border-radius:99px;overflow:hidden}} .fill{{height:100%;background:linear-gradient(90deg,#22c55e,#f7c948)}} .centre{{display:none;margin-top:12px}} .centre.open{{display:block}} .event{{display:grid;grid-template-columns:1fr 70px 1fr;gap:8px;margin:4px 0}}
+@media(max-width:700px){{.stats{{grid-template-columns:repeat(2,1fr)}} .matchline{{grid-template-columns:1fr; text-align:center}}}}
+</style>
 <script>
 const DATA={data}; const MODE={json.dumps(mode)}; const root=document.getElementById('wc-app');
 const esc=s=>(s??'').toString().replace(/[&<>\"']/g,m=>({{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}}[m]));
-function mmss(m){{ if(m.status!=='Live') return esc(m.minute||m.kickoff); const base=m.kickoffMs?Math.max(0,Math.floor((Date.now()-m.kickoffMs)/1000)):0; const sec=base%60, min=Math.floor(base/60); return `${{String(min).padStart(2,'0')}}:${{String(sec).padStart(2,'0')}}`; }}
+function mmss(m){{ if(m.status!=='Live') return esc(m.minute||m.kickoff); if(!m.kickoffMs) return esc(m.minute||'LIVE'); const min=Math.floor(Math.max(0,Date.now()-m.kickoffMs)/60000); return `${{Math.max(1,min)}}'`; }}
 function closeModal(){{document.querySelector('.modal').classList.remove('open')}}
-function teamModal(name){{const t=DATA.teams.find(x=>x.team===name); if(!t)return; document.querySelector('.modal-card').innerHTML=`<button class='close' onclick='closeModal()'>Close</button><h2>${{esc(t.flag)}} ${{esc(t.team)}} <span class='muted'>${{esc(t.code)}}</span></h2><p class='muted'>${{esc(t.standing)}} • Group ${{esc(t.group||'—')}}</p><div class='stats'><div class='stat'><b>${{esc(t.record)}}</b><br>W-D-L</div><div class='stat'><b>${{esc(t.goals)}}</b><br>Goals</div><div class='stat'><b>${{esc(t.gd)}}</b><br>GD</div><div class='stat'><b>${{esc(t.ranking)}}</b><br>Ranking</div></div><h3>Profile</h3><p>Coach: <b>${{esc(t.coach)}}</b> • Captain: <b>${{esc(t.captain)}}</b> • Top player: <b>${{esc(t.topPlayer)}}</b></p><p>${{esc(t.style)}}</p><p>Form: ${{t.form.map(x=>`<span class='tag'>${{esc(x)}}</span>`).join('')}}</p><h3>Next match</h3><p>${{esc(t.next)}}</p><h3>Matches</h3><ul>${{t.route.map(x=>`<li>${{esc(x)}}</li>`).join('')||'<li>No matches loaded</li>'}}</ul>`; document.querySelector('.modal').classList.add('open');}}
+function teamModal(name){{const t=DATA.teams.find(x=>x.team===name); if(!t)return; document.querySelector('.modal-card').innerHTML=`<button class='close' onclick='closeModal()'>Close</button><h2>${{esc(t.flag)}} ${{esc(t.team)}} <span class='code'>${{esc(t.code)}}</span></h2><p class='muted'>${{esc(t.standing)}} • Group ${{esc(t.group||'—')}}</p><div class='stats'><div class='stat'><b>${{esc(t.record)}}</b><br>W-D-L</div><div class='stat'><b>${{esc(t.goals)}}</b><br>Goals</div><div class='stat'><b>${{esc(t.gd)}}</b><br>GD</div><div class='stat'><b>${{esc(t.ranking)}}</b><br>Ranking</div></div><h3>Profile</h3><p>Coach: <b>${{esc(t.coach)}}</b> • Captain: <b>${{esc(t.captain)}}</b> • Top player: <b>${{esc(t.topPlayer)}}</b></p><p>${{esc(t.style)}}</p><p>Form: ${{(t.form||[]).map(x=>`<span class='tag'>${{esc(x)}}</span>`).join('')}}</p><h3>Next match</h3><p>${{esc(t.next)}}</p><h3>Matches</h3><ul>${{(t.route||[]).map(x=>`<li>${{esc(x)}}</li>`).join('')||'<li>No matches loaded</li>'}}</ul>`; document.querySelector('.modal').classList.add('open');}}
 function centre(m){{return `<h3>Match Centre</h3><div class='stats'><div class='stat'><b>${{m.prob[0]}}%</b><br>${{esc(m.home)}} win</div><div class='stat'><b>${{m.prob[1]}}%</b><br>${{esc(m.away)}} win</div><div class='stat'><b class='clock' data-clock='${{esc(m.id)}}'>${{mmss(m)}}</b><br>Clock</div><div class='stat'><b>${{esc(m.score)}}</b><br>Score</div></div><h4>Timeline / scorers</h4>${{m.scorers.map(x=>`<div class='event'><span></span><b>⚽</b><span>${{esc(x)}}</span></div>`).join('')||'<p class="muted">No scorer timeline available.</p>'}}<h4>Assists</h4><p>${{m.assists.map(esc).join(', ')||'Not available'}}</p><h4>Cards</h4><p>${{m.cards.map(c=>`${{esc(c.minute)}} ${{esc(c.player)}} (${{esc(c.team)}}) ${{esc(c.card)}}`).join('<br>')||'Not available'}}</p><h4>Substitutions</h4><p>${{m.subs.map(s=>`${{esc(s.minute)}} ${{esc(s.in)}} for ${{esc(s.out)}} (${{esc(s.team)}})`).join('<br>')||'Not available'}}</p><h4>Match stats</h4>${{m.stats.map(s=>`<div><div class='muted'>${{esc(s.label)}}: <b>${{s.home}}</b> - <b>${{s.away}}</b></div><div class='bar'><div class='fill' style='width:${{Math.round(100*s.home/Math.max(1,s.home+s.away))}}%'></div></div></div>`).join('')}}`;}}
 function matchCard(m){{return `<div class='card match' data-id='${{esc(m.id)}}'><div><span class='tag ${{m.status==='Live'?'live':''}}'>${{m.status==='Live'?'<span class="dot"></span>':''}}${{esc(m.status)}}</span><span class='tag'>${{esc(m.stage)}}</span><span class='tag clock' data-clock='${{esc(m.id)}}'>${{mmss(m)}}</span></div><div class='matchline'><div class='team'>${{esc(m.homeFlag)}} ${{esc(m.home)}}</div><div class='score'>${{esc(m.score)}}</div><div class='team' style='text-align:right'>${{esc(m.away)}} ${{esc(m.awayFlag)}}</div></div><div class='muted' style='text-align:center'>${{esc(m.kickoff)}}${{m.venue?' • '+esc(m.venue):''}}</div><div class='centre' id='centre-${{esc(m.id)}}'>${{centre(m)}}</div></div>`}}
-function render(){{let html='<div class="modal"><div class="modal-card"></div></div>'; if(MODE==='teams') html+=`<div class='grid'>${{DATA.teams.map(t=>`<div class='card' data-team='${{esc(t.team)}}'><div class='flag'>${{esc(t.flag)}}</div><div class='team'>${{esc(t.team)}} <span class='muted'>${{esc(t.code)}}</span></div><div class='muted'>${{esc(t.standing)}} • Coach ${{esc(t.coach)}}</div><div>${{t.form.map(x=>`<span class='tag'>${{esc(x)}}</span>`).join('')}}</div></div>`).join('')}}</div>`; else if(MODE==='standings') html+= [...new Set(DATA.standings.map(x=>x.group))].map(g=>`<div class='panel'><h3>Group ${{esc(g)}}</h3><table><thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead><tbody>${{DATA.standings.filter(x=>x.group===g).map(r=>`<tr data-team='${{esc(r.team)}}'><td>${{r.rank}}</td><td>${{esc(r.flag)}} ${{esc(r.team)}}</td><td>${{r.P}}</td><td>${{r.W}}</td><td>${{r.D}}</td><td>${{r.L}}</td><td>${{r.GD}}</td><td><b>${{r.Pts}}</b></td></tr>`).join('')}}</tbody></table></div><br>`).join(''); else html+=`<div class='grid'>${{DATA.matches.filter(m=>MODE==='knockout'?m.stageCode!=='group':true).map(matchCard).join('')}}</div>`; root.innerHTML=html; document.querySelectorAll('[data-team]').forEach(e=>e.onclick=()=>teamModal(e.dataset.team)); document.querySelectorAll('.match').forEach(e=>e.onclick=()=>e.querySelector('.centre').classList.toggle('open'));}}
-render(); setInterval(()=>{{DATA.matches.forEach(m=>document.querySelectorAll(`[data-clock="${{CSS.escape(m.id)}}"]`).forEach(e=>e.textContent=mmss(m)));}},1000); setTimeout(()=>window.parent.location.reload(),45000);
+function teamCard(t){{return `<div class='card team-card' data-team='${{esc(t.team)}}'><div class='team-top'><div><div class='flag'>${{esc(t.flag)}}</div><div class='team-name'>${{esc(t.team)}}</div></div><span class='code'>${{esc(t.code)}}</span></div><div class='muted'>${{esc(t.standing)}}${{t.group?' • Group '+esc(t.group):''}}</div><div class='team-meta'><span class='tag'>Coach ${{esc(t.coach)}}</span><span class='tag'>${{esc(t.record)}} W-D-L</span><span class='tag'>GD ${{esc(t.gd)}}</span></div></div>`}}
+function render(){{let html='<div class="modal"><div class="modal-card"></div></div>'; if(MODE==='teams') html+=`<h2 class='section-title'>Teams</h2><p class='copy'>Click any team for a full profile: every match, goals for & against, current form, scorers, and how far they got.</p><div class='grid'>${{DATA.teams.map(teamCard).join('')}}</div>`; else if(MODE==='standings') html+=`<p class='copy'>All 12 groups. Every row includes the flag, team name and 3-character FIFA code — click a team to open the same profile.</p>`+[...new Set(DATA.standings.map(x=>x.group))].map(g=>`<div class='panel'><h3>Group ${{esc(g)}}</h3><table><thead><tr><th>#</th><th>Team</th><th>Code</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead><tbody>${{DATA.standings.filter(x=>x.group===g).map(r=>`<tr data-team='${{esc(r.team)}}'><td>${{r.rank}}</td><td><span class='standing-team'><span class='standing-flag'>${{esc(r.flag)}}</span><span>${{esc(r.team)}}</span></span></td><td><span class='code'>${{esc(r.code)}}</span></td><td>${{r.P}}</td><td>${{r.W}}</td><td>${{r.D}}</td><td>${{r.L}}</td><td>${{r.GD}}</td><td><b>${{r.Pts}}</b></td></tr>`).join('')}}</tbody></table></div><br>`).join(''); else html+=`<div class='muted' style='text-align:right;margin-bottom:8px'>Last refreshed: <span id='last-refreshed'></span> • auto refreshes every 30s</div><div class='grid'>${{DATA.matches.filter(m=>MODE==='knockout'?m.stageCode!=='group':true).map(matchCard).join('')}}</div>`; root.innerHTML=html; const refreshed=document.getElementById('last-refreshed'); if(refreshed) refreshed.textContent=new Date().toLocaleTimeString([],{{hour:'numeric',minute:'2-digit',second:'2-digit'}}); document.querySelectorAll('[data-team]').forEach(e=>e.onclick=()=>teamModal(e.dataset.team)); document.querySelectorAll('.match').forEach(e=>e.onclick=()=>e.querySelector('.centre').classList.toggle('open'));}}
+render(); setInterval(()=>{{DATA.matches.forEach(m=>document.querySelectorAll(`[data-clock="${{CSS.escape(m.id)}}"]`).forEach(e=>e.textContent=mmss(m)));}},1000); setTimeout(()=>window.parent.location.reload(),30000);
 </script>"""
-
 
 def render_interactive_component(payload: Dict[str, Any], mode: str, height: int = 760) -> None:
     components.html(interactive_component_html(payload, mode), height=height, scrolling=True)
@@ -1321,6 +1385,7 @@ def render_team_profile_card(team: str, tmatches: pd.DataFrame, group: str, code
 def extract_scorers(matches_df: pd.DataFrame) -> pd.DataFrame:
     records = []
     for _, m in matches_df.iterrows():
+        match_teams = [m.get("home_team"), m.get("away_team")]
         for side in ["home", "away"]:
             team = m.get(f"{side}_team")
             scorers = clean_text(m.get(f"{side}_scorers"))
@@ -1329,8 +1394,8 @@ def extract_scorers(matches_df: pd.DataFrame) -> pd.DataFrame:
             # Accept formats like "Messi 23', Alvarez 44'" or simple comma-separated names.
             pieces = re.split(r",|;|\|", scorers)
             for p in pieces:
-                name = re.sub(r"\([^)]*\)|\d+['’]?(\+\d+)?", "", p).strip(" -•")
-                if name and name.lower() not in {"null", "none", "own goal"}:
+                name = clean_player_name(p, teams=[team, *match_teams])
+                if name:
                     records.append({"player": name, "team": team, "goals": 1})
     if not records:
         return pd.DataFrame()
@@ -1346,7 +1411,7 @@ def scorer_events(row: pd.Series) -> List[Dict[str, Any]]:
         raw = clean_text(row.get(f"{side}_scorers"))
         if raw:
             for piece in re.split(r",|;|\|", raw):
-                player = clean_player_name(piece)
+                player = clean_player_name(piece, teams=[row.get("home_team"), row.get("away_team")])
                 minute_match = re.search(r"(\d+)(?:['’])?(?:\+(\d+))?", piece)
                 minute = 0
                 label = ""
@@ -1363,9 +1428,15 @@ def scorer_events(row: pd.Series) -> List[Dict[str, Any]]:
         if not re.search(r"goal|scor", typ, flags=re.I):
             continue
         team = canonical_team_name(item.get("team") or item.get("team_name") or item.get("strTeam") or item.get("strHomeTeam"))
-        player = clean_player_name(item.get("player") or item.get("player_name") or item.get("strPlayer") or item.get("strTimelineDetail") or item.get("text"))
+        player = player_name_from_event(item, teams=[row.get("home_team"), row.get("away_team")])
         minute = to_int(item.get("minute") or item.get("time") or item.get("intTime") or item.get("intTimeline"), 0) or 0
-        side = "away" if team_match_key(team) == away_key else "home" if team_match_key(team) == home_key else "home"
+        if team and team_match_key(team) == away_key:
+            side = "away"
+        elif team and team_match_key(team) == home_key:
+            side = "home"
+        else:
+            logger.info("Skipping goal event with unknown team shape: %s", item)
+            continue
         if player:
             events.append({"side": side, "team": team or clean_text(row.get(f"{side}_team")), "player": player, "minute": minute, "label": f"{minute}'" if minute else "Goal", "kind": "Goal"})
     return sorted(events, key=lambda e: e.get("minute", 0))
@@ -1390,26 +1461,33 @@ def event_timeline_html(row: pd.Series) -> str:
 
 def match_stat_rows(row: pd.Series) -> List[Tuple[str, int, int]]:
     raw = row.get("raw") if isinstance(row.get("raw"), dict) else {}
-    stats: List[Tuple[str, int, int]] = []
+    wanted = [
+        ("possession", "Possession"),
+        ("shots", "Shots"),
+        ("shots_on_target", "Shots on target"),
+        ("corners", "Corners"),
+        ("fouls", "Fouls"),
+        ("offside", "Offside"),
+        ("yellow_cards", "Yellow cards"),
+        ("red_cards", "Red cards"),
+    ]
+    found: Dict[str, Tuple[int, int]] = {}
     for key in ["statistics", "stats", "match_stats"]:
         val = raw.get(key)
         if isinstance(val, dict):
-            for label in ["possession", "shots", "shots_on_target", "corners", "fouls", "yellow_cards"]:
-                item = val.get(label)
+            normalized = {re.sub(r"[^a-z0-9]", "_", clean_text(k).lower()).strip("_"): v for k, v in val.items()}
+            for stat_key, label in wanted:
+                item = normalized.get(stat_key) or normalized.get(stat_key.rstrip("s"))
                 if isinstance(item, dict):
                     h = to_int(item.get("home") or item.get("home_team"), None)
                     a = to_int(item.get("away") or item.get("away_team"), None)
                     if h is not None and a is not None:
-                        stats.append((label.replace("_", " ").title(), h, a))
+                        found[label] = (h, a)
     hscore = 0 if pd.isna(row.get("home_score")) else int(row.get("home_score"))
     ascore = 0 if pd.isna(row.get("away_score")) else int(row.get("away_score"))
-    stats.insert(0, ("Goals scored", hscore, ascore))
-    home_first = len([e for e in scorer_events(row) if e["side"] == "home" and e.get("minute", 91) <= 45])
-    away_first = len([e for e in scorer_events(row) if e["side"] == "away" and e.get("minute", 91) <= 45])
-    if home_first or away_first:
-        stats.append(("First-half goals", home_first, away_first))
-        stats.append(("Second-half goals", max(0, hscore-home_first), max(0, ascore-away_first)))
-    return stats[:8]
+    stats: List[Tuple[str, int, int]] = [("Goals", hscore, ascore)]
+    stats.extend((label, *found.get(label, (0, 0))) for _, label in wanted)
+    return stats
 
 
 def render_stat_comparison(label: str, home_value: int, away_value: int) -> None:
@@ -1514,9 +1592,13 @@ def render_live_detail_expander(row: pd.Series, expanded: bool = False) -> None:
     minute = live_minute(row) or ("FT" if row.get("status") == "Finished" else clean_text(row.get("kickoff", "TBD")))
     with st.expander(f"Match details: {home} vs {away} • {minute}", expanded=expanded):
         st.markdown(f"**Running time:** {minute} &nbsp;&nbsp; **Score:** {scoreline_label(row)} &nbsp;&nbsp; **Stage:** {clean_text(row.get('stage_label'))}")
+        home_prob, away_prob = matchup_probabilities(home, away, row)
+        st.markdown(probability_row_html(home, away, home_prob, away_prob), unsafe_allow_html=True)
+        st.markdown(event_timeline_html(row), unsafe_allow_html=True)
         goals = scorer_events(row)
         cards = cards_from_raw(row)
         subs = substitutions_from_raw(row)
+        assists = [clean_text(x.get("assist") or x.get("assist_name")) for x in event_list_from_raw(row, ["events", "goals", "assists"]) if clean_text(x.get("assist") or x.get("assist_name"))]
         lineups = lineups_from_raw(row)
         c1, c2 = st.columns(2)
         with c1:
@@ -1526,6 +1608,12 @@ def render_live_detail_expander(row: pd.Series, expanded: bool = False) -> None:
                     st.write(f"⚽ {ev.get('label')} — {ev.get('player')} ({ev.get('team')})")
             else:
                 st.caption("No scorer details are available from the current feed yet.")
+            st.write("##### Assists")
+            if assists:
+                for name in assists:
+                    st.write(f"🅰️ {name}")
+            else:
+                st.caption("No assist feed is available yet.")
             st.write("##### Cards")
             if cards:
                 for ev in cards:
@@ -1794,7 +1882,7 @@ def render_bracket_wall(knockout: pd.DataFrame) -> None:
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
+def load_openfootball_data(fallback_to_demo: bool = True) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
     """Load the GitHub-hosted OpenFootball World Cup 2026 JSON feed."""
     def team_name(value: Any) -> str:
         if isinstance(value, dict):
@@ -1928,8 +2016,9 @@ def load_openfootball_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, 
         groups = calculate_standings_from_matches(matches, teams)
         return matches, teams, groups, stadiums, f"OpenFootball GitHub JSON ({schema_name})"
     except Exception as exc:
+        if not fallback_to_demo:
+            raise RuntimeError(str(exc)) from exc
         matches, teams, groups, stadiums, source = load_fallback()
-        st.warning("OpenFootball data could not be loaded, so the app is using the demo fallback snapshot. Details: " + str(exc))
         return matches, teams, groups, stadiums, source
 
 
@@ -1950,7 +2039,7 @@ def team_match_key(value: Any) -> str:
     return re.sub(r"[^a-z0-9]", "", canonical_team_name(value).lower())
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=30, show_spinner=False)
 def fetch_public_json(url: str, params: Optional[Dict[str, Any]] = None) -> Any:
     resp = requests.get(
         url,
@@ -1962,9 +2051,51 @@ def fetch_public_json(url: str, params: Optional[Dict[str, Any]] = None) -> Any:
     return resp.json()
 
 
-def source_labels_text(source: str) -> str:
-    return f"{source} • Base data: OpenFootball • Live overlay: ESPN • Enrichment: TheSportsDB"
+def source_labels_text(statuses: Dict[str, str]) -> str:
+    """Render the data-provider chain without promoting demo data as primary."""
+    labels = ["Live API", "ESPN", "TheSportsDB", "OpenFootball fallback"]
+    rendered = []
+    for label in labels:
+        status = statuses.get(label, "")
+        icon = "✓" if status == "ok" else "↳" if status == "fallback" else "⚠"
+        rendered.append(f"{icon} {label}")
+    return " • ".join(rendered)
 
+
+def load_default_data(api_base: str, token: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
+    """Experimental enrichment mode: start with Live API, then overlay only safe ESPN/TheSportsDB fields."""
+    statuses = {"Live API": "", "ESPN": "", "TheSportsDB": "", "OpenFootball fallback": ""}
+    try:
+        matches, teams, groups, stadiums, _source = load_live_data(api_base, token, fallback_to_demo=False)
+        statuses["Live API"] = "ok"
+    except Exception as api_exc:
+        statuses["Live API"] = f"unavailable: {api_exc}"
+        try:
+            matches, teams, groups, stadiums, _source = load_openfootball_data(fallback_to_demo=False)
+            statuses["OpenFootball fallback"] = "fallback"
+        except Exception as of_exc:
+            matches, teams, groups, stadiums, _source = load_fallback()
+            statuses["OpenFootball fallback"] = f"demo fallback: {of_exc}"
+
+    matches, espn_source = apply_espn_overlay(matches)
+    statuses["ESPN"] = "ok" if "unavailable" not in espn_source.lower() else espn_source
+    matches, teams, tdb_source = apply_thesportsdb_enrichment(matches, teams)
+    statuses["TheSportsDB"] = "ok" if "unavailable" not in tdb_source.lower() else tdb_source
+    return matches, teams, groups, stadiums, "Experimental enrichment • " + source_labels_text(statuses)
+
+
+
+def data_quality_label(source: str) -> str:
+    source_lower = clean_text(source).lower()
+    if "demo" in source_lower:
+        return "Demo fallback"
+    if "experimental" in source_lower or ("openfootball" in source_lower and ("espn" in source_lower or "thesportsdb" in source_lower)):
+        return "Experimental enrichment"
+    if "espn" in source_lower or "thesportsdb" in source_lower:
+        return "Enriched"
+    if "live api" in source_lower:
+        return "Clean Live API"
+    return "Enriched"
 
 def normalize_espn_status(competition: Dict[str, Any], status: Dict[str, Any]) -> str:
     state = clean_text(status.get("type", {}).get("state") or status.get("type", {}).get("name") or status.get("type", {}).get("description")).lower()
@@ -1990,12 +2121,16 @@ def espn_events_from_summary(summary: Dict[str, Any], home: str, away: str) -> L
     events: List[Dict[str, Any]] = []
     for item in summary.get("scoringPlays", []) or []:
         team_name = canonical_team_name((item.get("team") or {}).get("displayName") or item.get("team"))
-        events.append({"type": "Goal", "event": "Goal", "minute": clean_text(item.get("clock", {}).get("displayValue") or item.get("minute")), "team": team_name, "player": clean_text(item.get("athlete", {}).get("displayName") or item.get("text"), "Goal"), "source": "ESPN"})
+        player = player_name_from_event(item, teams=[home, away])
+        if player:
+            events.append({"type": "Goal", "event": "Goal", "minute": clean_text(item.get("clock", {}).get("displayValue") or item.get("minute")), "team": team_name, "player": player, "source": "ESPN"})
     for item in summary.get("keyEvents", []) or summary.get("events", []) or []:
         typ = clean_text(item.get("type", {}).get("text") or item.get("type") or item.get("playType") or item.get("text"))
         team_name = canonical_team_name((item.get("team") or {}).get("displayName") or item.get("team"))
-        player = clean_text((item.get("athlete") or {}).get("displayName") or item.get("player") or item.get("text"), "Event")
-        events.append({"type": typ, "event": typ, "minute": clean_text(item.get("clock", {}).get("displayValue") or item.get("minute")), "team": team_name, "player": player, "source": "ESPN"})
+        player = player_name_from_event(item, teams=[home, away])
+        if re.search(r"goal|scor", typ, flags=re.I) and not player:
+            continue
+        events.append({"type": typ, "event": typ, "minute": clean_text(item.get("clock", {}).get("displayValue") or item.get("minute")), "team": team_name, "player": player or "Event", "source": "ESPN"})
     return events
 
 
@@ -2092,8 +2227,12 @@ def apply_thesportsdb_enrichment(matches: pd.DataFrame, teams: pd.DataFrame) -> 
         raw.setdefault("sources", {})["enrichment"] = "TheSportsDB"
         raw["thesportsdb_event"] = ev
         for side, key in [("home", "strHomeGoalDetails"), ("away", "strAwayGoalDetails")]:
-            if clean_text(ev.get(key)):
-                df.at[idx, f"{side}_scorers"] = clean_text(ev.get(key)).replace(";", ", ")
+            incoming = clean_text(ev.get(key)).replace(";", ", ")
+            existing = clean_text(df.at[idx, f"{side}_scorers"])
+            if incoming and not existing and valid_scorer_string(incoming, teams=[df.at[idx, "home_team"], df.at[idx, "away_team"]]):
+                df.at[idx, f"{side}_scorers"] = incoming
+            elif incoming and existing:
+                logger.info("Keeping primary scorer data for %s; TheSportsDB scorer enrichment skipped", df.at[idx, "match_id"])
         if clean_text(ev.get("idEvent")):
             try:
                 timeline = fetch_public_json(f"{THESPORTSDB_API_BASE}/lookuptimeline.php", {"id": ev.get("idEvent")})
@@ -2122,14 +2261,13 @@ def build_normalized_secondary_frames(matches: pd.DataFrame, teams: pd.DataFrame
     return players_df, pd.DataFrame(event_rows), pd.DataFrame(stat_rows), pd.DataFrame(prob_rows)
 
 
-def clean_player_name(name: str) -> str:
+def clean_player_name(name: Any, teams: Optional[Iterable[Any]] = None) -> str:
     name = clean_text(name)
     name = re.sub(r"[{}\[\]\"`]+", "", name)
     name = re.sub(r"\b(goal|penalty|own goal|og|assist|card)\b", "", name, flags=re.I)
     name = re.sub(r"\d+['’]?(\+\d+)?", "", name)
     name = re.sub(r"\s+", " ", name).strip(" -•,:;")
-    bad = {"", "none", "null", "nan", "tbd", "own", "own goal"}
-    return "" if name.lower() in bad or len(name) < 2 else name
+    return name if valid_player_name(name, teams=teams) else ""
 
 
 def extract_player_stats(matches_df: pd.DataFrame) -> pd.DataFrame:
@@ -2144,7 +2282,7 @@ def extract_player_stats(matches_df: pd.DataFrame) -> pd.DataFrame:
             for raw in pieces:
                 is_pen = bool(re.search(r"\bpen\b|penalty|\(p\)", raw, flags=re.I))
                 is_og = bool(re.search(r"own goal|\bog\b", raw, flags=re.I))
-                name = clean_player_name(raw)
+                name = clean_player_name(raw, teams=[team, m.get("home_team"), m.get("away_team")])
                 if not name or is_og:
                     continue
                 records.append({
@@ -2363,8 +2501,10 @@ def render_dashboard(matches_df: pd.DataFrame, standings_df: pd.DataFrame, sourc
     avg_goals = total_goals / len(finished) if len(finished) else 0
     current_stage, _current_stage_detail = get_current_stage_metric(matches_df)
 
-    cache_note = "60 seconds" if source == "Live API" else "1 hour"
-    st.caption(f"Data source: {source} • Cache: {cache_note}")
+    cache_note = "30 seconds" if "Live API" in source else "1 hour"
+    quality = data_quality_label(source)
+    st.caption(f"Data source: {source} • Cache: {cache_note} • Data quality: {quality}")
+    st.markdown(f"<span class='tag'>Data quality: {esc(quality)}</span>", unsafe_allow_html=True)
 
     st.markdown("### Tournament Dashboard")
     st.markdown(f"<div class='explain'><b>Overview shows:</b> current tournament status, live or next match, completed-match progress, goal pace, and headline summary cards. {explain_current_stage(matches_df)} New to football? Start with the <a class='wc-basics-link' href='?tab=Football%20101' target='_self'>Football 101</a> tab for quick rules and tournament basics.</div><div class='wc-overview-spacer'></div>", unsafe_allow_html=True)
@@ -2594,22 +2734,19 @@ def main() -> None:
     st.sidebar.title("⚽ Controls")
     api_base = secret("WORLDCUP26_BASE_URL", DEFAULT_API_BASE)
     token = secret("WORLDCUP26_TOKEN", "")
-    source_mode = st.sidebar.radio("Data mode", ["OpenFootball + ESPN + TheSportsDB", "OpenFootball", "Live API", "Demo fallback"], help="Default uses OpenFootball fixtures with ESPN live overlay and TheSportsDB enrichment. Live API keeps worldcup26.ir as a fallback source.")
+    source_mode = st.sidebar.radio("Data mode", ["Live API", "Experimental: OpenFootball + ESPN + TheSportsDB", "OpenFootball", "Demo fallback"], help="Default uses the Live API as the primary source. Experimental enrichment starts with Live API and only adds safe ESPN/TheSportsDB fields without replacing trusted scorer/player names.")
     if st.sidebar.button("Refresh now", help="Fetch fresh data with a Streamlit rerun."):
         st.cache_data.clear()
         st.rerun()
 
-    if source_mode == "OpenFootball + ESPN + TheSportsDB":
-        matches, teams, groups, stadiums, source = load_openfootball_data()
-        matches, espn_source = apply_espn_overlay(matches)
-        matches, teams, tdb_source = apply_thesportsdb_enrichment(matches, teams)
-        source = source_labels_text(f"Base data: OpenFootball | Live overlay: {espn_source} | Enrichment: {tdb_source}")
+    if source_mode == "Experimental: OpenFootball + ESPN + TheSportsDB":
+        matches, teams, groups, stadiums, source = load_default_data(api_base, token)
     elif source_mode == "OpenFootball":
         matches, teams, groups, stadiums, source = load_openfootball_data()
-        source = "Base data: OpenFootball"
+        source = "✓ OpenFootball"
     elif source_mode == "Live API":
         matches, teams, groups, stadiums, source = load_live_data(api_base, token)
-        source = f"{source} (worldcup26.ir fallback)"
+        source = "Live API" if source == "Live API" else source
     else:
         matches, teams, groups, stadiums, source = load_fallback()
 
